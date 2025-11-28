@@ -6,7 +6,7 @@
         <div class="flex justify-between h-16">
           <!-- Logo y nombre -->
           <div class="flex items-center">
-            <h1 class="text-2xl font-bold text-blue-600">TaskFlow</h1>
+            <h1 class="text-2xl font-bold text-blue-600">Icontel</h1>
           </div>
 
           <!-- Navegación -->
