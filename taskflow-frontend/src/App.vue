@@ -5,13 +5,16 @@
 <script setup>
 import { RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
 import { onMounted } from 'vue'
 
 const authStore = useAuthStore()
+const themeStore = useThemeStore()
 
 // Cargar el usuario del localStorage al iniciar la app
 onMounted(() => {
   authStore.loadFromStorage()
+  themeStore.loadTheme() // Cargar tema
 })
 </script>
 

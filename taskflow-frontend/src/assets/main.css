@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.sortable-ghost {
+  opacity: 0.4;
+  background: #f3f4f6;
+  border: 2px dashed #3b82f6;
+}
+
+.sortable-drag {
+  opacity: 0.8;
+  cursor: move;
+}
+
+.drag-handle {
+  cursor: move;
+  user-select: none;
+}
+
+.drag-handle:hover {
+  color: #3b82f6;
+}

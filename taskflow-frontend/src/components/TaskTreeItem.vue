@@ -4,7 +4,15 @@
     <div 
       class="flex items-start p-4 rounded-lg border-l-4 mb-2 hover:bg-gray-50 transition-colors"
       :class="getTaskClass(task)"
+      :data-task-id="task.id"
     >
+      <!-- Drag Handle -->
+      <div class="drag-handle flex-shrink-0 mr-2 mt-1 cursor-move">
+        <svg class="w-5 h-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+        </svg>
+      </div>
+
       <!-- Icono de estado -->
       <div class="flex-shrink-0 mt-1">
         <span class="text-xl mr-3">{{ getTaskIcon(task) }}</span>
