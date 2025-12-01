@@ -34,4 +34,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
     // Tasks
     Route::apiResource('tasks', TaskController::class);
+
+    // Dependencias de tareas
+    Route::get('/tasks/{taskId}/dependencies', [App\Http\Controllers\Api\TaskDependencyController::class, 'index']);
+    Route::post('/tasks/{taskId}/dependencies', [App\Http\Controllers\Api\TaskDependencyController::class, 'store']);
+    Route::delete('/dependencies/{id}', [App\Http\Controllers\Api\TaskDependencyController::class, 'destroy']);
+    Route::get('/tasks/{taskId}/check-blocked', [App\Http\Controllers\Api\TaskDependencyController::class, 'checkBlocked']);
 });

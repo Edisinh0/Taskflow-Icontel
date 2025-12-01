@@ -43,13 +43,29 @@
             <span v-if="task.priority" :class="getPriorityClass(task.priority)" class="px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap">
               {{ getPriorityText(task.priority) }}
             </span>
-            <!-- Botón Editar -->
-            <button
-              @click="emit('edit', task)"
-              class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full hover:bg-blue-200 transition-colors"
-            >
-              ✏️ Editar
-            </button>
+            <!-- Botones de acción -->
+            <div class="flex space-x-1">
+              <button
+                @click.stop="emit('edit', task)"
+                class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-semibold rounded-full hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+              >
+                ✏️ Editar
+              </button>
+              <button
+                @click.stop="emit('dependencies', task)"
+                class="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs font-semibold rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                title="Gestionar dependencias"
+              >
+                🔗
+              </button>
+              <button
+                @click.stop="emit('delete', task)"
+                class="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-semibold rounded-full hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                title="Eliminar tarea"
+              >
+                🗑️
+              </button>
+            </div>
           </div>
         </div>
 
@@ -99,6 +115,8 @@
         :task="subtask"
         :level="level + 1"
         @edit="(task) => emit('edit', task)"
+        @delete="(task) => emit('delete', task)"
+        @dependencies="(task) => emit('dependencies', task)"
       />
     </div>
   </div>
@@ -118,7 +136,7 @@ defineProps({
   }
 })
 
-const emit = defineEmits(['edit'])
+const emit = defineEmits(['edit', 'delete', 'dependencies'])
 
 const getTaskClass = (task) => {
   if (task.status === 'completed') return 'border-green-500 bg-green-50'

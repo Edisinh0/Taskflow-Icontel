@@ -1,36 +1,34 @@
 <template>
-  <div class="min-h-screen bg-gray-100">
-    <!-- Navbar -->
-    <nav class="bg-white shadow-lg">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex items-center">
-            <h1 class="text-2xl font-bold text-blue-600">TaskFlow</h1>
-          </div>
-          <div class="flex items-center space-x-4">
-            <router-link to="/dashboard" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600">Dashboard</router-link>
-            <router-link to="/flows" class="px-3 py-2 rounded-md text-sm font-medium text-blue-600">Flujos</router-link>
-            <button @click="handleLogout" class="ml-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Salir</button>
-          </div>
-        </div>
-      </div>
-    </nav>
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <!-- Navbar profesional -->
+    <Navbar />
 
     <!-- Loading -->
     <div v-if="loading" class="flex justify-center items-center h-64">
-      <div class="text-xl text-gray-600">Cargando flujo...</div>
+      <div class="text-xl text-gray-600 dark:text-gray-400">Cargando flujo...</div>
     </div>
 
     <!-- Contenido -->
     <main v-else-if="flow" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Header del Flujo -->
-      <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-none p-6 mb-6 border border-gray-100 dark:border-gray-700">
         <div class="flex justify-between items-start mb-4">
-          <div>
-            <h2 class="text-3xl font-bold text-gray-800">{{ flow.name }}</h2>
-            <p class="text-gray-600 mt-2">{{ flow.description }}</p>
+          <div class="flex-1">
+            <div class="flex items-center space-x-3">
+              <h2 class="text-3xl font-bold text-gray-900 dark:text-white">{{ flow.name }}</h2>
+              <button
+                @click="deleteFlow"
+                class="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                title="Eliminar flujo"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">{{ flow.description }}</p>
           </div>
-          <span :class="getStatusClass(flow.status)" class="px-4 py-2 text-sm font-semibold rounded-full">
+          <span :class="getStatusClass(flow.status)" class="px-4 py-2 text-sm font-semibold rounded-full whitespace-nowrap">
             {{ getStatusText(flow.status) }}
           </span>
         </div>
@@ -136,6 +134,8 @@
             :task="task"
             :level="0"
             @edit="openEditTaskModal"
+            @delete="deleteTask"
+            @dependencies="openDependencyModal"
           />
         </div>
       </div>
@@ -150,6 +150,15 @@
       @close="closeTaskModal"
       @saved="handleTaskSaved"
     />
+
+    <!-- Modal de Dependencias -->
+    <DependencyManager
+      :is-open="showDependencyModal"
+      :task="selectedTask"
+      :available-tasks="flow?.tasks || []"
+      @close="closeDependencyModal"
+      @updated="handleDependenciesUpdated"
+    />
   </div>
 </template>
 
@@ -160,6 +169,7 @@ import { useAuthStore } from '@/stores/auth'
 import { flowsAPI } from '@/services/api'
 import TaskTreeItem from '@/components/TaskTreeItem.vue'
 import TaskModal from '@/components/TaskModal.vue'
+import Navbar from '@/components/Navbar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -177,11 +187,6 @@ const users = ref([
   { id: 3, name: 'María González' },
   { id: 4, name: 'Carlos Rodríguez' }
 ])
-
-const handleLogout = async () => {
-  await authStore.logout()
-  router.push('/login')
-}
 
 const openNewTaskModal = () => {
   selectedTask.value = null

@@ -114,56 +114,104 @@
         </div>
 
         <!-- Vista Lista -->
-        <div v-if="viewMode === 'list'" class="divide-y divide-gray-200">
+        <div v-if="viewMode === 'list'" class="divide-y divide-gray-200 dark:divide-gray-700">
           <div
             v-for="task in filteredTasks"
             :key="task.id"
-            class="p-4 hover:bg-gray-50 cursor-pointer"
+            class="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors group"
             @click="goToFlow(task.flow_id)"
           >
             <div class="flex items-start justify-between">
               <div class="flex-1">
-                <div class="flex items-center space-x-2 mb-2">
-                  <span v-if="task.is_milestone" class="text-xl">⭐</span>
-                  <h4 class="text-lg font-semibold text-gray-800">{{ task.title }}</h4>
+                <div class="flex items-center space-x-3 mb-2">
+                  <span v-if="task.is_milestone" class="text-2xl">⭐</span>
+                  <h4 class="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    {{ task.title }}
+                  </h4>
                 </div>
-                <p class="text-sm text-gray-600 mb-2">{{ task.description }}</p>
-                <div class="flex items-center space-x-4 text-sm text-gray-500">
-                  <span>👤 {{ task.assignee?.name || 'Sin asignar' }}</span>
-                  <span>📊 {{ task.progress }}%</span>
-                  <span :class="getPriorityColor(task.priority)">{{ getPriorityText(task.priority) }}</span>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ task.description }}</p>
+                <div class="flex items-center space-x-6 text-sm">
+                  <span class="flex items-center text-gray-500 dark:text-gray-400">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    {{ task.assignee?.name || 'Sin asignar' }}
+                  </span>
+                  <span class="flex items-center text-gray-500 dark:text-gray-400">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    {{ task.progress }}%
+                  </span>
+                  <span :class="getPriorityColor(task.priority)" class="font-medium">
+                    {{ getPriorityText(task.priority) }}
+                  </span>
                 </div>
               </div>
-              <span :class="getStatusBadge(task.status)" class="px-3 py-1 text-xs font-semibold rounded-full">
-                {{ getStatusText(task.status) }}
-              </span>
+              <div class="ml-4 flex flex-col items-end space-y-2">
+                <span :class="getStatusBadge(task.status)" class="px-3 py-1 text-xs font-semibold rounded-full whitespace-nowrap">
+                  {{ getStatusText(task.status) }}
+                </span>
+                <div class="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div 
+                    class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all"
+                    :style="`width: ${task.progress}%`"
+                  ></div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div v-if="filteredTasks.length === 0" class="p-8 text-center text-gray-500">
-            No se encontraron tareas con estos filtros
+          <div v-if="filteredTasks.length === 0" class="p-12 text-center">
+            <svg class="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="text-gray-500 dark:text-gray-400 text-lg font-medium">No se encontraron tareas</p>
+            <p class="text-gray-400 dark:text-gray-500 text-sm mt-1">Intenta cambiar los filtros</p>
           </div>
         </div>
 
         <!-- Vista Grid -->
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
           <div
             v-for="task in filteredTasks"
             :key="task.id"
-            class="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer"
+            class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 hover:shadow-lg dark:hover:shadow-none hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer group"
             @click="goToFlow(task.flow_id)"
           >
-            <div class="flex items-start justify-between mb-2">
+            <div class="flex items-start justify-between mb-3">
               <span v-if="task.is_milestone" class="text-2xl">⭐</span>
-              <span :class="getStatusBadge(task.status)" class="px-2 py-1 text-xs font-semibold rounded-full">
+              <span :class="getStatusBadge(task.status)" class="px-3 py-1 text-xs font-semibold rounded-full">
                 {{ getStatusText(task.status) }}
               </span>
             </div>
-            <h4 class="text-base font-semibold text-gray-800 mb-2">{{ task.title }}</h4>
-            <p class="text-sm text-gray-600 mb-3 line-clamp-2">{{ task.description }}</p>
-            <div class="flex items-center justify-between text-sm">
-              <span class="text-gray-600">{{ task.assignee?.name || 'Sin asignar' }}</span>
-              <span class="font-semibold text-blue-600">{{ task.progress }}%</span>
+            <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              {{ task.title }}
+            </h4>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">{{ task.description }}</p>
+            
+            <!-- Info adicional -->
+            <div class="space-y-2 mb-4">
+              <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                {{ task.assignee?.name || 'Sin asignar' }}
+              </div>
+              <div class="flex items-center justify-between">
+                <span :class="getPriorityColor(task.priority)" class="text-xs font-semibold">
+                  {{ getPriorityText(task.priority) }}
+                </span>
+                <span class="text-sm font-semibold text-blue-600 dark:text-blue-400">{{ task.progress }}%</span>
+              </div>
+            </div>
+
+            <!-- Barra de progreso -->
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div 
+                class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all"
+                :style="`width: ${task.progress}%`"
+              ></div>
             </div>
           </div>
         </div>
@@ -177,6 +225,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { tasksAPI } from '@/services/api'
+import Navbar from '@/components/Navbar.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -234,11 +283,6 @@ const filteredTasks = computed(() => {
   return result
 })
 
-const handleLogout = async () => {
-  await authStore.logout()
-  router.push('/login')
-}
-
 const applyFilters = () => {
   // Los filtros se aplican automáticamente por computed
 }
@@ -260,13 +304,13 @@ const goToFlow = (flowId) => {
 
 const getStatusBadge = (status) => {
   const badges = {
-    pending: 'bg-gray-100 text-gray-800',
-    in_progress: 'bg-blue-100 text-blue-800',
-    completed: 'bg-green-100 text-green-800',
-    blocked: 'bg-red-100 text-red-800',
-    paused: 'bg-yellow-100 text-yellow-800'
+    pending: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300',
+    in_progress: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400',
+    completed: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400',
+    blocked: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400',
+    paused: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400'
   }
-  return badges[status] || 'bg-gray-100 text-gray-800'
+  return badges[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-400'
 }
 
 const getStatusText = (status) => {
@@ -282,12 +326,12 @@ const getStatusText = (status) => {
 
 const getPriorityColor = (priority) => {
   const colors = {
-    low: 'text-blue-600',
-    medium: 'text-yellow-600',
-    high: 'text-orange-600',
-    urgent: 'text-red-600'
+    low: 'text-blue-600 dark:text-blue-400',
+    medium: 'text-yellow-600 dark:text-yellow-400',
+    high: 'text-orange-600 dark:text-orange-400',
+    urgent: 'text-red-600 dark:text-red-400'
   }
-  return colors[priority] || 'text-gray-600'
+  return colors[priority] || 'text-gray-600 dark:text-gray-400'
 }
 
 const getPriorityText = (priority) => {
