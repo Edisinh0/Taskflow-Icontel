@@ -1,24 +1,21 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-    <!-- Navbar profesional -->
     <Navbar />
 
-    <!-- Loading -->
     <div v-if="loading" class="flex justify-center items-center h-64">
       <div class="text-xl text-gray-600 dark:text-gray-400">Cargando flujo...</div>
     </div>
 
-    <!-- Contenido -->
     <main v-else-if="flow" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Header del Flujo -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-none p-6 mb-6 border border-gray-100 dark:border-gray-700">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 border border-gray-100 dark:border-gray-700">
         <div class="flex justify-between items-start mb-4">
           <div class="flex-1">
             <div class="flex items-center space-x-3">
               <h2 class="text-3xl font-bold text-gray-900 dark:text-white">{{ flow.name }}</h2>
               <button
                 @click="deleteFlow"
-                class="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 title="Eliminar flujo"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,25 +32,25 @@
 
         <!-- Info adicional -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-          <div class="bg-gray-50 p-4 rounded-lg">
-            <p class="text-sm text-gray-500">Plantilla</p>
-            <p class="text-lg font-semibold text-gray-800">{{ flow.template?.name || 'Sin plantilla' }}</p>
+          <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Plantilla</p>
+            <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ flow.template?.name || 'Sin plantilla' }}</p>
           </div>
-          <div class="bg-gray-50 p-4 rounded-lg">
-            <p class="text-sm text-gray-500">Creado por</p>
-            <p class="text-lg font-semibold text-gray-800">{{ flow.creator?.name }}</p>
+          <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Creado por</p>
+            <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ flow.creator?.name }}</p>
           </div>
-          <div class="bg-gray-50 p-4 rounded-lg">
-            <p class="text-sm text-gray-500">Total Tareas</p>
-            <p class="text-lg font-semibold text-gray-800">{{ flow.tasks?.length || 0 }}</p>
+          <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Total Tareas</p>
+            <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ flow.tasks?.length || 0 }}</p>
           </div>
-          <div class="bg-gray-50 p-4 rounded-lg">
-            <p class="text-sm text-gray-500">Progreso General</p>
+          <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Progreso General</p>
             <div class="flex items-center mt-1">
-              <div class="w-full bg-gray-200 rounded-full h-2 mr-2">
+              <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2 mr-2">
                 <div class="bg-blue-600 h-2 rounded-full" :style="`width: ${calculateOverallProgress()}%`"></div>
               </div>
-              <span class="text-sm font-semibold">{{ calculateOverallProgress() }}%</span>
+              <span class="text-sm font-semibold dark:text-white">{{ calculateOverallProgress() }}%</span>
             </div>
           </div>
         </div>
@@ -61,38 +58,37 @@
 
       <!-- Milestones -->
       <div class="mb-6">
-        <h3 class="text-2xl font-bold text-gray-800 mb-4">🎯 Milestones (Hitos)</h3>
+        <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">🎯 Milestones (Hitos)</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div 
             v-for="milestone in milestones" 
             :key="milestone.id"
-            class="bg-white rounded-lg shadow p-6 border-l-4"
+            class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4"
             :class="getMilestoneClass(milestone)"
           >
             <div class="flex items-start justify-between mb-3">
-              <h4 class="text-lg font-semibold text-gray-800">{{ milestone.title }}</h4>
+              <h4 class="text-lg font-semibold text-gray-800 dark:text-white">{{ milestone.title }}</h4>
               <span class="text-2xl">{{ getMilestoneIcon(milestone.status) }}</span>
             </div>
-            <p class="text-sm text-gray-600 mb-3">{{ milestone.description }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ milestone.description }}</p>
             
             <div class="space-y-2">
               <div class="flex justify-between text-sm">
-                <span class="text-gray-500">Responsable:</span>
-                <span class="font-medium">{{ milestone.assignee?.name || 'Sin asignar' }}</span>
+                <span class="text-gray-500 dark:text-gray-400">Responsable:</span>
+                <span class="font-medium dark:text-white">{{ milestone.assignee?.name || 'Sin asignar' }}</span>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-500">Progreso:</span>
-                <span class="font-medium">{{ milestone.progress }}%</span>
+                <span class="text-gray-500 dark:text-gray-400">Progreso:</span>
+                <span class="font-medium dark:text-white">{{ milestone.progress }}%</span>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-500">Subtareas:</span>
-                <span class="font-medium">{{ milestone.subtasks?.length || 0 }}</span>
+                <span class="text-gray-500 dark:text-gray-400">Subtareas:</span>
+                <span class="font-medium dark:text-white">{{ milestone.subtasks?.length || 0 }}</span>
               </div>
             </div>
 
-            <!-- Subtareas del milestone -->
-            <div v-if="milestone.subtasks && milestone.subtasks.length > 0" class="mt-4 pt-4 border-t">
-              <p class="text-xs font-semibold text-gray-500 mb-2">TAREAS:</p>
+            <div v-if="milestone.subtasks && milestone.subtasks.length > 0" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">TAREAS:</p>
               <div class="space-y-2">
                 <div 
                   v-for="subtask in milestone.subtasks" 
@@ -102,7 +98,7 @@
                   <span :class="getTaskIcon(subtask.status)" class="mr-2">
                     {{ getTaskIconSymbol(subtask.status) }}
                   </span>
-                  <span class="flex-1" :class="{'line-through text-gray-400': subtask.status === 'completed'}">
+                  <span class="flex-1 dark:text-gray-300" :class="{'line-through text-gray-400': subtask.status === 'completed'}">
                     {{ subtask.title }}
                   </span>
                 </div>
@@ -112,10 +108,15 @@
         </div>
       </div>
 
-      <!-- Todas las Tareas (Vista de Árbol) -->
-      <div class="bg-white rounded-lg shadow-lg p-6">
+      <!-- Todas las Tareas con Drag & Drop -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-100 dark:border-gray-700">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-2xl font-bold text-gray-800">📋 Todas las Tareas</h3>
+          <div>
+            <h3 class="text-2xl font-bold text-gray-800 dark:text-white">📋 Todas las Tareas</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              💡 Arrastra las tareas por el icono ≡ para reordenarlas
+            </p>
+          </div>
           <button
             @click="openNewTaskModal"
             class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center"
@@ -127,7 +128,8 @@
           </button>
         </div>
         
-        <div class="space-y-3">
+        <!-- Contenedor con Drag & Drop -->
+        <div ref="taskListRef" class="space-y-3">
           <TaskTreeItem 
             v-for="task in rootTasks" 
             :key="task.id"
@@ -137,6 +139,13 @@
             @delete="deleteTask"
             @dependencies="openDependencyModal"
           />
+        </div>
+
+        <div v-if="rootTasks.length === 0" class="text-center py-12">
+          <svg class="w-16 h-16 mx-auto text-gray-400 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <p class="text-gray-500 dark:text-gray-400">No hay tareas en este flujo</p>
         </div>
       </div>
     </main>
@@ -165,22 +174,23 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { flowsAPI } from '@/services/api'
+import { flowsAPI, tasksAPI } from '@/services/api'
+import { useDragAndDrop } from '@/composables/useDragAndDrop'
 import TaskTreeItem from '@/components/TaskTreeItem.vue'
 import TaskModal from '@/components/TaskModal.vue'
+import DependencyManager from '@/components/DependencyManager.vue'
 import Navbar from '@/components/Navbar.vue'
 
 const route = useRoute()
 const router = useRouter()
-const authStore = useAuthStore()
 
 const flow = ref(null)
 const loading = ref(true)
 const showTaskModal = ref(false)
+const showDependencyModal = ref(false)
 const selectedTask = ref(null)
+const taskListRef = ref(null)
 
-// Lista de usuarios para el modal (simulado, deberías cargarlo de la API)
 const users = ref([
   { id: 1, name: 'Admin TaskFlow' },
   { id: 2, name: 'Juan Pérez' },
@@ -188,6 +198,48 @@ const users = ref([
   { id: 4, name: 'Carlos Rodríguez' }
 ])
 
+// Computed
+const milestones = computed(() => {
+  if (!flow.value?.tasks) return []
+  return flow.value.tasks.filter(task => task.is_milestone)
+})
+
+const rootTasks = computed(() => {
+  if (!flow.value?.tasks) return []
+  return flow.value.tasks.filter(task => !task.parent_task_id)
+})
+
+// Drag & Drop Setup
+useDragAndDrop(taskListRef, {
+  onEnd: async (evt) => {
+    const movedTaskId = evt.item.dataset.taskId
+    const newIndex = evt.newIndex
+    
+    console.log(`🎯 Tarea ${movedTaskId} movida a posición ${newIndex}`)
+    
+    try {
+      // Actualizar orden en el backend
+      const token = localStorage.getItem('token')
+      await fetch(`http://localhost:8000/api/v1/tasks/${movedTaskId}/reorder`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ new_order: newIndex })
+      })
+      
+      // Recargar flujo
+      await loadFlow()
+    } catch (error) {
+      console.error('Error reordenando tarea:', error)
+      alert('Error al reordenar la tarea')
+      await loadFlow() // Revertir cambios
+    }
+  }
+})
+
+// Modals
 const openNewTaskModal = () => {
   selectedTask.value = null
   showTaskModal.value = true
@@ -203,29 +255,56 @@ const closeTaskModal = () => {
   selectedTask.value = null
 }
 
+const openDependencyModal = (task) => {
+  selectedTask.value = task
+  showDependencyModal.value = true
+}
+
+const closeDependencyModal = () => {
+  showDependencyModal.value = false
+  selectedTask.value = null
+}
+
 const handleTaskSaved = async () => {
-  // Recargar el flujo después de guardar
   await loadFlow()
 }
 
-// Computed
-const milestones = computed(() => {
-  if (!flow.value?.tasks) return []
-  return flow.value.tasks.filter(task => task.is_milestone)
-})
+const handleDependenciesUpdated = async () => {
+  await loadFlow()
+}
 
-const rootTasks = computed(() => {
-  if (!flow.value?.tasks) return []
-  return flow.value.tasks.filter(task => !task.parent_task_id)
-})
+// Delete operations
+const deleteTask = async (task) => {
+  if (!confirm(`¿Estás seguro de eliminar la tarea "${task.title}"?`)) return
 
-// Métodos
+  try {
+    await tasksAPI.delete(task.id)
+    await loadFlow()
+  } catch (error) {
+    console.error('Error eliminando tarea:', error)
+    alert('Error al eliminar la tarea')
+  }
+}
+
+const deleteFlow = async () => {
+  if (!confirm(`¿Estás seguro de eliminar el flujo "${flow.value.name}"? Esto eliminará todas las tareas asociadas.`)) return
+
+  try {
+    await flowsAPI.delete(flow.value.id)
+    router.push('/flows')
+  } catch (error) {
+    console.error('Error eliminando flujo:', error)
+    alert('Error al eliminar el flujo')
+  }
+}
+
+// Utility functions
 const getStatusClass = (status) => {
   const classes = {
-    active: 'bg-green-100 text-green-800',
-    paused: 'bg-yellow-100 text-yellow-800',
-    completed: 'bg-blue-100 text-blue-800',
-    cancelled: 'bg-red-100 text-red-800'
+    active: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400',
+    paused: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400',
+    completed: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400',
+    cancelled: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
   }
   return classes[status] || 'bg-gray-100 text-gray-800'
 }
@@ -241,10 +320,10 @@ const getStatusText = (status) => {
 }
 
 const getMilestoneClass = (milestone) => {
-  if (milestone.status === 'completed') return 'border-green-500 bg-green-50'
-  if (milestone.status === 'in_progress') return 'border-blue-500'
-  if (milestone.status === 'blocked') return 'border-red-500 bg-red-50'
-  return 'border-gray-300'
+  if (milestone.status === 'completed') return 'border-green-500 bg-green-50 dark:bg-green-900/20'
+  if (milestone.status === 'in_progress') return 'border-blue-500 dark:border-blue-600'
+  if (milestone.status === 'blocked') return 'border-red-500 bg-red-50 dark:bg-red-900/20'
+  return 'border-gray-300 dark:border-gray-600'
 }
 
 const getMilestoneIcon = (status) => {
@@ -256,9 +335,9 @@ const getMilestoneIcon = (status) => {
 
 const getTaskIcon = (status) => {
   const classes = {
-    completed: 'text-green-600',
-    in_progress: 'text-blue-600',
-    blocked: 'text-red-600',
+    completed: 'text-green-600 dark:text-green-400',
+    in_progress: 'text-blue-600 dark:text-blue-400',
+    blocked: 'text-red-600 dark:text-red-400',
     pending: 'text-gray-400'
   }
   return classes[status] || 'text-gray-400'
@@ -277,7 +356,7 @@ const calculateOverallProgress = () => {
   return Math.round(totalProgress / flow.value.tasks.length)
 }
 
-// Cargar datos
+// Load data
 const loadFlow = async () => {
   try {
     loading.value = true

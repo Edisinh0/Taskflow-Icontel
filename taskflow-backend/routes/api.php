@@ -5,7 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\FlowController;
 use App\Http\Controllers\Api\TaskController;
-
+use App\Http\Controllers\Api\TaskDependencyController;
 /*
 |--------------------------------------------------------------------------
 | API Routes - TaskFlow v1
@@ -33,8 +33,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::apiResource('flows', FlowController::class);
 
     // Tasks
+    Route::post('/tasks/reorder', [TaskController::class, 'reorder']);
+    Route::post('/tasks/{id}/move', [TaskController::class, 'move']);
     Route::apiResource('tasks', TaskController::class);
-
     // Dependencias de tareas
     Route::get('/tasks/{taskId}/dependencies', [App\Http\Controllers\Api\TaskDependencyController::class, 'index']);
     Route::post('/tasks/{taskId}/dependencies', [App\Http\Controllers\Api\TaskDependencyController::class, 'store']);

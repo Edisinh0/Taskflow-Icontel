@@ -2,7 +2,7 @@
   <div class="task-item" :style="{ marginLeft: `${level * 24}px` }">
     <!-- Tarea Principal -->
     <div 
-      class="flex items-start p-4 rounded-lg border-l-4 mb-2 hover:bg-gray-50 transition-colors"
+      class="flex items-start p-4 rounded-lg border-l-4 mb-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
       :class="getTaskClass(task)"
       :data-task-id="task.id"
     >
@@ -36,32 +36,38 @@
           </div>
 
           <!-- Badges de estado -->
-          <div class="flex flex-col items-end space-y-1 ml-4">
-            <span :class="getStatusBadgeClass(task.status)" class="px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap">
-              {{ getStatusText(task.status) }}
-            </span>
-            <span v-if="task.priority" :class="getPriorityClass(task.priority)" class="px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap">
-              {{ getPriorityText(task.priority) }}
-            </span>
+          <div class="flex flex-col items-end space-y-2 ml-4">
+            <div class="flex flex-col space-y-1">
+              <span :class="getStatusBadgeClass(task.status)" class="px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap text-center">
+                {{ getStatusText(task.status) }}
+              </span>
+              <span v-if="task.priority" :class="getPriorityClass(task.priority)" class="px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap text-center">
+                {{ getPriorityText(task.priority) }}
+              </span>
+            </div>
+            
             <!-- Botones de acción -->
-            <div class="flex space-x-1">
+            <div class="flex flex-wrap gap-1 justify-end">
               <button
-                @click.stop="emit('edit', task)"
-                class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-semibold rounded-full hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                @click.stop.prevent="handleEdit"
+                class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-semibold rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                type="button"
               >
                 ✏️ Editar
               </button>
               <button
-                @click.stop="emit('dependencies', task)"
-                class="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs font-semibold rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
-                title="Gestionar dependencias"
+                @click.stop.prevent="handleDependencies"
+                class="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs font-semibold rounded hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                type="button"
+                title="Dependencias"
               >
                 🔗
               </button>
               <button
-                @click.stop="emit('delete', task)"
-                class="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-semibold rounded-full hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
-                title="Eliminar tarea"
+                @click.stop.prevent="handleDelete"
+                class="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-semibold rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                type="button"
+                title="Eliminar"
               >
                 🗑️
               </button>
@@ -137,6 +143,19 @@ defineProps({
 })
 
 const emit = defineEmits(['edit', 'delete', 'dependencies'])
+
+// Funciones handler para evitar problemas de propagación
+const handleEdit = () => {
+  emit('edit', props.task)
+}
+
+const handleDelete = () => {
+  emit('delete', props.task)
+}
+
+const handleDependencies = () => {
+  emit('dependencies', props.task)
+}
 
 const getTaskClass = (task) => {
   if (task.status === 'completed') return 'border-green-500 bg-green-50'

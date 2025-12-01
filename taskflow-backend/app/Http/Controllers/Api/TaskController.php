@@ -153,4 +153,72 @@ class TaskController extends Controller
             'message' => 'Tarea eliminada exitosamente',
         ], 200);
     }
+
+    public function reorder(Request $request)
+    {
+        $validated = $request->validate([
+            'tasks' => 'required|array',
+            'tasks.*.id' => 'required|exists:tasks,id',
+            'tasks.*.order' => 'required|integer|min:0',
+            'tasks.*.parent_task_id' => 'nullable|exists:tasks,id',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            foreach ($validated['tasks'] as $taskData) {
+                Task::where('id', $taskData['id'])->update([
+                    'order' => $taskData['order'],
+                    'parent_task_id' => $taskData['parent_task_id'] ?? null,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tareas reordenadas exitosamente',
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al reordenar tareas: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Mover tarea a otro milestone/parent
+     * POST /api/v1/tasks/{id}/move
+     */
+    public function move(Request $request, $id)
+    {
+        $task = Task::findOrFail($id);
+
+        $validated = $request->validate([
+            'parent_task_id' => 'nullable|exists:tasks,id',
+            'order' => 'nullable|integer|min:0',
+        ]);
+
+        try {
+            $task->update([
+                'parent_task_id' => $validated['parent_task_id'] ?? null,
+                'order' => $validated['order'] ?? 0,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tarea movida exitosamente',
+                'data' => $task->load(['flow', 'assignee', 'parentTask']),
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al mover tarea: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

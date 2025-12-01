@@ -234,12 +234,12 @@ const formData = ref({
   blocked_reason: '',
   estimated_start_at: '',
   estimated_end_at: '',
-  flow_id: props.flowId,
+  flow_id: props.flowId || null,
   parent_task_id: props.parentTaskId || null
 })
 
-// Watch para cargar datos cuando se edita
-watch(() => props.task, (newTask) => {
+// Watch para cargar datos cuando se edita o cambia el flowId
+watch(() => [props.task, props.flowId], ([newTask, newFlowId]) => {
   if (newTask) {
     formData.value = {
       title: newTask.title || '',
@@ -268,7 +268,7 @@ watch(() => props.task, (newTask) => {
       blocked_reason: '',
       estimated_start_at: '',
       estimated_end_at: '',
-      flow_id: props.flowId,
+      flow_id: newFlowId || null,
       parent_task_id: props.parentTaskId || null
     }
   }
