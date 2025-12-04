@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\FlowController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TaskDependencyController;
+use App\Http\Controllers\Api\NotificationController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes - TaskFlow v1
@@ -50,6 +52,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/notifications/stats', [NotificationController::class, 'stats']);
 
     // Reordenamiento de tareas
-    Route::post('/tasks/reorder', [TaskController::class, 'reorder']);
-    Route::post('/tasks/{id}/move', [TaskController::class, 'move']);
+Route::post('/tasks/reorder', [TaskController::class, 'reorder']);
+Route::post('/tasks/{id}/move', [TaskController::class, 'move']);
 });

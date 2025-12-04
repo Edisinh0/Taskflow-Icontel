@@ -29,7 +29,7 @@
                 <span>Dashboard</span>
               </span>
             </router-link>
-
+            <NotificationBell />
             <router-link
               to="/flows"
               class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
@@ -192,7 +192,7 @@
               </svg>
               <span>Dashboard</span>
             </router-link>
-
+            
             <router-link
               to="/flows"
               @click="mobileMenuOpen = false"
@@ -252,8 +252,7 @@
       </Transition>
     </div>
   </nav>
-  <NotificationBell />
-  
+
 </template>
 
 <script setup>
