@@ -41,4 +41,15 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::post('/tasks/{taskId}/dependencies', [App\Http\Controllers\Api\TaskDependencyController::class, 'store']);
     Route::delete('/dependencies/{id}', [App\Http\Controllers\Api\TaskDependencyController::class, 'destroy']);
     Route::get('/tasks/{taskId}/check-blocked', [App\Http\Controllers\Api\TaskDependencyController::class, 'checkBlocked']);
+    
+    // Notificaciones
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+    Route::get('/notifications/stats', [NotificationController::class, 'stats']);
+
+    // Reordenamiento de tareas
+    Route::post('/tasks/reorder', [TaskController::class, 'reorder']);
+    Route::post('/tasks/{id}/move', [TaskController::class, 'move']);
 });

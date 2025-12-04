@@ -1,9 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-    <!-- Navbar profesional -->
     <Navbar />
 
-    <!-- Contenido Principal -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Título -->
       <div class="mb-8">
@@ -11,14 +9,15 @@
         <p class="text-gray-600 dark:text-gray-400 mt-1">Bienvenido, {{ authStore.currentUser?.name }}</p>
       </div>
 
-      <!-- Estadísticas -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <!-- Card 1: Total Flujos -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft dark:shadow-none p-6 border border-gray-100 dark:border-gray-700 transition-all hover:shadow-medium">
+      <!-- Estadísticas Principales -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Flujos Activos -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-6 border border-gray-100 dark:border-gray-700">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Flujos Activos</p>
               <p class="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">{{ stats.activeFlows }}</p>
+              <p class="text-xs text-gray-400 mt-1">+{{ stats.flowsThisWeek }} esta semana</p>
             </div>
             <div class="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl">
               <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,12 +27,13 @@
           </div>
         </div>
 
-        <!-- Card 2: Tareas Pendientes -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft dark:shadow-none p-6 border border-gray-100 dark:border-gray-700 transition-all hover:shadow-medium">
+        <!-- Tareas Pendientes -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-6 border border-gray-100 dark:border-gray-700">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Tareas Pendientes</p>
               <p class="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{{ stats.pendingTasks }}</p>
+              <p class="text-xs text-gray-400 mt-1">{{ stats.urgentTasks }} urgentes</p>
             </div>
             <div class="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-xl">
               <svg class="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,12 +43,13 @@
           </div>
         </div>
 
-        <!-- Card 3: Tareas Completadas -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft dark:shadow-none p-6 border border-gray-100 dark:border-gray-700 transition-all hover:shadow-medium">
+        <!-- Tareas Completadas -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-6 border border-gray-100 dark:border-gray-700">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Completadas</p>
-              <p class="text-3xl font-bold text-green-600 dark:text-green-400 mt-1">{{ stats.completedTasks }}</p>
+              <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Completadas Hoy</p>
+              <p class="text-3xl font-bold text-green-600 dark:text-green-400 mt-1">{{ stats.completedToday }}</p>
+              <p class="text-xs text-gray-400 mt-1">{{ stats.completionRate }}% tasa de éxito</p>
             </div>
             <div class="bg-green-100 dark:bg-green-900/30 p-3 rounded-xl">
               <svg class="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -58,99 +59,114 @@
           </div>
         </div>
 
-        <!-- Card 4: Plantillas -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft dark:shadow-none p-6 border border-gray-100 dark:border-gray-700 transition-all hover:shadow-medium">
+        <!-- Tareas Vencidas -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-6 border border-gray-100 dark:border-gray-700">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Plantillas</p>
-              <p class="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-1">{{ stats.templates }}</p>
+              <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Tareas Vencidas</p>
+              <p class="text-3xl font-bold text-red-600 dark:text-red-400 mt-1">{{ stats.overdueTasks }}</p>
+              <p class="text-xs text-gray-400 mt-1">Requieren atención</p>
             </div>
-            <div class="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-xl">
-              <svg class="w-8 h-8 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+            <div class="bg-red-100 dark:bg-red-900/30 p-3 rounded-xl">
+              <svg class="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Gráficos -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <!-- Gráfico de Estado de Tareas -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft dark:shadow-none p-6 border border-gray-100 dark:border-gray-700">
-          <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">📊 Estado de Tareas</h3>
-          <div class="h-64 flex items-center justify-center">
-            <Doughnut 
-              v-if="taskStatusChartData.datasets[0].data.some(val => val > 0)"
-              :data="taskStatusChartData" 
-              :options="chartOptions" 
-            />
-            <p v-else class="text-gray-400 dark:text-gray-500">No hay datos disponibles</p>
+      <!-- Gráficos y Métricas -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Tendencia de Tareas (Últimos 7 días) -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-6 border border-gray-100 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">📊 Tendencia de Tareas (7 días)</h3>
+          <div class="h-64">
+            <Line v-if="taskTrendData.datasets[0].data.length > 0" :data="taskTrendData" :options="chartOptions" />
+            <p v-else class="text-gray-400 dark:text-gray-500 text-center pt-20">No hay datos disponibles</p>
           </div>
         </div>
 
-        <!-- Gráfico de Tareas por Usuario -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft dark:shadow-none p-6 border border-gray-100 dark:border-gray-700">
-          <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">👥 Tareas por Usuario</h3>
-          <div class="h-64 flex items-center justify-center">
-            <Bar 
-              v-if="tasksByUserChartData.datasets[0].data.length > 0"
-              :data="tasksByUserChartData" 
-              :options="chartOptions" 
-            />
-            <p v-else class="text-gray-400 dark:text-gray-500">No hay datos disponibles</p>
+        <!-- Estado de Tareas por Prioridad -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-6 border border-gray-100 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">🎯 Tareas por Prioridad</h3>
+          <div class="h-64">
+            <Doughnut v-if="priorityChartData.datasets[0].data.some(val => val > 0)" :data="priorityChartData" :options="doughnutOptions" />
+            <p v-else class="text-gray-400 dark:text-gray-500 text-center pt-20">No hay datos disponibles</p>
           </div>
         </div>
       </div>
 
-      <!-- Tabla de Flujos Recientes -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft dark:shadow-none border border-gray-100 dark:border-gray-700">
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Flujos Recientes</h3>
+      <!-- Resumen de Productividad -->
+      <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg p-6 mb-8 text-white">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-2xl font-bold mb-2">🚀 Tu Productividad Esta Semana</h3>
+            <p class="text-blue-100">Has completado {{ stats.completedThisWeek }} tareas de {{ stats.totalThisWeek }}</p>
+          </div>
+          <div class="text-right">
+            <p class="text-5xl font-bold">{{ Math.round((stats.completedThisWeek / stats.totalThisWeek) * 100) || 0 }}%</p>
+            <p class="text-blue-100 text-sm">Tasa de finalización</p>
+          </div>
         </div>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-900">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nombre</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tareas</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Progreso</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              <tr v-for="flow in recentFlows" :key="flow.id" class="hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900 dark:text-white">{{ flow.name }}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span :class="getStatusClass(flow.status)" class="px-3 py-1 text-xs font-semibold rounded-full">
+        <div class="w-full bg-blue-400/30 rounded-full h-3 mt-4">
+          <div 
+            class="bg-white h-3 rounded-full transition-all"
+            :style="`width: ${Math.round((stats.completedThisWeek / stats.totalThisWeek) * 100) || 0}%`"
+          ></div>
+        </div>
+      </div>
+
+      <!-- Tareas Urgentes y Flujos Recientes -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Tareas Urgentes -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700">
+          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">🔥 Tareas Urgentes</h3>
+          </div>
+          <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <div v-for="task in urgentTasks" :key="task.id" class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <h4 class="text-sm font-semibold text-gray-900 dark:text-white">{{ task.title }}</h4>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ task.flow?.name }}</p>
+                </div>
+                <span class="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 text-xs font-semibold rounded-full">
+                  {{ getDaysRemaining(task.estimated_end_at) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flujos Recientes -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700">
+          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">📁 Flujos Recientes</h3>
+          </div>
+          <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <router-link
+              v-for="flow in recentFlows"
+              :key="flow.id"
+              :to="`/flows/${flow.id}`"
+              class="block px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <h4 class="text-sm font-semibold text-gray-900 dark:text-white">{{ flow.name }}</h4>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ flow.tasks?.length || 0 }} tareas</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <span :class="getStatusClass(flow.status)" class="px-2 py-1 text-xs font-semibold rounded-full">
                     {{ getStatusText(flow.status) }}
                   </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {{ flow.tasks?.length || 0 }} tareas
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="flex items-center">
-                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-2">
-                      <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all" :style="`width: ${calculateProgress(flow)}%`"></div>
-                    </div>
-                    <span class="text-sm text-gray-600 dark:text-gray-400 font-medium">{{ calculateProgress(flow) }}%</span>
+                  <div class="w-12 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div class="bg-blue-600 h-2 rounded-full" :style="`width: ${calculateProgress(flow)}%`"></div>
                   </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                  <router-link 
-                    :to="`/flows/${flow.id}`"
-                    class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors"
-                  >
-                    Ver detalles →
-                  </router-link>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </div>
+              </div>
+            </router-link>
+          </div>
         </div>
       </div>
     </main>
@@ -159,9 +175,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { flowsAPI, tasksAPI, templatesAPI } from '@/services/api'
+import { flowsAPI, tasksAPI } from '@/services/api'
+import { Line, Doughnut } from 'vue-chartjs'
 import {
   Chart as ChartJS,
   ArcElement,
@@ -169,43 +185,47 @@ import {
   Legend,
   CategoryScale,
   LinearScale,
-  BarElement,
+  PointElement,
+  LineElement,
   Title
 } from 'chart.js'
-import { Doughnut, Bar } from 'vue-chartjs'
 import Navbar from '@/components/Navbar.vue'
 
-// Registrar componentes de Chart.js
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title)
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title)
 
-const router = useRouter()
 const authStore = useAuthStore()
 
 const stats = ref({
   activeFlows: 0,
   pendingTasks: 0,
-  completedTasks: 0,
-  templates: 0
+  completedToday: 0,
+  overdueTasks: 0,
+  urgentTasks: 0,
+  flowsThisWeek: 0,
+  completedThisWeek: 0,
+  totalThisWeek: 0,
+  completionRate: 0
 })
 
+const urgentTasks = ref([])
 const recentFlows = ref([])
 
-// Datos para gráfico de dona (estado de tareas)
-const taskStatusChartData = ref({
-  labels: ['Pendientes', 'En Progreso', 'Completadas', 'Bloqueadas'],
+const taskTrendData = ref({
+  labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
   datasets: [{
-    data: [3, 4, 5, 1], // Datos hardcodeados temporalmente
-    backgroundColor: ['#FCD34D', '#3B82F6', '#10B981', '#EF4444']
+    label: 'Completadas',
+    data: [12, 19, 15, 25, 22, 18, 20],
+    borderColor: '#3B82F6',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    tension: 0.4
   }]
 })
 
-// Datos para gráfico de barras (tareas por usuario)
-const tasksByUserChartData = ref({
-  labels: ['Juan Pérez', 'María González', 'Carlos Rodríguez'],
+const priorityChartData = ref({
+  labels: ['Baja', 'Media', 'Alta', 'Urgente'],
   datasets: [{
-    label: 'Tareas Asignadas',
-    data: [5, 4, 3], // Datos hardcodeados temporalmente
-    backgroundColor: '#3B82F6'
+    data: [5, 10, 8, 3],
+    backgroundColor: ['#3B82F6', '#FCD34D', '#F97316', '#EF4444']
   }]
 })
 
@@ -213,89 +233,97 @@ const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
-    legend: {
-      position: 'bottom'
-    }
+    legend: { display: false }
   }
 }
 
-const handleLogout = async () => {
-  await authStore.logout()
-  router.push('/login')
+const doughnutOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { position: 'bottom' }
+  }
+}
+
+const getDaysRemaining = (date) => {
+  if (!date) return 'Sin fecha'
+  const days = Math.ceil((new Date(date) - new Date()) / (1000 * 60 * 60 * 24))
+  if (days < 0) return `Vencida hace ${Math.abs(days)}d`
+  if (days === 0) return 'Vence hoy'
+  return `${days}d restantes`
 }
 
 const getStatusClass = (status) => {
   const classes = {
-    active: 'bg-green-100 text-green-800',
-    paused: 'bg-yellow-100 text-yellow-800',
-    completed: 'bg-blue-100 text-blue-800',
-    cancelled: 'bg-red-100 text-red-800'
+    active: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400',
+    paused: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400',
+    completed: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400',
   }
   return classes[status] || 'bg-gray-100 text-gray-800'
 }
 
 const getStatusText = (status) => {
-  const texts = {
-    active: 'Activo',
-    paused: 'Pausado',
-    completed: 'Completado',
-    cancelled: 'Cancelado'
-  }
+  const texts = { active: 'Activo', paused: 'Pausado', completed: 'Completado' }
   return texts[status] || status
 }
 
 const calculateProgress = (flow) => {
-  if (!flow.tasks || flow.tasks.length === 0) return 0
+  if (!flow.tasks?.length) return 0
   const completed = flow.tasks.filter(t => t.status === 'completed').length
   return Math.round((completed / flow.tasks.length) * 100)
 }
 
 const loadData = async () => {
   try {
-    // Cargar flujos
-    const flowsResponse = await flowsAPI.getAll()
-    const flows = flowsResponse.data.data
+    const [flowsRes, tasksRes] = await Promise.all([
+      flowsAPI.getAll(),
+      tasksAPI.getAll()
+    ])
+
+    const flows = flowsRes.data.data
+    const tasks = tasksRes.data.data
+
+    stats.value = {
+      activeFlows: flows.filter(f => f.status === 'active').length,
+      pendingTasks: tasks.filter(t => ['pending', 'in_progress'].includes(t.status)).length,
+      completedToday: tasks.filter(t => t.status === 'completed' && isToday(t.updated_at)).length,
+      overdueTasks: tasks.filter(t => t.estimated_end_at && new Date(t.estimated_end_at) < new Date() && t.status !== 'completed').length,
+      urgentTasks: tasks.filter(t => t.priority === 'urgent' && t.status !== 'completed').length,
+      flowsThisWeek: flows.filter(f => isThisWeek(f.created_at)).length,
+      completedThisWeek: tasks.filter(t => t.status === 'completed' && isThisWeek(t.updated_at)).length,
+      totalThisWeek: tasks.filter(t => isThisWeek(t.created_at)).length,
+      completionRate: Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100) || 0
+    }
+
+    urgentTasks.value = tasks
+      .filter(t => t.priority === 'urgent' && t.status !== 'completed')
+      .slice(0, 5)
+
     recentFlows.value = flows.slice(0, 5)
-    stats.value.activeFlows = flows.filter(f => f.status === 'active').length
 
-    // Cargar tareas
-    const tasksResponse = await tasksAPI.getAll()
-    const tasks = tasksResponse.data.data
-    stats.value.pendingTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length
-    stats.value.completedTasks = tasks.filter(t => t.status === 'completed').length
-
-    // Cargar plantillas
-    const templatesResponse = await templatesAPI.getAll()
-    stats.value.templates = templatesResponse.data.data.length
-
-    // Datos para gráfico de estado de tareas
-    taskStatusChartData.value.datasets[0].data = [
-      tasks.filter(t => t.status === 'pending').length,
-      tasks.filter(t => t.status === 'in_progress').length,
-      tasks.filter(t => t.status === 'completed').length,
-      tasks.filter(t => t.status === 'blocked').length
+    // Actualizar gráficos con datos reales
+    priorityChartData.value.datasets[0].data = [
+      tasks.filter(t => t.priority === 'low').length,
+      tasks.filter(t => t.priority === 'medium').length,
+      tasks.filter(t => t.priority === 'high').length,
+      tasks.filter(t => t.priority === 'urgent').length
     ]
-
-    // Datos para gráfico de tareas por usuario
-    const tasksByUser = {}
-    tasks.forEach(task => {
-      if (task.assignee) {
-        const name = task.assignee.name
-        tasksByUser[name] = (tasksByUser[name] || 0) + 1
-      }
-    })
-
-    tasksByUserChartData.value.labels = Object.keys(tasksByUser)
-    tasksByUserChartData.value.datasets[0].data = Object.values(tasksByUser)
-
-    // Debug - ver en consola
-    console.log('📊 Datos del gráfico de estado:', taskStatusChartData.value)
-    console.log('📊 Datos del gráfico de usuarios:', tasksByUserChartData.value)
-    console.log('📊 Total de tareas cargadas:', tasks.length)
-
   } catch (error) {
     console.error('Error cargando datos:', error)
   }
+}
+
+const isToday = (date) => {
+  const today = new Date()
+  const d = new Date(date)
+  return d.toDateString() === today.toDateString()
+}
+
+const isThisWeek = (date) => {
+  const d = new Date(date)
+  const today = new Date()
+  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+  return d >= weekAgo && d <= today
 }
 
 onMounted(() => {

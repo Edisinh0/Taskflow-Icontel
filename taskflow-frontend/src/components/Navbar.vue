@@ -252,6 +252,8 @@
       </Transition>
     </div>
   </nav>
+  <NotificationBell />
+  
 </template>
 
 <script setup>
@@ -259,6 +261,7 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
+import NotificationBell from './NotificationBell.vue'
 
 const router = useRouter()
 const route = useRoute()

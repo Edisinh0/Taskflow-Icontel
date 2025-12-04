@@ -131,7 +131,7 @@
 <script setup>
 import { defineProps, defineEmits } from 'vue'
 
-defineProps({
+const props = defineProps({
   task: {
     type: Object,
     required: true
