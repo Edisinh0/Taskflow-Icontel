@@ -21,6 +21,9 @@ class Task extends Model
         'priority',
         'status',
         'is_milestone',
+        'is_blocked',           // <-- AGREGAR
+        'depends_on_task_id',   // <-- AGREGAR
+        'depends_on_milestone_id',
         'milestone_auto_complete',
         'milestone_requires_validation',
         'milestone_validated_by',
@@ -47,6 +50,7 @@ class Task extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
+        'is_blocked' => 'boolean',
     ];
 
     /**
@@ -141,5 +145,16 @@ class Task extends Model
         $count = $subtasks->count();
 
         return $count > 0 ? (int) ($totalProgress / $count) : 0;
+    }
+
+    public function precedentTask(): BelongsTo
+    {
+        return $this->belongsTo(Task::class, 'depends_on_task_id');
+    }
+
+    
+    public function blockingMilestone(): BelongsTo
+    {
+        return $this->belongsTo(Task::class, 'depends_on_milestone_id');
     }
 }

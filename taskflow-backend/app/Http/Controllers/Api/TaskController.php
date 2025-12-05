@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class TaskController extends Controller
 {
@@ -107,36 +108,85 @@ class TaskController extends Controller
      */
     public function update(Request $request, $id)
     {
+        // 1. Encontrar la tarea
         $task = Task::findOrFail($id);
-
+        
+        // 2. Validar los datos de entrada
         $validated = $request->validate([
+            'flow_id' => 'sometimes|exists:flows,id',
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
+            // Asegúrate de que los estados coincidan con tu lógica
+            'status' => ['sometimes', 'string', Rule::in(['pending', 'in_progress', 'completed', 'paused', 'cancelled'])],
             'assignee_id' => 'nullable|exists:users,id',
-            'priority' => 'sometimes|in:low,medium,high,urgent',
-            'status' => 'sometimes|in:pending,blocked,in_progress,paused,completed,cancelled',
-            'progress' => 'sometimes|integer|min:0|max:100',
-            'blocked_reason' => 'nullable|string',
+            'estimated_end_at' => 'nullable|date',
+            'is_milestone' => 'sometimes|boolean',
+            'order' => 'sometimes|integer|min:0',
+            
+            // ATENCIÓN: Los siguientes campos DEBEN existir en la migración de la tabla tasks
+            // 'is_blocked' se gestiona por el Observer
+            // 'depends_on_task_id'
+            // 'depends_on_milestone_id'
         ]);
 
-        // Si se marca como iniciada, guardar fecha de inicio
-        if (isset($validated['status']) && $validated['status'] === 'in_progress' && !$task->actual_start_at) {
-            $validated['actual_start_at'] = now();
+        // ==========================================================
+        // 🎯 MOTOR DE CONTROL DE FLUJOS (Lógica de Bloqueo)
+        // ==========================================================
+        
+        if (isset($validated['status']) && $task->is_blocked) {
+            $newStatus = $validated['status'];
+            
+            // Si intenta iniciarla ('in_progress') o finalizarla ('completed') estando bloqueada.
+            if ($newStatus === 'in_progress' || $newStatus === 'completed') {
+                
+                // --- Generación del mensaje de bloqueo ---
+                $dependency = "una tarea previa";
+                if ($task->depends_on_milestone_id) {
+                    // Si tienes la relación cargada: $task->milestone->name
+                    $dependency = "el hito asociado";
+                } elseif ($task->depends_on_task_id) {
+                    // Si tienes la relación cargada: $task->parentTask->title
+                    $dependency = "la tarea #{$task->depends_on_task_id}";
+                }
+                
+                // Devolvemos el error 403 (Sin permisos para la acción)
+                return response()->json([
+                    'success' => false,
+                    // Mensaje basado en la documentación (ejemplo: 'No puede iniciar esta tarea hasta completar el milestone anterior...')
+                    'message' => "❌ Acción prohibida. Esta tarea está bloqueada. Debe completarse {$dependency} primero.",
+                ], 403); 
+            }
         }
+        
+        // ==========================================================
+        // 🎯 CONTINUACIÓN NORMAL DEL UPDATE
+        // ==========================================================
+        
+        try {
+            // Asignación de usuario (si aplica)
+            if (isset($validated['assignee_id']) && !isset($task->assigned_at)) {
+                $validated['assigned_at'] = now();
+            }
 
-        // Si se marca como completada, guardar fecha de fin
-        if (isset($validated['status']) && $validated['status'] === 'completed' && !$task->actual_end_at) {
-            $validated['actual_end_at'] = now();
-            $validated['progress'] = 100;
+            // Actualización del registro
+            $task->update($validated);
+            
+            // (Opcional) Aquí lanzarías un evento si el estado cambió a 'completed'
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tarea actualizada exitosamente',
+                // Cargar relaciones para la respuesta del frontend
+                'data' => $task->load(['flow', 'assignee', 'parentTask', 'subtasks']),
+            ], 200);
+
+        } catch (\Exception $e) {
+            // Manejo de error genérico
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar tarea: ' . $e->getMessage(),
+            ], 500);
         }
-
-        $task->update($validated);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Tarea actualizada exitosamente',
-            'data' => $task->load(['flow', 'assignee']),
-        ], 200);
     }
 
     /**
