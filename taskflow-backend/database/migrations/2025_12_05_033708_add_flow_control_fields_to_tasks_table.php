@@ -10,27 +10,27 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
-        Schema::table('tasks', function (Blueprint $table) {
-            // Campo de control: Por defecto, toda tarea es bloqueada al ser creada.
-            $table->boolean('is_blocked')->default(true)->after('status')->comment('Indica si la tarea está bloqueada por dependencia.');
-            
-            // Dependencia de Tarea (Task-to-Task)
-            $table->foreignId('depends_on_task_id')
-                  ->nullable()
-                  ->after('is_milestone')
-                  ->constrained('tasks') // Apunta a la misma tabla tasks
-                  ->onDelete('set null'); // Si la tarea precedente es borrada, la dependencia se elimina.
-            
-            // Dependencia de Hito (Milestone)
-            // Asumimos que los milestones son tareas con is_milestone=true.
-            $table->foreignId('depends_on_milestone_id')
-                  ->nullable()
-                  ->after('depends_on_task_id')
-                  ->constrained('tasks')
-                  ->onDelete('set null');
-        });
-    }
+{
+    Schema::table('tasks', function (Blueprint $table) {
+        // Campo de control: Las tareas SIN dependencias se crean desbloqueadas
+        $table->boolean('is_blocked')
+              ->default(false) // ← CAMBIAR A false por defecto
+              ->after('status')
+              ->comment('Indica si la tarea está bloqueada por dependencia.');
+        
+        $table->foreignId('depends_on_task_id')
+              ->nullable()
+              ->after('is_milestone')
+              ->constrained('tasks')
+              ->onDelete('set null');
+        
+        $table->foreignId('depends_on_milestone_id')
+              ->nullable()
+              ->after('depends_on_task_id')
+              ->constrained('tasks')
+              ->onDelete('set null');
+    });
+}
 
     /**
      * Reverse the migrations.

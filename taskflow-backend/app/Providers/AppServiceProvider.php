@@ -21,6 +21,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Task::observe(TaskObserver::class);
+    \Log::info('🚀 AppServiceProvider::boot() ejecutándose');
+    
+    Task::observe(TaskObserver::class);
+    
+    \Log::info('✅ TaskObserver registrado correctamente');
     }
 }
