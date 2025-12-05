@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 class TaskController extends Controller
 {
@@ -67,12 +68,29 @@ class TaskController extends Controller
             'is_milestone' => 'nullable|boolean',
             'estimated_start_at' => 'nullable|date',
             'estimated_end_at' => 'nullable|date',
-            'is_blocked' => 'nullable|boolean',
+            // ⚠️ NO permitir que el frontend controle is_blocked
+            // Este campo se calcula automáticamente en el Observer
             'depends_on_task_id' => 'nullable|exists:tasks,id',
             'depends_on_milestone_id' => 'nullable|exists:tasks,id',
         ]);
+        
+        // Validar dependencias circulares y auto-referencia
+        if (isset($validated['depends_on_task_id'])) {
+            // Verificar que no sea la misma tarea (aunque aún no tiene ID, prevenir en updates)
+            if (isset($validated['depends_on_milestone_id']) && 
+                $validated['depends_on_task_id'] === $validated['depends_on_milestone_id']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Una tarea no puede depender de la misma tarea como precedente y milestone.',
+                ], 422);
+            }
+        }
+        
+        // ✅ NO establecer is_blocked aquí - el Observer lo maneja automáticamente
+        // El Observer::creating() verificará las dependencias y establecerá is_blocked correctamente
 
         $task = Task::create($validated);
+
 
         return response()->json([
             'success' => true,
@@ -125,37 +143,43 @@ class TaskController extends Controller
     ]);
 
     // 🎯 MOTOR DE CONTROL DE FLUJOS (Lógica de Bloqueo)
-    if (isset($validated['status']) && $task->is_blocked) {
-        $newStatus = $validated['status'];
+    if (isset($validated['status'])) {
+        // ⚠️ IMPORTANTE: Refrescar desde BD para obtener el valor actualizado de is_blocked
+        // El Observer puede haber desbloqueado esta tarea al completar otra
+        $task->refresh();
         
-        // Si intenta iniciarla o finalizarla estando bloqueada
-        if (in_array($newStatus, ['in_progress', 'completed'])) {
+        if ($task->is_blocked) {
+            $newStatus = $validated['status'];
             
-            // Generar mensaje detallado del bloqueo
-            $blockingReasons = [];
-            
-            if ($task->depends_on_task_id) {
-                $precedentTask = Task::find($task->depends_on_task_id);
-                if ($precedentTask && $precedentTask->status !== 'completed') {
-                    $blockingReasons[] = "la tarea '{$precedentTask->title}' (ID: {$precedentTask->id})";
+            // Si intenta iniciarla o finalizarla estando bloqueada
+            if (in_array($newStatus, ['in_progress', 'completed'])) {
+                
+                // Generar mensaje detallado del bloqueo
+                $blockingReasons = [];
+                
+                if ($task->depends_on_task_id) {
+                    $precedentTask = Task::find($task->depends_on_task_id);
+                    if ($precedentTask && $precedentTask->status !== 'completed') {
+                        $blockingReasons[] = "la tarea '{$precedentTask->title}' (ID: {$precedentTask->id})";
+                    }
                 }
-            }
-            
-            if ($task->depends_on_milestone_id) {
-                $milestone = Task::find($task->depends_on_milestone_id);
-                if ($milestone && $milestone->status !== 'completed') {
-                    $blockingReasons[] = "el milestone '{$milestone->title}' (ID: {$milestone->id})";
+                
+                if ($task->depends_on_milestone_id) {
+                    $milestone = Task::find($task->depends_on_milestone_id);
+                    if ($milestone && $milestone->status !== 'completed') {
+                        $blockingReasons[] = "el milestone '{$milestone->title}' (ID: {$milestone->id})";
+                    }
                 }
+                
+                $blockMessage = !empty($blockingReasons)
+                    ? "Esta tarea está bloqueada. Debe completarse " . implode(' y ', $blockingReasons) . " primero."
+                    : "Esta tarea está bloqueada por dependencias no cumplidas.";
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => "🔒 Acción prohibida: {$blockMessage}",
+                ], 403);
             }
-            
-            $blockMessage = !empty($blockingReasons)
-                ? "Esta tarea está bloqueada. Debe completarse " . implode(' y ', $blockingReasons) . " primero."
-                : "Esta tarea está bloqueada por dependencias no cumplidas.";
-            
-            return response()->json([
-                'success' => false,
-                'message' => "🔒 Acción prohibida: {$blockMessage}",
-            ], 403);
         }
     }
     

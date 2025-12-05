@@ -147,14 +147,35 @@ class Task extends Model
         return $count > 0 ? (int) ($totalProgress / $count) : 0;
     }
 
-    public function precedentTask(): BelongsTo
+    /**
+     * Relación: Tarea de la que esta tarea depende (dependencia de flujo)
+     */
+    public function dependsOnTask(): BelongsTo
     {
         return $this->belongsTo(Task::class, 'depends_on_task_id');
     }
 
-    
-    public function blockingMilestone(): BelongsTo
+    /**
+     * Relación: Milestone del que esta tarea depende
+     */
+    public function dependsOnMilestone(): BelongsTo
     {
         return $this->belongsTo(Task::class, 'depends_on_milestone_id');
+    }
+
+    /**
+     * Relación inversa: Tareas que dependen de esta tarea
+     */
+    public function dependentTasks(): HasMany
+    {
+        return $this->hasMany(Task::class, 'depends_on_task_id');
+    }
+
+    /**
+     * Relación inversa: Tareas que dependen de este milestone
+     */
+    public function dependentOnMilestone(): HasMany
+    {
+        return $this->hasMany(Task::class, 'depends_on_milestone_id');
     }
 }
