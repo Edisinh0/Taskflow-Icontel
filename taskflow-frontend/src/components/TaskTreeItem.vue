@@ -25,14 +25,14 @@
             <h4 
               class="text-base font-semibold"
               :class="{
-                'text-gray-800': task.status !== 'completed',
-                'text-gray-400 line-through': task.status === 'completed'
+                'text-gray-800 dark:text-gray-100': task.status !== 'completed',
+                'text-gray-400 dark:text-gray-500 line-through': task.status === 'completed'
               }"
             >
               <span v-if="task.is_milestone" class="text-yellow-500 mr-1">⭐</span>
               {{ task.title }}
             </h4>
-            <p class="text-sm text-gray-600 mt-1">{{ task.description }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">{{ task.description }}</p>
           </div>
 
           <!-- Badges de estado -->
@@ -86,7 +86,7 @@
             <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            <span class="text-gray-600">{{ task.assignee?.name || 'Sin asignar' }}</span>
+            <span class="text-gray-600 dark:text-gray-300">{{ task.assignee?.name || 'Sin asignar' }}</span>
           </div>
 
           <!-- Progreso -->
@@ -98,7 +98,7 @@
                 :style="`width: ${task.progress}%`"
               ></div>
             </div>
-            <span class="text-gray-600 text-xs">{{ task.progress }}%</span>
+            <span class="text-gray-600 dark:text-gray-300 text-xs">{{ task.progress }}%</span>
           </div>
 
           <!-- Subtareas -->

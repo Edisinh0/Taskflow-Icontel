@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\Task;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Log;
 
 class TaskObserver
@@ -56,6 +57,7 @@ class TaskObserver
      * Handle the Task "updating" event.
      * Recalcula is_blocked cuando cambian las dependencias.
      * Calcula progress automáticamente basado en el estado.
+     * Genera notificaciones automáticas.
      */
     public function updating(Task $task): void
     {
@@ -92,7 +94,29 @@ class TaskObserver
             ]);
         }
 
-        // 2. Calcular progress automáticamente basado en el estado
+        // 2. Detectar cambio en is_blocked para notificaciones
+        if ($task->isDirty('is_blocked')) {
+            $wasBlocked = $task->getOriginal('is_blocked');
+            $isNowBlocked = $task->is_blocked;
+
+            if (!$wasBlocked && $isNowBlocked) {
+                // Se bloqueó
+                NotificationService::taskBlocked($task);
+            } elseif ($wasBlocked && !$isNowBlocked) {
+                // Se desbloqueó
+                NotificationService::taskUnblocked($task);
+            }
+        }
+
+        // 3. Detectar cambio de asignado
+        if ($task->isDirty('assignee_id')) {
+            $newAssigneeId = $task->assignee_id;
+            if ($newAssigneeId) {
+                NotificationService::taskAssigned($task, $newAssigneeId);
+            }
+        }
+
+        // 4. Calcular progress automáticamente basado en el estado
         if ($task->isDirty('status')) {
             $oldProgress = $task->progress;
             
@@ -129,38 +153,42 @@ class TaskObserver
     /**
      * Handle the Task "updated" event.
      * Dispara la liberación en cascada al completar una tarea.
+     * Genera notificaciones de tarea/milestone completado.
      */
     public function updated(Task $task): void
     {
         // 1. Solo actuamos si el estado cambió A 'completed'
         if ($task->isDirty('status') && $task->status === 'completed') {
-            Log::info("✅ Tarea {$task->id} completada. Iniciando liberación de dependientes.");
-            
-            // 2. Liberar tareas que dependían DIRECTAMENTE de esta tarea
-            $directDependents = Task::where('depends_on_task_id', $task->id)
-                ->where('is_blocked', true)
-                ->get();
-            
-            Log::info("📊 Encontradas {$directDependents->count()} tareas dependientes directas bloqueadas");
-            
-            $directDependents->each(function (Task $dependentTask) {
-                Log::info("🔍 Procesando tarea dependiente directa: {$dependentTask->id}");
-                $this->checkAndUnlock($dependentTask);
-            });
-            
-            // 3. Liberar tareas que dependían de esta tarea como MILESTONE
-            // IMPORTANTE: Verificamos depends_on_milestone_id independientemente de is_milestone
-            // porque las tareas pueden referenciar otras como milestones incluso si no están marcadas
-            $milestoneDependents = Task::where('depends_on_milestone_id', $task->id)
-                ->where('is_blocked', true)
-                ->get();
-            
-            Log::info("📊 Encontradas {$milestoneDependents->count()} tareas dependientes de milestone bloqueadas");
-            
-            $milestoneDependents->each(function (Task $dependentTask) {
-                Log::info("🔍 Procesando tarea dependiente de milestone: {$dependentTask->id}");
-                $this->checkAndUnlock($dependentTask);
-            });
+            Log::info('✅ Tarea completada, liberando dependientes', [
+                'task_id' => $task->id,
+                'title' => $task->title,
+            ]);
+
+            // 🔔 Generar notificación de tarea completada
+            NotificationService::taskCompleted($task);
+
+            // 🔔 Si es milestone, generar notificación especial
+            if ($task->is_milestone) {
+                NotificationService::milestoneCompleted($task);
+            }
+
+            // 2. Buscar tareas que dependían de esta (como tarea precedente)
+            $taskDependents = Task::where('depends_on_task_id', $task->id)->get();
+            Log::info("📊 Encontradas {$taskDependents->count()} tareas dependientes (depends_on_task_id)");
+
+            foreach ($taskDependents as $dependent) {
+                Log::info("🔍 Procesando tarea dependiente {$dependent->id}: {$dependent->title}");
+                $this->checkAndUnlock($dependent);
+            }
+
+            // 3. Buscar tareas que dependían de esta (como milestone)
+            $milestoneDependents = Task::where('depends_on_milestone_id', $task->id)->get();
+            Log::info("📊 Encontradas {$milestoneDependents->count()} tareas dependientes (depends_on_milestone_id)");
+
+            foreach ($milestoneDependents as $dependent) {
+                Log::info("🔍 Procesando tarea dependiente de milestone: {$dependent->id}");
+                $this->checkAndUnlock($dependent);
+            }
         }
         
         // 4. Lógica de Re-bloqueo: Si se reabre una tarea completada

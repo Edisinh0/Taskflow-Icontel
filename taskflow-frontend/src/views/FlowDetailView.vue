@@ -156,6 +156,7 @@
       :task="selectedTask"
       :flow-id="flow?.id"
       :users="users"
+      :available-tasks="flow?.tasks || []"
       @close="closeTaskModal"
       @saved="handleTaskSaved"
     />
