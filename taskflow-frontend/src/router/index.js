@@ -43,6 +43,12 @@ const router = createRouter({
       name: 'tasks',
       component: () => import('../views/TasksView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/notifications',
+      name: 'notifications',
+      component: () => import('../views/NotificationsView.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })
@@ -50,7 +56,7 @@ const router = createRouter({
 // Guard de navegación
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
-  
+
   // Cargar datos del localStorage si existen
   if (!authStore.token) {
     authStore.loadFromStorage()

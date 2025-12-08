@@ -156,12 +156,21 @@
                   <h4 class="text-sm font-semibold text-gray-900 dark:text-white">{{ flow.name }}</h4>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ flow.tasks?.length || 0 }} tareas</p>
                 </div>
-                <div class="flex items-center space-x-2">
+                <div class="flex flex-col items-end space-y-1">
                   <span :class="getStatusClass(flow.status)" class="px-2 py-1 text-xs font-semibold rounded-full">
                     {{ getStatusText(flow.status) }}
                   </span>
-                  <div class="w-12 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div class="bg-blue-600 h-2 rounded-full" :style="`width: ${calculateProgress(flow)}%`"></div>
+                  <div class="w-32"> <!-- Increased width for progress bar container -->
+                    <div class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      <span>Progreso</span>
+                      <span class="font-semibold">{{ calculateProgress(flow) }}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div
+                        class="bg-blue-600 h-2 rounded-full transition-all"
+                        :style="`width: ${calculateProgress(flow)}%`"
+                      ></div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -211,37 +220,204 @@ const urgentTasks = ref([])
 const recentFlows = ref([])
 
 const taskTrendData = ref({
-  labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+  labels: [],
   datasets: [{
     label: 'Completadas',
-    data: [12, 19, 15, 25, 22, 18, 20],
+    data: [],
     borderColor: '#3B82F6',
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    tension: 0.4
+    backgroundColor: (context) => {
+      const ctx = context.chart.ctx;
+      const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+      gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+      gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+      return gradient;
+    },
+    tension: 0.4,
+    fill: true,
+    borderWidth: 3,
+    pointBackgroundColor: '#3B82F6',
+    pointBorderColor: '#fff',
+    pointBorderWidth: 2,
+    pointRadius: 5,
+    pointHoverRadius: 8,
+    pointHoverBackgroundColor: '#3B82F6',
+    pointHoverBorderColor: '#fff',
+    pointHoverBorderWidth: 3
   }]
 })
 
 const priorityChartData = ref({
   labels: ['Baja', 'Media', 'Alta', 'Urgente'],
   datasets: [{
-    data: [5, 10, 8, 3],
-    backgroundColor: ['#3B82F6', '#FCD34D', '#F97316', '#EF4444']
+    data: [0, 0, 0, 0],
+    backgroundColor: [
+      'rgba(59, 130, 246, 0.8)',   // Azul para Baja
+      'rgba(252, 211, 77, 0.8)',   // Amarillo para Media
+      'rgba(249, 115, 22, 0.8)',   // Naranja para Alta
+      'rgba(239, 68, 68, 0.8)'     // Rojo para Urgente
+    ],
+    borderColor: [
+      'rgba(59, 130, 246, 1)',
+      'rgba(252, 211, 77, 1)',
+      'rgba(249, 115, 22, 1)',
+      'rgba(239, 68, 68, 1)'
+    ],
+    borderWidth: 2,
+    hoverBackgroundColor: [
+      'rgba(59, 130, 246, 1)',
+      'rgba(252, 211, 77, 1)',
+      'rgba(249, 115, 22, 1)',
+      'rgba(239, 68, 68, 1)'
+    ],
+    hoverBorderColor: '#fff',
+    hoverBorderWidth: 4
   }]
 })
 
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
+  interaction: {
+    mode: 'index',
+    intersect: false,
+  },
   plugins: {
-    legend: { display: false }
+    legend: { 
+      display: true,
+      labels: {
+        color: '#6B7280',
+        font: {
+          size: 12,
+          weight: 'bold'
+        },
+        padding: 15,
+        usePointStyle: true
+      }
+    },
+    tooltip: {
+      enabled: true,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      titleColor: '#fff',
+      bodyColor: '#fff',
+      borderColor: '#3B82F6',
+      borderWidth: 2,
+      padding: 12,
+      displayColors: true,
+      callbacks: {
+        label: function(context) {
+          return ` ${context.dataset.label}: ${context.parsed.y} tareas`;
+        }
+      }
+    }
+  },
+  scales: {
+    y: {
+      beginAtZero: true,
+      ticks: {
+        stepSize: 1,
+        color: '#6B7280'
+      },
+      grid: {
+        color: 'rgba(107, 114, 128, 0.1)',
+        drawBorder: false
+      }
+    },
+    x: {
+      ticks: {
+        color: '#6B7280'
+      },
+      grid: {
+        display: false
+      }
+    }
+  },
+  animation: {
+    duration: 2000,
+    easing: 'easeInOutQuart',
+    onProgress: function(animation) {
+      // Animación suave durante el progreso
+    },
+    onComplete: function() {
+      // Animación completada
+    }
+  },
+  hover: {
+    mode: 'nearest',
+    intersect: true,
+    animationDuration: 400
+  },
+  elements: {
+    line: {
+      tension: 0.4,
+      borderWidth: 3,
+      borderCapStyle: 'round',
+      borderJoinStyle: 'round',
+      fill: true
+    },
+    point: {
+      radius: 5,
+      hoverRadius: 8,
+      hitRadius: 10,
+      borderWidth: 2,
+      hoverBorderWidth: 3
+    }
   }
 }
 
 const doughnutOptions = {
   responsive: true,
   maintainAspectRatio: false,
+  cutout: '65%',
   plugins: {
-    legend: { position: 'bottom' }
+    legend: { 
+      position: 'bottom',
+      labels: {
+        color: '#6B7280',
+        font: {
+          size: 12,
+          weight: 'bold'
+        },
+        padding: 15,
+        usePointStyle: true,
+        pointStyle: 'circle'
+      }
+    },
+    tooltip: {
+      enabled: true,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      titleColor: '#fff',
+      bodyColor: '#fff',
+      borderColor: '#3B82F6',
+      borderWidth: 2,
+      padding: 12,
+      callbacks: {
+        label: function(context) {
+          const label = context.label || '';
+          const value = context.parsed || 0;
+          const total = context.dataset.data.reduce((a, b) => a + b, 0);
+          const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+          return ` ${label}: ${value} tareas (${percentage}%)`;
+        }
+      }
+    }
+  },
+  animation: {
+    animateRotate: true,
+    animateScale: true,
+    duration: 2000,
+    easing: 'easeInOutQuart'
+  },
+  hover: {
+    mode: 'nearest',
+    animationDuration: 400
+  },
+  elements: {
+    arc: {
+      borderWidth: 3,
+      borderColor: '#fff',
+      hoverBorderWidth: 5,
+      hoverOffset: 15
+    }
   }
 }
 
@@ -300,6 +476,43 @@ const loadData = async () => {
       .slice(0, 5)
 
     recentFlows.value = flows.slice(0, 5)
+
+    // Calcular datos reales para los últimos 7 días
+    const last7Days = []
+    const completedByDay = []
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+      date.setHours(0, 0, 0, 0)
+      
+      const nextDay = new Date(date)
+      nextDay.setDate(nextDay.getDate() + 1)
+      
+      // Nombre del día
+      const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+      last7Days.push(dayNames[date.getDay()])
+      
+      // Contar tareas completadas ese día
+      const completedCount = tasks.filter(t => {
+        if (t.status !== 'completed' || !t.updated_at) return false
+        const taskDate = new Date(t.updated_at)
+        return taskDate >= date && taskDate < nextDay
+      }).length
+      
+      completedByDay.push(completedCount)
+    }
+    
+    taskTrendData.value = {
+      labels: last7Days,
+      datasets: [{
+        label: 'Completadas',
+        data: completedByDay,
+        borderColor: '#3B82F6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        tension: 0.4
+      }]
+    }
 
     // Actualizar gráficos con datos reales
     priorityChartData.value.datasets[0].data = [
