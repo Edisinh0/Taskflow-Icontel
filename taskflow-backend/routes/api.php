@@ -51,6 +51,12 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
     Route::get('/notifications/stats', [NotificationController::class, 'stats']);
 
+    // Reportes
+    Route::get('/reports', [App\Http\Controllers\Api\ReportController::class, 'index']);
+    Route::get('/reports/stats', [App\Http\Controllers\Api\ReportController::class, 'stats']);
+    Route::get('/reports/export/csv', [App\Http\Controllers\Api\ReportController::class, 'exportCsv']);
+    Route::get('/reports/export/pdf', [App\Http\Controllers\Api\ReportController::class, 'exportPdf']);
+
     // Reordenamiento de tareas
 Route::post('/tasks/reorder', [TaskController::class, 'reorder']);
 Route::post('/tasks/{id}/move', [TaskController::class, 'move']);

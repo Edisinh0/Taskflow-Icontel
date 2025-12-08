@@ -5,7 +5,6 @@
 ![Taskflow Banner](https://img.shields.io/badge/Taskflow-Sistema_de_Gestión-blue?style=for-the-badge)
 [![Laravel](https://img.shields.io/badge/Laravel-11.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
 [![Vue.js](https://img.shields.io/badge/Vue.js-3.x-4FC08D?style=for-the-badge&logo=vue.js&logoColor=white)](https://vuejs.org)
-[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 **Sistema completo de gestión de flujos de trabajo y tareas para empresas**
 
@@ -379,12 +378,6 @@ Las contribuciones son bienvenidas. Por favor:
 - ✅ Modo oscuro completo
 - ✅ Autenticación JWT
 - ✅ API RESTful completa
-
----
-
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia MIT. Ver el archivo [LICENSE](LICENSE) para más detalles.
 
 ---
 
