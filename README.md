@@ -390,7 +390,6 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo [LICENSE](LICENSE) para
 
 ## 👥 Autores
 
-- **TNA Group** - *Desarrollo inicial*
 - **Eddie Cerpa** - *Desarrollo y mantenimiento*
 
 ---
@@ -408,14 +407,14 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo [LICENSE](LICENSE) para
 ## 📞 Contacto
 
 Para preguntas o soporte:
-- **Email**: soporte@tnagroup.com
+- **Email**: ed.cerpa@duocuc.cl
 - **GitHub Issues**: [Crear Issue](https://github.com/Edisinh0/Taskflow-Icontel/issues)
 
 ---
 
 <div align="center">
 
-**Hecho con ❤️ por TNA Group**
+**Hecho con ❤️ por Edisinh0**
 
 [⬆ Volver arriba](#-taskflow---sistema-de-gestión-de-flujos-de-trabajo)
 
