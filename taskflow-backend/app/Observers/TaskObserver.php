@@ -51,6 +51,81 @@ class TaskObserver
             throw $e;
         }
     }
+
+    /**
+     * Handle the Task "updating" event.
+     * Recalcula is_blocked cuando cambian las dependencias.
+     * Calcula progress automáticamente basado en el estado.
+     */
+    public function updating(Task $task): void
+    {
+        // 1. Recalcular is_blocked si cambiaron las dependencias
+        if ($task->isDirty('depends_on_task_id') || $task->isDirty('depends_on_milestone_id')) {
+            Log::info('🔄 Dependencias cambiaron, recalculando is_blocked', [
+                'task_id' => $task->id,
+                'depends_on_task_id' => $task->depends_on_task_id,
+                'depends_on_milestone_id' => $task->depends_on_milestone_id,
+            ]);
+
+            // Verificar si todas las dependencias están completadas
+            $shouldBeBlocked = false;
+
+            if ($task->depends_on_task_id) {
+                $precedentTask = Task::find($task->depends_on_task_id);
+                if ($precedentTask && $precedentTask->status !== 'completed') {
+                    $shouldBeBlocked = true;
+                    Log::info("⏸️ Tarea precedente {$precedentTask->id} no completada");
+                }
+            }
+
+            if ($task->depends_on_milestone_id) {
+                $milestone = Task::find($task->depends_on_milestone_id);
+                if ($milestone && $milestone->status !== 'completed') {
+                    $shouldBeBlocked = true;
+                    Log::info("⏸️ Milestone {$milestone->id} no completado");
+                }
+            }
+
+            $task->is_blocked = $shouldBeBlocked;
+            Log::info($shouldBeBlocked ? '🔒 Tarea bloqueada' : '🔓 Tarea desbloqueada', [
+                'is_blocked' => $task->is_blocked
+            ]);
+        }
+
+        // 2. Calcular progress automáticamente basado en el estado
+        if ($task->isDirty('status')) {
+            $oldProgress = $task->progress;
+            
+            switch ($task->status) {
+                case 'pending':
+                    $task->progress = 0;
+                    break;
+                case 'in_progress':
+                    // Si está en progreso y tenía 0%, ponerlo en 50%
+                    // Si ya tenía progreso, mantenerlo (permite ajustes manuales)
+                    if ($task->progress === 0) {
+                        $task->progress = 50;
+                    }
+                    break;
+                case 'completed':
+                    $task->progress = 100;
+                    break;
+                case 'cancelled':
+                    $task->progress = 0;
+                    break;
+                case 'paused':
+                    // Mantener el progreso actual
+                    break;
+            }
+
+            if ($oldProgress !== $task->progress) {
+                Log::info("📊 Progress auto-calculado: {$oldProgress}% → {$task->progress}%", [
+                    'task_id' => $task->id,
+                    'status' => $task->status
+                ]);
+            }
+        }
+    }
     /**
      * Handle the Task "updated" event.
      * Dispara la liberación en cascada al completar una tarea.

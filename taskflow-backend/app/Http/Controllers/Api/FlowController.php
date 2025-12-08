@@ -71,6 +71,8 @@ class FlowController extends Controller
             'creator',
             'tasks.assignee',
             'tasks.subtasks',
+            'tasks.dependsOnTask',      // Tarea precedente
+            'tasks.dependsOnMilestone', // Milestone requerido
             'milestones'
         ])->findOrFail($id);
 

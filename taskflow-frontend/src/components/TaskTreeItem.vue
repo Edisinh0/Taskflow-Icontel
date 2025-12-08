@@ -38,6 +38,10 @@
           <!-- Badges de estado -->
           <div class="flex flex-col items-end space-y-2 ml-4">
             <div class="flex flex-col space-y-1">
+              <!-- Badge de bloqueada -->
+              <span v-if="task.is_blocked" class="px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap text-center bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                🔒 BLOQUEADA
+              </span>
               <span :class="getStatusBadgeClass(task.status)" class="px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap text-center">
                 {{ getStatusText(task.status) }}
               </span>
@@ -106,8 +110,31 @@
           </div>
         </div>
 
-        <!-- Razón de bloqueo -->
-        <div v-if="task.status === 'blocked' && task.blocked_reason" class="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+        <!-- Información de dependencias -->
+        <div v-if="task.is_blocked && (task.depends_on_task_id || task.depends_on_milestone_id)" class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm">
+          <div class="flex items-start">
+            <span class="text-lg mr-2">🔒</span>
+            <div class="flex-1">
+              <p class="font-semibold text-red-800 dark:text-red-400 mb-1">Tarea Bloqueada</p>
+              <p class="text-red-700 dark:text-red-300 text-xs">
+                Esta tarea no puede iniciarse hasta completar:
+              </p>
+              <ul class="mt-1 space-y-1 text-xs text-red-700 dark:text-red-300">
+                <li v-if="task.depends_on_task_id" class="flex items-center">
+                  <span class="mr-1">📋</span>
+                  <span class="font-medium">{{ task.depends_on_task?.title || `Tarea #${task.depends_on_task_id}` }}</span>
+                </li>
+                <li v-if="task.depends_on_milestone_id" class="flex items-center">
+                  <span class="mr-1">⭐</span>
+                  <span class="font-medium">{{ task.depends_on_milestone?.title || `Milestone #${task.depends_on_milestone_id}` }}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Razón de bloqueo (legacy) -->
+        <div v-else-if="task.status === 'blocked' && task.blocked_reason" class="mt-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-700 dark:text-red-300">
           🔒 <strong>Bloqueada:</strong> {{ task.blocked_reason }}
         </div>
       </div>
@@ -158,14 +185,18 @@ const handleDependencies = () => {
 }
 
 const getTaskClass = (task) => {
-  if (task.status === 'completed') return 'border-green-500 bg-green-50'
-  if (task.status === 'in_progress') return 'border-blue-500 bg-blue-50'
-  if (task.status === 'blocked') return 'border-red-500 bg-red-50'
-  if (task.is_milestone) return 'border-yellow-500 bg-yellow-50'
-  return 'border-gray-300 bg-white'
+  // Prioridad: bloqueada > completada > en progreso > milestone > default
+  if (task.is_blocked) return 'border-red-500 bg-red-50 dark:bg-red-900/10 dark:border-red-700'
+  if (task.status === 'completed') return 'border-green-500 bg-green-50 dark:bg-green-900/10 dark:border-green-700'
+  if (task.status === 'in_progress') return 'border-blue-500 bg-blue-50 dark:bg-blue-900/10 dark:border-blue-700'
+  if (task.status === 'blocked') return 'border-red-500 bg-red-50 dark:bg-red-900/10 dark:border-red-700'
+  if (task.is_milestone) return 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/10 dark:border-yellow-700'
+  return 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800'
 }
 
 const getTaskIcon = (task) => {
+  // Mostrar candado si está bloqueada, independientemente del estado
+  if (task.is_blocked) return '🔒'
   if (task.is_milestone) return '🎯'
   if (task.status === 'completed') return '✅'
   if (task.status === 'in_progress') return '🔄'

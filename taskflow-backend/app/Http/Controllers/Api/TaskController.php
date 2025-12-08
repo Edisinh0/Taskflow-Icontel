@@ -140,6 +140,10 @@ class TaskController extends Controller
         'estimated_end_at' => 'nullable|date',
         'is_milestone' => 'sometimes|boolean',
         'order' => 'sometimes|integer|min:0',
+        'depends_on_task_id' => 'nullable|exists:tasks,id',
+        'depends_on_milestone_id' => 'nullable|exists:tasks,id',
+        'progress' => 'sometimes|integer|min:0|max:100',
+        'priority' => ['sometimes', 'string', Rule::in(['low', 'medium', 'high', 'urgent'])],
     ]);
 
     // 🎯 MOTOR DE CONTROL DE FLUJOS (Lógica de Bloqueo)
