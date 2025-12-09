@@ -1,26 +1,26 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+  <div class="min-h-screen bg-slate-900 transition-colors pb-12">
     <Navbar />
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Título -->
       <div class="mb-8">
-        <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h2>
-        <p class="text-gray-600 dark:text-gray-400 mt-1">Bienvenido, {{ authStore.currentUser?.name }}</p>
+        <h2 class="text-3xl font-extrabold text-white tracking-tight">Dashboard</h2>
+        <p class="text-slate-400 mt-1 text-lg">Bienvenido de nuevo, <span class="text-blue-400">{{ authStore.currentUser?.name }}</span></p>
       </div>
 
       <!-- Estadísticas Principales -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <!-- Flujos Activos -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-6 border border-gray-100 dark:border-gray-700">
+        <div class="bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-white/5 hover:border-blue-500/20 transition-all group">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Flujos Activos</p>
-              <p class="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">{{ stats.activeFlows }}</p>
-              <p class="text-xs text-gray-400 mt-1">+{{ stats.flowsThisWeek }} esta semana</p>
+              <p class="text-slate-400 text-sm font-medium uppercase tracking-wider">Flujos Activos</p>
+              <p class="text-3xl font-extrabold text-white mt-1 group-hover:text-blue-400 transition-colors">{{ stats.activeFlows }}</p>
+              <p class="text-xs text-slate-500 mt-1 font-medium">+{{ stats.flowsThisWeek }} esta semana</p>
             </div>
-            <div class="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl">
-              <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-blue-500/10 p-3 rounded-xl border border-blue-500/20 group-hover:bg-blue-500/20 transition-colors">
+              <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
@@ -28,15 +28,15 @@
         </div>
 
         <!-- Tareas Pendientes -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-6 border border-gray-100 dark:border-gray-700">
+        <div class="bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-white/5 hover:border-amber-500/20 transition-all group">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Tareas Pendientes</p>
-              <p class="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{{ stats.pendingTasks }}</p>
-              <p class="text-xs text-gray-400 mt-1">{{ stats.urgentTasks }} urgentes</p>
+              <p class="text-slate-400 text-sm font-medium uppercase tracking-wider">Pendientes</p>
+              <p class="text-3xl font-extrabold text-white mt-1 group-hover:text-amber-400 transition-colors">{{ stats.pendingTasks }}</p>
+              <p class="text-xs text-slate-500 mt-1 font-medium">{{ stats.urgentTasks }} urgentes</p>
             </div>
-            <div class="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-xl">
-              <svg class="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-amber-500/10 p-3 rounded-xl border border-amber-500/20 group-hover:bg-amber-500/20 transition-colors">
+              <svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -44,15 +44,15 @@
         </div>
 
         <!-- Tareas Completadas -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-6 border border-gray-100 dark:border-gray-700">
+        <div class="bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-white/5 hover:border-emerald-500/20 transition-all group">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Completadas Hoy</p>
-              <p class="text-3xl font-bold text-green-600 dark:text-green-400 mt-1">{{ stats.completedToday }}</p>
-              <p class="text-xs text-gray-400 mt-1">{{ stats.completionRate }}% tasa de éxito</p>
+              <p class="text-slate-400 text-sm font-medium uppercase tracking-wider">Completadas Hoy</p>
+              <p class="text-3xl font-extrabold text-white mt-1 group-hover:text-emerald-400 transition-colors">{{ stats.completedToday }}</p>
+              <p class="text-xs text-slate-500 mt-1 font-medium">{{ stats.completionRate }}% tasa de éxito</p>
             </div>
-            <div class="bg-green-100 dark:bg-green-900/30 p-3 rounded-xl">
-              <svg class="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20 group-hover:bg-emerald-500/20 transition-colors">
+              <svg class="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -60,15 +60,15 @@
         </div>
 
         <!-- Tareas Vencidas -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-6 border border-gray-100 dark:border-gray-700">
+        <div class="bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-white/5 hover:border-rose-500/20 transition-all group">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Tareas Vencidas</p>
-              <p class="text-3xl font-bold text-red-600 dark:text-red-400 mt-1">{{ stats.overdueTasks }}</p>
-              <p class="text-xs text-gray-400 mt-1">Requieren atención</p>
+              <p class="text-slate-400 text-sm font-medium uppercase tracking-wider">Vencidas</p>
+              <p class="text-3xl font-extrabold text-white mt-1 group-hover:text-rose-400 transition-colors">{{ stats.overdueTasks }}</p>
+              <p class="text-xs text-slate-500 mt-1 font-medium">Acción requerida</p>
             </div>
-            <div class="bg-red-100 dark:bg-red-900/30 p-3 rounded-xl">
-              <svg class="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-rose-500/10 p-3 rounded-xl border border-rose-500/20 group-hover:bg-rose-500/20 transition-colors">
+              <svg class="w-8 h-8 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -79,39 +79,51 @@
       <!-- Gráficos y Métricas -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <!-- Tendencia de Tareas (Últimos 7 días) -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-6 border border-gray-100 dark:border-gray-700">
-          <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">📊 Tendencia de Tareas (7 días)</h3>
+        <div class="bg-slate-800/50 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-white/5">
+          <h3 class="text-lg font-bold text-white mb-6 flex items-center">
+             <span class="w-2 h-6 bg-blue-500 rounded-sm mr-3"></span>
+             Tendencia de Tareas
+          </h3>
           <div class="h-64">
             <Line v-if="taskTrendData.datasets[0].data.length > 0" :data="taskTrendData" :options="chartOptions" />
-            <p v-else class="text-gray-400 dark:text-gray-500 text-center pt-20">No hay datos disponibles</p>
+            <p v-else class="text-slate-500 text-center pt-20">No hay datos disponibles</p>
           </div>
         </div>
 
         <!-- Estado de Tareas por Prioridad -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-6 border border-gray-100 dark:border-gray-700">
-          <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">🎯 Tareas por Prioridad</h3>
+        <div class="bg-slate-800/50 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-white/5">
+          <h3 class="text-lg font-bold text-white mb-6 flex items-center">
+             <span class="w-2 h-6 bg-amber-500 rounded-sm mr-3"></span>
+             Distribución por Prioridad
+          </h3>
           <div class="h-64">
             <Doughnut v-if="priorityChartData.datasets[0].data.some(val => val > 0)" :data="priorityChartData" :options="doughnutOptions" />
-            <p v-else class="text-gray-400 dark:text-gray-500 text-center pt-20">No hay datos disponibles</p>
+            <p v-else class="text-slate-500 text-center pt-20">No hay datos disponibles</p>
           </div>
         </div>
       </div>
 
       <!-- Resumen de Productividad -->
-      <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg p-6 mb-8 text-white">
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="text-2xl font-bold mb-2">🚀 Tu Productividad Esta Semana</h3>
-            <p class="text-blue-100">Has completado {{ stats.completedThisWeek }} tareas de {{ stats.totalThisWeek }}</p>
+      <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-xl p-8 mb-8 text-white relative overflow-hidden border border-white/10">
+        <!-- Glow Effect -->
+        <div class="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="flex flex-col md:flex-row items-center justify-between relative z-10">
+          <div class="mb-6 md:mb-0">
+            <h3 class="text-2xl font-bold mb-2">🚀 Productividad Semanal</h3>
+            <p class="text-blue-100/80">Has completado <strong class="text-white">{{ stats.completedThisWeek }}</strong> tareas de <strong class="text-white">{{ stats.totalThisWeek }}</strong> asignadas.</p>
           </div>
-          <div class="text-right">
-            <p class="text-5xl font-bold">{{ Math.round((stats.completedThisWeek / stats.totalThisWeek) * 100) || 0 }}%</p>
-            <p class="text-blue-100 text-sm">Tasa de finalización</p>
+          <div class="text-right flex items-center gap-6">
+             <div class="text-center">
+                 <p class="text-5xl font-extrabold tracking-tight">{{ Math.round((stats.completedThisWeek / stats.totalThisWeek) * 100) || 0 }}%</p>
+                 <p class="text-blue-200 text-xs font-bold uppercase tracking-wider mt-1">Efectividad</p>
+             </div>
+             <!-- Circular Progress or Icon could go here -->
           </div>
         </div>
-        <div class="w-full bg-blue-400/30 rounded-full h-3 mt-4">
+        <div class="w-full bg-black/20 rounded-full h-3 mt-8 overflow-hidden backdrop-blur-sm">
           <div 
-            class="bg-white h-3 rounded-full transition-all"
+            class="bg-white h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(255,255,255,0.5)]"
             :style="`width: ${Math.round((stats.completedThisWeek / stats.totalThisWeek) * 100) || 0}%`"
           ></div>
         </div>
@@ -120,54 +132,62 @@
       <!-- Tareas Urgentes y Flujos Recientes -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Tareas Urgentes -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700">
-          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">🔥 Tareas Urgentes</h3>
+        <div class="bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/5 flex flex-col">
+          <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-white flex items-center">
+                <span class="w-2 h-2 rounded-full bg-rose-500 mr-2 animate-pulse"></span>
+                Tareas Urgentes
+            </h3>
+            <span class="text-xs font-semibold bg-rose-500/10 text-rose-400 px-2 py-1 rounded-md border border-rose-500/20">
+                {{ urgentTasks.length }} pendientes
+            </span>
           </div>
-          <div class="divide-y divide-gray-200 dark:divide-gray-700">
-            <div v-for="task in urgentTasks" :key="task.id" class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors">
+          <div class="divide-y divide-white/5">
+            <div v-for="task in urgentTasks" :key="task.id" class="px-6 py-4 hover:bg-slate-700/30 cursor-pointer transition-colors group">
               <div class="flex items-start justify-between">
                 <div class="flex-1">
-                  <h4 class="text-sm font-semibold text-gray-900 dark:text-white">{{ task.title }}</h4>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ task.flow?.name }}</p>
+                  <h4 class="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors">{{ task.title }}</h4>
+                  <p class="text-xs text-slate-500 mt-1 flex items-center">
+                    <svg class="w-3 h-3 mr-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                    {{ task.flow?.name }}
+                  </p>
                 </div>
-                <span class="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 text-xs font-semibold rounded-full">
+                <span class="px-2.5 py-1 bg-rose-500/10 text-rose-400 text-xs font-bold rounded-lg border border-rose-500/20 shadow-sm shrink-0 ml-3">
                   {{ getDaysRemaining(task.estimated_end_at) }}
                 </span>
               </div>
+            </div>
+            <div v-if="urgentTasks.length === 0" class="px-6 py-8 text-center text-slate-500 text-sm">
+                ¡Todo bajo control! No hay tareas urgentes.
             </div>
           </div>
         </div>
 
         <!-- Flujos Recientes -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-100 dark:border-gray-700">
-          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">📁 Flujos Recientes</h3>
+        <div class="bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/5 flex flex-col">
+          <div class="px-6 py-4 border-b border-white/5">
+            <h3 class="text-lg font-bold text-white">📁 Flujos Recientes</h3>
           </div>
-          <div class="divide-y divide-gray-200 dark:divide-gray-700">
+          <div class="divide-y divide-white/5">
             <router-link
               v-for="flow in recentFlows"
               :key="flow.id"
               :to="`/flows/${flow.id}`"
-              class="block px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+              class="block px-6 py-4 hover:bg-slate-700/30 transition-colors group"
             >
               <div class="flex items-center justify-between">
-                <div class="flex-1">
-                  <h4 class="text-sm font-semibold text-gray-900 dark:text-white">{{ flow.name }}</h4>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ flow.tasks?.length || 0 }} tareas</p>
+                <div class="flex-1 min-w-0 mr-4">
+                  <h4 class="text-sm font-semibold text-slate-200 group-hover:text-blue-400 transition-colors truncate">{{ flow.name }}</h4>
+                  <p class="text-xs text-slate-500 mt-1">{{ flow.tasks?.length || 0 }} tareas</p>
                 </div>
-                <div class="flex flex-col items-end space-y-1">
-                  <span :class="getStatusClass(flow.status)" class="px-2 py-1 text-xs font-semibold rounded-full">
+                <div class="flex flex-col items-end space-y-2 shrink-0">
+                  <span :class="getStatusClass(flow.status)" class="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border border-current/20">
                     {{ getStatusText(flow.status) }}
                   </span>
-                  <div class="w-32"> <!-- Increased width for progress bar container -->
-                    <div class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
-                      <span>Progreso</span>
-                      <span class="font-semibold">{{ calculateProgress(flow) }}%</span>
-                    </div>
-                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div class="w-24"> 
+                    <div class="w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
                       <div
-                        class="bg-blue-600 h-2 rounded-full transition-all"
+                        class="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
                         :style="`width: ${calculateProgress(flow)}%`"
                       ></div>
                     </div>
@@ -175,6 +195,9 @@
                 </div>
               </div>
             </router-link>
+            <div v-if="recentFlows.length === 0" class="px-6 py-8 text-center text-slate-500 text-sm">
+                No hay flujos recientes.
+            </div>
           </div>
         </div>
       </div>

@@ -1,108 +1,154 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+  <div class="min-h-screen bg-slate-900 transition-colors font-sans selection:bg-blue-500/30 selection:text-blue-200">
     <Navbar />
 
-    <div v-if="loading" class="flex justify-center items-center h-64">
-      <div class="text-xl text-gray-600 dark:text-gray-400">Cargando flujo...</div>
+    <div v-if="loading" class="flex justify-center items-center h-screen">
+       <div class="flex flex-col items-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+          <p class="text-slate-400 text-lg animate-pulse">Cargando flujo...</p>
+       </div>
     </div>
 
     <main v-else-if="flow" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Header del Flujo -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6 border border-gray-100 dark:border-gray-700">
-        <div class="flex justify-between items-start mb-4">
+      <div class="rounded-3xl p-8 mb-8 border border-white/5 bg-slate-800/40 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+        <!-- Background Glow -->
+        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="flex flex-col md:flex-row justify-between items-start mb-6 relative z-10">
           <div class="flex-1">
-            <div class="flex items-center space-x-3">
-              <h2 class="text-3xl font-bold text-gray-900 dark:text-white">{{ flow.name }}</h2>
-              <button
-                @click="deleteFlow"
-                class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                title="Eliminar flujo"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
+            <div class="flex items-center gap-4 mb-2">
+              <h2 class="text-4xl font-extrabold text-white tracking-tight">{{ flow.name }}</h2>
+              <span :class="getStatusClass(flow.status)" class="px-3 py-1 text-xs font-bold rounded-full tracking-wider uppercase border border-white/10 shadow-sm">
+                {{ getStatusText(flow.status) }}
+              </span>
             </div>
-            <p class="text-gray-600 dark:text-gray-400 mt-2">{{ flow.description }}</p>
+            <p class="text-slate-400 text-lg max-w-2xl leading-relaxed">{{ flow.description }}</p>
           </div>
-          <span :class="getStatusClass(flow.status)" class="px-4 py-2 text-sm font-semibold rounded-full whitespace-nowrap">
-            {{ getStatusText(flow.status) }}
-          </span>
+          <button
+            @click="deleteFlow"
+            class="mt-4 md:mt-0 p-2 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all duration-300 group"
+            title="Eliminar flujo"
+          >
+            <svg class="w-6 h-6 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
         </div>
 
-        <!-- Info adicional -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-          <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Plantilla</p>
-            <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ flow.template?.name || 'Sin plantilla' }}</p>
+        <!-- Info Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 relative z-10">
+          <div class="bg-slate-900/50 p-5 rounded-2xl border border-white/5 hover:border-blue-500/20 transition-colors group">
+            <p class="text-xs uppercase tracking-wider text-slate-500 font-bold mb-2 group-hover:text-blue-400 transition-colors">Plantilla</p>
+            <p class="text-base font-semibold text-slate-200 truncate">{{ flow.template?.name || 'Personalizado' }}</p>
           </div>
-          <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Creado por</p>
-            <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ flow.creator?.name }}</p>
+          <div class="bg-slate-900/50 p-5 rounded-2xl border border-white/5 hover:border-blue-500/20 transition-colors group">
+            <p class="text-xs uppercase tracking-wider text-slate-500 font-bold mb-2 group-hover:text-blue-400 transition-colors">Creado por</p>
+            <p class="text-base font-semibold text-slate-200 truncate">{{ flow.creator?.name }}</p>
           </div>
-          <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Total Tareas</p>
-            <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ flow.tasks?.length || 0 }}</p>
+          <!-- FIX: Only count Tasks (non-milestones) -->
+          <div class="bg-slate-900/50 p-5 rounded-2xl border border-white/5 hover:border-blue-500/20 transition-colors group">
+            <p class="text-xs uppercase tracking-wider text-slate-500 font-bold mb-2 group-hover:text-blue-400 transition-colors">Tareas Activas</p>
+             <div class="flex items-baseline gap-1">
+                <p class="text-2xl font-bold text-white">{{ flow.tasks?.filter(t => !t.is_milestone).length || 0 }}</p>
+                <span class="text-sm text-slate-500 font-medium">tareas</span>
+             </div>
           </div>
-          <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Progreso General</p>
-            <div class="flex items-center mt-1">
-              <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2 mr-2">
-                <div class="bg-blue-600 h-2 rounded-full" :style="`width: ${calculateOverallProgress()}%`"></div>
+          <!-- FIX: Use flow.progress directly from backend -->
+          <div class="bg-slate-900/50 p-5 rounded-2xl border border-white/5 hover:border-blue-500/20 transition-colors group">
+            <p class="text-xs uppercase tracking-wider text-slate-500 font-bold mb-2 group-hover:text-blue-400 transition-colors">Progreso</p>
+            <div class="flex flex-col gap-2">
+               <div class="flex justify-between items-end">
+                  <span class="text-2xl font-bold text-white">{{ flow.progress || 0 }}%</span>
+               </div>
+               <div class="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden">
+                <div 
+                    class="h-full rounded-full shadow-[0_0_10px_rgba(59,130,246,0.6)] transition-all duration-1000 ease-out"
+                    :class="flow.progress === 100 ? 'bg-emerald-500 shadow-emerald-500/50' : 'bg-blue-500'"
+                    :style="`width: ${flow.progress || 0}%`"
+                ></div>
               </div>
-              <span class="text-sm font-semibold dark:text-white">{{ calculateOverallProgress() }}%</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Milestones -->
-      <div class="mb-6">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-2xl font-bold text-gray-800 dark:text-white">🎯 Milestones (Hitos)</h3>
+      <!-- Milestones Section -->
+      <div class="mb-12">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-2xl font-bold text-white flex items-center">
+            <span class="bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-blue-400 p-2.5 rounded-xl mr-3 border border-white/5">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            </span>
+            Hitos del Proyecto
+          </h3>
           <button
             @click="openNewMilestoneModal"
-            class="px-4 py-2 border border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 font-medium flex items-center transition-colors"
+            class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold flex items-center shadow-lg shadow-blue-900/40 transition-all hover:scale-105 active:scale-95 border border-white/10"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            Nuevo Milestone
+            Nuevo Hito
           </button>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div 
             v-for="milestone in milestones" 
             :key="milestone.id"
-            class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4 relative group"
-            :class="getMilestoneClass(milestone)"
+            class="bg-slate-800/80 rounded-3xl p-6 border border-white/5 shadow-xl hover:shadow-2xl hover:border-slate-600/50 hover:bg-slate-800 transition-all duration-300 group flex flex-col"
           >
-            <div class="flex items-start justify-between mb-3">
-              <h4 class="text-lg font-semibold text-gray-800 dark:text-white">{{ milestone.title }}</h4>
-              <span class="text-2xl">{{ getMilestoneIcon(milestone.status) }}</span>
+            <!-- Card Header -->
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <span :class="getMilestoneIconBg(milestone.status)" class="p-2.5 rounded-xl inline-flex items-center justify-center border border-white/5 shadow-inner">
+                    <svg v-if="milestone.status === 'completed'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    <svg v-else-if="milestone.status === 'in_progress'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </span>
+                <div>
+                   <h4 class="text-lg font-bold text-white leading-tight">{{ milestone.title }}</h4>
+                   <span class="text-xs font-semibold text-slate-500 uppercase tracking-widest mt-1 block">
+                    {{ getStatusText(milestone.status) }}
+                   </span>
+                </div>
+              </div>
             </div>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ milestone.description }}</p>
             
-            <div class="space-y-2 mb-4">
-              <div class="flex justify-between text-sm">
-                <span class="text-gray-500 dark:text-gray-400">Responsable:</span>
-                <span class="font-medium dark:text-white">{{ milestone.assignee?.name || 'Sin asignar' }}</span>
+            <p class="text-sm text-slate-400 mb-6 leading-relaxed line-clamp-2 min-h-[40px]">
+                {{ milestone.description || 'Sin descripción' }}
+            </p>
+            
+            <!-- Metadata Box -->
+            <div class="space-y-3 mb-6 bg-slate-900/50 rounded-xl p-4 border border-white/5">
+              <div class="flex justify-between items-center text-sm">
+                <span class="text-slate-500 font-medium">Responsable</span>
+                <span class="text-slate-200 font-semibold flex items-center gap-2">
+                   <div class="w-5 h-5 rounded-full bg-slate-700 flex items-center justify-center text-xs text-slate-300">
+                     {{ (milestone.assignee?.name || 'U').charAt(0) }}
+                   </div>
+                   {{ milestone.assignee?.name || 'Sin asignar' }}
+                </span>
               </div>
-              <div class="flex justify-between text-sm">
-                <span class="text-gray-500 dark:text-gray-400">Progreso:</span>
-                <span class="font-medium dark:text-white">{{ milestone.progress }}%</span>
-              </div>
-              <div class="flex justify-between text-sm">
-                <span class="text-gray-500 dark:text-gray-400">Subtareas:</span>
-                <span class="font-medium dark:text-white">{{ milestone.subtasks?.length || 0 }}</span>
+              <div class="flex justify-between items-center text-sm">
+                 <span class="text-slate-500 font-medium">Progreso</span>
+                 <div class="flex items-center gap-3 flex-1 justify-end">
+                    <div class="w-20 bg-slate-700/50 rounded-full h-1.5">
+                        <div class="h-1.5 rounded-full transition-all duration-500" 
+                             :class="milestone.progress === 100 ? 'bg-emerald-500' : 'bg-blue-500'"
+                             :style="`width: ${milestone.progress}%`">
+                        </div>
+                    </div>
+                    <span class="text-slate-200 font-bold text-xs w-8 text-right">{{ milestone.progress }}%</span>
+                </div>
               </div>
             </div>
 
-            <!-- Botón Agregar Tarea en Milestone -->
+            <!-- Boton Agregar -->
             <button
               @click="openNewTaskForMilestone(milestone)"
-              class="w-full py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+              class="w-full py-3.5 bg-slate-700/30 hover:bg-slate-700/60 text-slate-400 hover:text-white rounded-xl text-sm font-bold transition-all border border-dashed border-slate-600/50 hover:border-slate-500 flex items-center justify-center mb-6 group-hover:bg-slate-700/40"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -110,70 +156,83 @@
               Agregar Tarea Secuencial
             </button>
 
-            <div v-if="milestone.subtasks && milestone.subtasks.length > 0" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">TAREAS:</p>
-              <div class="space-y-2">
-                <div 
-                  v-for="subtask in milestone.subtasks" 
-                  :key="subtask.id"
-                  class="flex items-center text-sm"
-                >
-                  <span :class="getTaskIcon(subtask.status)" class="mr-2">
-                    {{ getTaskIconSymbol(subtask.status) }}
-                  </span>
-                  <span class="flex-1 dark:text-gray-300" :class="{'line-through text-gray-400': subtask.status === 'completed'}">
-                    {{ subtask.title }}
-                  </span>
+            <!-- Lista Tareas (Scrollable list if many tasks) -->
+            <div class="flex-1 overflow-visible">
+                <div v-if="milestone.subtasks && milestone.subtasks.length > 0">
+                <div class="flex items-center justify-between mb-3 px-1">
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Tareas Secuenciales</p>
+                    <span class="text-xs font-medium text-slate-600 bg-slate-800/80 px-2 py-0.5 rounded-md border border-white/5">
+                        {{ milestone.subtasks.length }}
+                    </span>
                 </div>
-              </div>
+                <div class="space-y-1">
+                    <div 
+                    v-for="subtask in milestone.subtasks" 
+                    :key="subtask.id"
+                    class="flex items-center p-2.5 rounded-xl hover:bg-slate-700/40 transition-all border border-transparent hover:border-white/5 group/task cursor-pointer"
+                    @click="openEditTaskModal(subtask)"
+                    >
+                    <!-- Status Icon -->
+                    <div class="mr-3 flex-shrink-0">
+                        <div v-if="subtask.status === 'completed'" class="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center">
+                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                        <div v-else-if="subtask.status === 'in_progress'" class="w-6 h-6 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 flex items-center justify-center animate-pulse-slow">
+                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        </div>
+                        <div v-else-if="subtask.status === 'blocked'" class="w-6 h-6 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        </div>
+                        <div v-else class="w-6 h-6 rounded-full border-2 border-slate-700/80 bg-slate-800/50"></div>
+                    </div>
+                    
+                    <span class="flex-1 text-sm font-medium transition-colors line-clamp-1" :class="subtask.status === 'completed' ? 'text-slate-500 line-through decoration-slate-600' : 'text-slate-300 group-hover/task:text-white'">
+                        {{ subtask.title }}
+                    </span>
+                    
+                     <!-- Edit Icon on Hover -->
+                     <div class="opacity-0 group-hover/task:opacity-100 transition-opacity text-slate-500 hover:text-blue-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                     </div>
+                    </div>
+                </div>
+                </div>
+                <div v-else class="text-center py-6 text-slate-600 text-sm italic">
+                    No hay tareas secuenciales aún
+                </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Todas las Tareas con Drag & Drop -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-100 dark:border-gray-700">
-        <div class="flex justify-between items-center mb-4">
-          <div>
-            <h3 class="text-2xl font-bold text-gray-800 dark:text-white">📋 Todas las Tareas</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              💡 Arrastra las tareas por el icono ≡ para reordenarlas
-            </p>
-          </div>
-
-        </div>
-        
-        <!-- Contenedor con Drag & Drop -->
-        <div ref="taskListRef" class="space-y-4">
-          <!-- Agrupación visual por bloques (Milestone o Tareas Libres) -->
-          <div v-for="group in taskGroups" :key="group.id" class="task-group">
-             <!-- Encabezado de Grupo si es Milestone -->
-            <div v-if="group.isMilestone" class="flex items-center mb-2 px-2">
-                <span class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mr-2">
-                    Milestone: {{ group.title }}
-                </span>
-                <div class="h-px flex-1 bg-blue-100 dark:bg-blue-900/40"></div>
+      <!-- Footer / Additional drag drop zone (Collapsed by default or simplified) -->
+      <div class="border-t border-slate-800 pt-8 mt-12 pb-12">
+        <div class="bg-slate-800/30 rounded-3xl p-6 border border-white/5 opacity-80 hover:opacity-100 transition-opacity">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                Vista Estructural
+            </h3>
+             <div ref="taskListRef" class="space-y-4">
+                <div v-for="group in taskGroups" :key="group.id" class="task-group">
+                    <div v-if="group.isMilestone" class="flex items-center mb-3 px-2 mt-6 first:mt-0">
+                        <span class="text-xs font-bold text-blue-400 uppercase tracking-wider mr-3 bg-blue-500/10 px-2 py-1 rounded">
+                            Milestone: {{ group.title }}
+                        </span>
+                        <div class="h-px flex-1 bg-slate-700/50"></div>
+                    </div>
+                    <div class="pl-2" :class="{'border-l-2 border-slate-700/30 pl-4': group.isMilestone}">
+                        <TaskTreeItem 
+                            v-for="task in group.tasks" 
+                            :key="task.id"
+                            :task="task"
+                            :level="0"
+                            @edit="openEditTaskModal"
+                            @delete="deleteTask"
+                            @dependencies="openDependencyModal"
+                        />
+                    </div>
+                </div>
             </div>
-
-            <div class="pl-2" :class="{'border-l-2 border-blue-100 dark:border-blue-900/50 pl-4': group.isMilestone}">
-                <TaskTreeItem 
-                    v-for="task in group.tasks" 
-                    :key="task.id"
-                    :task="task"
-                    :level="0"
-                    @edit="openEditTaskModal"
-                    @delete="deleteTask"
-                    @dependencies="openDependencyModal"
-                />
-            </div>
-          </div>
-        </div>
-
-        <div v-if="rootTasks.length === 0" class="text-center py-12">
-          <svg class="w-16 h-16 mx-auto text-gray-400 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <p class="text-gray-500 dark:text-gray-400">No hay tareas en este flujo</p>
         </div>
       </div>
     </main>
@@ -489,6 +548,13 @@ const getMilestoneIcon = (status) => {
   if (status === 'in_progress') return '🔄'
   if (status === 'blocked') return '🔒'
   return '⏳'
+}
+
+const getMilestoneIconBg = (status) => {
+  if (status === 'completed') return 'bg-emerald-500/20 text-emerald-500'
+  if (status === 'in_progress') return 'bg-blue-500/20 text-blue-500'
+  if (status === 'blocked') return 'bg-rose-500/20 text-rose-500'
+  return 'bg-slate-700 text-slate-400'
 }
 
 const getTaskIcon = (status) => {

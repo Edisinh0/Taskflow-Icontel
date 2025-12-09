@@ -1,71 +1,79 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <div class="min-h-screen bg-slate-900">
     <Navbar />
     
     <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Header -->
       <div class="mb-8">
-        <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Notificaciones</h2>
-        <p class="text-gray-600 dark:text-gray-400 mt-1">Todas tus notificaciones en un solo lugar</p>
+        <h2 class="text-3xl font-bold text-white tracking-tight">Notificaciones</h2>
+        <p class="text-slate-400 mt-1 text-lg">Mantente al día con todas las actualizaciones de tus proyectos</p>
       </div>
 
       <!-- Acciones -->
-      <div class="mb-6 flex justify-between items-center">
-        <div class="flex space-x-2">
+      <div class="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div class="bg-slate-800/50 p-1 rounded-xl border border-white/5 backdrop-blur-sm">
           <button
             @click="filterType = 'all'"
-            :class="filterType === 'all' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'"
-            class="px-4 py-2 rounded-lg font-medium transition-colors border border-gray-300 dark:border-gray-600"
+            :class="filterType === 'all' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-400 hover:text-white'"
+            class="px-6 py-2 rounded-lg font-bold text-sm transition-all"
           >
             Todas
           </button>
           <button
             @click="filterType = 'unread'"
-            :class="filterType === 'unread' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'"
-            class="px-4 py-2 rounded-lg font-medium transition-colors border border-gray-300 dark:border-gray-600"
+            :class="filterType === 'unread' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-400 hover:text-white'"
+            class="px-6 py-2 rounded-lg font-bold text-sm transition-all"
           >
-            No leídas ({{ unreadCount }})
+            No leídas <span v-if="unreadCount > 0" class="ml-1 px-1.5 py-0.5 bg-blue-500 text-white text-[10px] rounded-full">{{ unreadCount }}</span>
           </button>
         </div>
         
         <button
           v-if="unreadCount > 0"
           @click="markAllAsRead"
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+          class="px-4 py-2 bg-blue-600/10 text-blue-400 border border-blue-600/20 rounded-xl hover:bg-blue-600 hover:text-white font-bold text-sm transition-all flex items-center"
         >
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
           Marcar todas como leídas
         </button>
       </div>
 
       <!-- Lista de notificaciones -->
-      <div class="space-y-3">
+      <div class="space-y-4">
         <div
           v-for="notification in filteredNotifications"
           :key="notification.id"
           @click="handleNotificationClick(notification)"
-          class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all cursor-pointer"
-          :class="{ 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800': !notification.is_read }"
+          class="rounded-2xl p-5 border transition-all cursor-pointer group relative overflow-hidden"
+          :class="[
+            !notification.is_read 
+              ? 'bg-blue-900/10 border-blue-500/30 shadow-lg shadow-blue-900/10 hover:bg-blue-900/20' 
+              : 'bg-slate-800/80 border-white/5 hover:border-slate-600 hover:bg-slate-800'
+          ]"
         >
-          <div class="flex items-start space-x-4">
+          <div v-if="!notification.is_read" class="absolute top-4 right-4 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+
+          <div class="flex items-start space-x-5">
             <!-- Icono -->
             <div
-              class="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
+              class="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center border border-white/5 shadow-inner"
               :class="getNotificationIconClass(notification.type)"
             >
-              <span class="text-2xl">{{ getNotificationIcon(notification.type) }}</span>
+              <span class="text-2xl filter drop-shadow no-emoji-font">{{ getNotificationIcon(notification.type) }}</span>
             </div>
 
             <!-- Contenido -->
-            <div class="flex-1 min-w-0">
+            <div class="flex-1 min-w-0 pt-0.5">
               <div class="flex items-start justify-between">
-                <div class="flex-1">
-                  <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                <div class="flex-1 pr-6">
+                  <p class="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">
                     {{ notification.title }}
                   </p>
-                  <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  <p class="text-slate-400 mt-1 leading-relaxed">
                     {{ notification.message }}
                   </p>
-                  <p class="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                  <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 mt-3 flex items-center">
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     {{ formatDate(notification.created_at) }}
                   </p>
                 </div>
@@ -73,8 +81,8 @@
                 <!-- Badge de prioridad -->
                 <span
                   v-if="notification.priority === 'urgent' || notification.priority === 'high'"
-                  class="ml-4 px-2 py-1 text-xs font-semibold rounded-full"
-                  :class="notification.priority === 'urgent' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400' : 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400'"
+                  class="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border"
+                  :class="notification.priority === 'urgent' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-orange-500/10 text-orange-400 border-orange-500/20'"
                 >
                   {{ notification.priority === 'urgent' ? 'Urgente' : 'Alta' }}
                 </span>
@@ -86,12 +94,15 @@
         <!-- Vacío -->
         <div
           v-if="filteredNotifications.length === 0"
-          class="text-center py-16"
+          class="text-center py-20 bg-slate-800/30 rounded-3xl border-2 border-dashed border-slate-700"
         >
-          <svg class="w-16 h-16 mx-auto text-gray-400 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-          <p class="text-gray-500 dark:text-gray-400">No tienes notificaciones</p>
+          <div class="bg-slate-800 p-4 rounded-full inline-block mb-4">
+            <svg class="w-12 h-12 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+          </div>
+          <p class="text-white text-xl font-bold">No tienes notificaciones</p>
+          <p class="text-slate-400 mt-2">Estás al día con todas tus tareas</p>
         </div>
       </div>
     </main>
@@ -178,15 +189,15 @@ const getNotificationIcon = (type) => {
 
 const getNotificationIconClass = (type) => {
   const classes = {
-    sla_warning: 'bg-yellow-100 dark:bg-yellow-900/30',
-    task_overdue: 'bg-red-100 dark:bg-red-900/30',
-    task_completed: 'bg-green-100 dark:bg-green-900/30',
-    task_assigned: 'bg-blue-100 dark:bg-blue-900/30',
-    task_blocked: 'bg-gray-100 dark:bg-gray-700',
-    task_unblocked: 'bg-green-100 dark:bg-green-900/30',
-    milestone_completed: 'bg-purple-100 dark:bg-purple-900/30'
+    sla_warning: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+    task_overdue: 'bg-red-500/10 text-rose-500 border-rose-500/20',
+    task_completed: 'bg-green-500/10 text-green-500 border-green-500/20',
+    task_assigned: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+    task_blocked: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+    task_unblocked: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+    milestone_completed: 'bg-purple-500/10 text-purple-500 border-purple-500/20'
   }
-  return classes[type] || 'bg-gray-100 dark:bg-gray-700'
+  return classes[type] || 'bg-slate-700/50 text-slate-400'
 }
 
 const formatDate = (date) => {

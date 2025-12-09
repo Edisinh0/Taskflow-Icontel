@@ -2,15 +2,15 @@
   <Transition name="modal">
     <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto" @click.self="closeModal">
       <div class="flex min-h-screen items-center justify-center p-4">
-        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+        <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity"></div>
 
-        <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 z-10">
+        <div class="relative bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full p-8 z-10 border border-white/10">
           <!-- Header -->
-          <div class="flex justify-between items-start mb-6">
-            <h3 class="text-2xl font-bold text-gray-800">
+          <div class="flex justify-between items-start mb-8">
+            <h3 class="text-2xl font-bold text-white">
               {{ isEditMode ? 'Editar Flujo' : 'Nuevo Flujo' }}
             </h3>
-            <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+            <button @click="closeModal" class="text-slate-400 hover:text-white transition-colors">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -20,61 +20,61 @@
           <!-- Formulario -->
           <form @submit.prevent="handleSubmit">
             <!-- Nombre -->
-            <div class="mb-4">
-              <label class="block text-sm font-semibold text-gray-700 mb-2">
-                Nombre del Flujo <span class="text-red-500">*</span>
+            <div class="mb-5">
+              <label class="block text-sm font-bold text-slate-300 mb-2">
+                Nombre del Flujo <span class="text-rose-500">*</span>
               </label>
               <input
                 v-model="formData.name"
                 type="text"
                 required
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 placeholder="Ej: Instalación Cliente XYZ"
               />
             </div>
 
             <!-- Descripción -->
-            <div class="mb-4">
-              <label class="block text-sm font-semibold text-gray-700 mb-2">
+            <div class="mb-5">
+              <label class="block text-sm font-bold text-slate-300 mb-2">
                 Descripción
               </label>
               <textarea
                 v-model="formData.description"
                 rows="4"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 placeholder="Describe el flujo de trabajo..."
               ></textarea>
             </div>
 
             <!-- Grid de 2 columnas -->
-            <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-2 gap-5 mb-5">
               <!-- Plantilla -->
               <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                <label class="block text-sm font-bold text-slate-300 mb-2">
                   Plantilla Base
                 </label>
                 <select
                   v-model="formData.template_id"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 >
                   <option :value="null">Sin plantilla</option>
                   <option v-for="template in templates" :key="template.id" :value="template.id">
                     {{ template.name }} (v{{ template.version }})
                   </option>
                 </select>
-                <p class="text-xs text-gray-500 mt-1">
+                <p class="text-xs text-slate-500 mt-2">
                   Opcional: Selecciona una plantilla para pre-cargar tareas
                 </p>
               </div>
 
               <!-- Estado -->
               <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                <label class="block text-sm font-bold text-slate-300 mb-2">
                   Estado
                 </label>
                 <select
                   v-model="formData.status"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 >
                   <option value="active">Activo</option>
                   <option value="paused">Pausado</option>
@@ -85,35 +85,42 @@
             </div>
 
             <!-- Información de plantilla seleccionada -->
-            <div v-if="selectedTemplate" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 class="font-semibold text-blue-800 mb-2">📋 Plantilla: {{ selectedTemplate.name }}</h4>
-              <p class="text-sm text-blue-700">{{ selectedTemplate.description }}</p>
-              <div class="mt-2 text-xs text-blue-600">
-                <span class="font-semibold">Versión:</span> {{ selectedTemplate.version }} |
-                <span class="font-semibold">Duración estimada:</span> {{ selectedTemplate.config?.estimated_duration_days || 'N/A' }} días
+            <div v-if="selectedTemplate" class="mb-6 p-4 bg-blue-900/10 border border-blue-500/20 rounded-xl">
+              <h4 class="font-bold text-blue-400 mb-2 flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Plantilla: {{ selectedTemplate.name }}
+              </h4>
+              <p class="text-sm text-blue-300/80 mb-2">{{ selectedTemplate.description }}</p>
+              <div class="mt-2 text-xs font-semibold text-blue-500 uppercase tracking-wide">
+                <span class="text-blue-400">Versión:</span> {{ selectedTemplate.version }} |
+                <span class="text-blue-400">Duración estimada:</span> {{ selectedTemplate.config?.estimated_duration_days || 'N/A' }} días
               </div>
             </div>
 
             <!-- Error -->
-            <div v-if="error" class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
+            <div v-if="error" class="mb-6 p-4 bg-rose-900/20 border border-rose-500/30 text-rose-400 rounded-xl text-sm flex items-start">
+              <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               {{ error }}
             </div>
 
             <!-- Botones -->
-            <div class="flex justify-end space-x-3">
+            <div class="flex justify-end space-x-3 border-t border-white/5 pt-6">
               <button
                 type="button"
                 @click="closeModal"
-                class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                class="px-6 py-2.5 border border-slate-600/50 rounded-xl text-slate-300 hover:bg-slate-700 hover:text-white font-bold transition-all"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 :disabled="loading"
-                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50"
+                class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 font-bold shadow-lg shadow-blue-900/20 disabled:opacity-50 flex items-center"
               >
-                {{ loading ? 'Guardando...' : (isEditMode ? 'Actualizar Flujo' : 'Crear Flujo') }}
+                <span v-if="loading" class="mr-2">
+                  <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                </span>
+                {{ isEditMode ? 'Actualizar Flujo' : 'Crear Flujo' }}
               </button>
             </div>
           </form>

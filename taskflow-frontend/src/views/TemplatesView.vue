@@ -1,13 +1,13 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+  <div class="min-h-screen bg-slate-900 transition-colors">
     <!-- Navbar profesional -->
     <Navbar />
 
     <!-- Contenido -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div class="mb-8">
-        <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Plantillas de Flujos</h2>
-        <p class="text-gray-600 dark:text-gray-400 mt-1">Crea y gestiona plantillas reutilizables</p>
+        <h2 class="text-3xl font-bold text-white tracking-tight">Plantillas de Flujos</h2>
+        <p class="text-slate-400 mt-1 text-lg">Crea y gestiona plantillas reutilizables para optimizar tu trabajo</p>
       </div>
 
       <!-- Grid de Plantillas -->
@@ -15,63 +15,63 @@
         <div 
           v-for="template in templates" 
           :key="template.id"
-          class="bg-white dark:bg-gray-800 rounded-xl shadow-soft dark:shadow-none border border-gray-100 dark:border-gray-700 p-6 hover:shadow-medium transition-all group"
+          class="bg-slate-800/50 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl hover:bg-slate-800 transition-all p-6 border border-white/5 group"
         >
           <!-- Header -->
           <div class="flex items-start justify-between mb-4">
-            <div class="flex-1">
-              <h3 class="text-xl font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mb-1">
+            <div class="flex-1 pr-4">
+              <h3 class="text-xl font-bold text-white group-hover:text-blue-400 transition-colors mb-1 line-wrap">
                 {{ template.name }}
               </h3>
-              <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500 bg-slate-900/50 px-2 py-0.5 rounded">
                 Versión {{ template.version }}
               </span>
             </div>
             <span 
               :class="template.is_active 
-                ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' 
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-400'"
-              class="px-3 py-1 text-xs font-semibold rounded-full"
+                ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
+                : 'bg-slate-700/50 text-slate-400 border border-slate-600/30'"
+              class="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full whitespace-nowrap"
             >
               {{ template.is_active ? 'Activa' : 'Inactiva' }}
             </span>
           </div>
 
           <!-- Descripción -->
-          <p class="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3">
-            {{ template.description }}
+          <p class="text-slate-400 text-sm mb-6 line-clamp-3 h-15">
+            {{ template.description || 'Sin descripción disponible.' }}
           </p>
 
           <!-- Información adicional -->
-          <div v-if="template.config" class="space-y-2 mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+          <div v-if="template.config" class="space-y-3 mb-6 p-4 bg-slate-900/50 rounded-xl border border-white/5">
             <div v-if="template.config.estimated_duration_days" class="flex items-center text-sm">
-              <svg class="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 mr-2.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span class="text-gray-700 dark:text-gray-300">
-                Duración: <span class="font-semibold">{{ template.config.estimated_duration_days }} días</span>
+              <span class="text-slate-400">
+                Duración: <span class="font-bold text-slate-200">{{ template.config.estimated_duration_days }} días</span>
               </span>
             </div>
             <div v-if="template.config.required_roles" class="flex items-center text-sm">
-              <svg class="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 mr-2.5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-              <span class="text-gray-700 dark:text-gray-300">
-                Roles: <span class="font-semibold">{{ template.config.required_roles.join(', ') }}</span>
+              <span class="text-slate-400">
+                Roles: <span class="font-bold text-slate-200">{{ template.config.required_roles.join(', ') }}</span>
               </span>
             </div>
           </div>
 
           <!-- Estadísticas -->
-          <div class="flex items-center justify-between text-sm mb-4">
-            <div class="flex items-center text-gray-500 dark:text-gray-400">
-              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="flex items-center justify-between text-xs font-medium uppercase tracking-wider mb-4 border-t border-white/5 pt-4">
+            <div class="flex items-center text-slate-500">
+              <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              Por: {{ template.creator?.name }}
+              Por: {{ template.creator?.name || 'Sistema' }}
             </div>
-            <div class="text-gray-500 dark:text-gray-400">
-              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="text-slate-500">
+              <svg class="w-3.5 h-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
               {{ getFlowCount(template.id) }} flujos
@@ -81,7 +81,7 @@
           <!-- Botón de acción -->
           <button
             @click="useTemplate(template)"
-            class="w-full py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-medium shadow-sm flex items-center justify-center"
+            class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all font-bold shadow-lg shadow-blue-900/20 flex items-center justify-center hover:-translate-y-0.5"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -91,12 +91,14 @@
         </div>
 
         <!-- Card vacía -->
-        <div v-if="templates.length === 0" class="col-span-full flex flex-col items-center justify-center py-12">
-          <svg class="w-16 h-16 text-gray-400 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-          </svg>
-          <p class="text-gray-500 dark:text-gray-400 text-lg mb-2">No hay plantillas disponibles</p>
-          <p class="text-gray-400 dark:text-gray-500 text-sm">Crea tu primera plantilla</p>
+        <div v-if="templates.length === 0" class="col-span-full flex flex-col items-center justify-center py-20 bg-slate-800/30 rounded-3xl border-2 border-dashed border-slate-700">
+          <div class="bg-slate-800 p-4 rounded-full mb-4">
+             <svg class="w-12 h-12 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+             </svg>
+          </div>
+          <p class="text-white text-xl font-bold mb-2">No hay plantillas disponibles</p>
+          <p class="text-slate-400">Crea tu primera plantilla para estandarizar tus procesos</p>
         </div>
       </div>
     </main>

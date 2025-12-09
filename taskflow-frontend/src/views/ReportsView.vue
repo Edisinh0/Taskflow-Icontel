@@ -1,66 +1,71 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <div class="min-h-screen bg-slate-900">
     <Navbar />
     
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Header -->
       <div class="mb-8">
-        <h2 class="text-3xl font-bold text-gray-900 dark:text-white">📊 Reportes Operativos</h2>
-        <p class="text-gray-600 dark:text-gray-400 mt-1">Genera reportes personalizados con filtros avanzados</p>
+        <h2 class="text-3xl font-bold text-white tracking-tight">📊 Reportes Operativos</h2>
+        <p class="text-slate-400 mt-1 text-lg">Analiza el rendimiento de tus flujos con métricas detalladas</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <!-- Sidebar de Filtros -->
         <div class="lg:col-span-1">
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-6 border border-gray-200 dark:border-gray-700 sticky top-4">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">🔍 Filtros</h3>
+          <div class="bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-white/5 sticky top-4">
+            <h3 class="text-lg font-bold text-white mb-6 flex items-center">
+              <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Filtros
+            </h3>
             
-            <form @submit.prevent="applyFilters" class="space-y-4">
+            <form @submit.prevent="applyFilters" class="space-y-5">
               <!-- Estado -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label class="block text-sm font-medium text-slate-400 mb-2">
                   Estado
                 </label>
                 <select
                   v-model="filters.status"
                   multiple
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900"
                   size="5"
                 >
-                  <option value="pending">Pendiente</option>
-                  <option value="in_progress">En Progreso</option>
-                  <option value="completed">Completada</option>
-                  <option value="paused">Pausada</option>
-                  <option value="cancelled">Cancelada</option>
+                  <option value="pending" class="py-1">Pendiente</option>
+                  <option value="in_progress" class="py-1">En Progreso</option>
+                  <option value="completed" class="py-1">Completada</option>
+                  <option value="paused" class="py-1">Pausada</option>
+                  <option value="cancelled" class="py-1">Cancelada</option>
                 </select>
               </div>
 
               <!-- Prioridad -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label class="block text-sm font-medium text-slate-400 mb-2">
                   Prioridad
                 </label>
                 <select
                   v-model="filters.priority"
                   multiple
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900"
                   size="4"
                 >
-                  <option value="low">Baja</option>
-                  <option value="medium">Media</option>
-                  <option value="high">Alta</option>
-                  <option value="urgent">Urgente</option>
+                  <option value="low" class="py-1">Baja</option>
+                  <option value="medium" class="py-1">Media</option>
+                  <option value="high" class="py-1">Alta</option>
+                  <option value="urgent" class="py-1">Urgente</option>
                 </select>
               </div>
 
               <!-- Usuario Asignado -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label class="block text-sm font-medium text-slate-400 mb-2">
                   Usuario Asignado
                 </label>
                 <select
                   v-model="filters.assignee_id"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                 >
                   <option :value="null">Todos</option>
                   <option v-for="user in users" :key="user.id" :value="user.id">
@@ -71,12 +76,12 @@
 
               <!-- Flujo -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label class="block text-sm font-medium text-slate-400 mb-2">
                   Flujo
                 </label>
                 <select
                   v-model="filters.flow_id"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                 >
                   <option :value="null">Todos</option>
                   <option v-for="flow in flows" :key="flow.id" :value="flow.id">
@@ -85,58 +90,60 @@
                 </select>
               </div>
 
-              <!-- Fecha Desde -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Fecha Desde
-                </label>
-                <input
-                  v-model="filters.date_from"
-                  type="date"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <!-- Fecha Desde -->
+                <div>
+                  <label class="block text-xs font-medium text-slate-400 mb-1">
+                    Desde
+                  </label>
+                  <input
+                    v-model="filters.date_from"
+                    type="date"
+                    class="w-full px-2 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
 
-              <!-- Fecha Hasta -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Fecha Hasta
-                </label>
-                <input
-                  v-model="filters.date_to"
-                  type="date"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-                />
+                <!-- Fecha Hasta -->
+                <div>
+                  <label class="block text-xs font-medium text-slate-400 mb-1">
+                    Hasta
+                  </label>
+                  <input
+                    v-model="filters.date_to"
+                    type="date"
+                    class="w-full px-2 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
               </div>
 
               <!-- Solo Milestones -->
               <div>
-                <label class="flex items-center cursor-pointer">
+                <label class="flex items-center cursor-pointer group">
                   <input
                     v-model="filters.is_milestone"
                     type="checkbox"
-                    class="w-4 h-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:bg-gray-700"
+                    class="w-4 h-4 text-blue-600 border-slate-700 bg-slate-900 rounded focus:ring-blue-500 focus:ring-offset-slate-800"
                   />
-                  <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <span class="ml-2 text-sm font-medium text-slate-400 group-hover:text-slate-200 transition-colors">
                     Solo Milestones
                   </span>
                 </label>
               </div>
 
               <!-- Botones -->
-              <div class="space-y-2 pt-4">
+              <div class="space-y-3 pt-4 border-t border-white/5">
                 <button
                   type="submit"
-                  class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                  class="w-full px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold transition-all shadow-lg shadow-blue-900/20"
                 >
                   Aplicar Filtros
                 </button>
                 <button
                   type="button"
                   @click="clearFilters"
-                  class="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-medium transition-colors"
+                  class="w-full px-4 py-2.5 bg-slate-700/50 text-slate-300 rounded-xl hover:bg-slate-700 hover:text-white font-medium transition-colors border border-white/5"
                 >
-                  Limpiar
+                  Limpiar Todo
                 </button>
               </div>
             </form>
@@ -147,130 +154,135 @@
         <div class="lg:col-span-3 space-y-6">
           <!-- Estadísticas -->
           <div v-if="stats" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-4 border border-gray-200 dark:border-gray-700">
-              <p class="text-sm text-gray-600 dark:text-gray-400">Total Tareas</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ stats.total }}</p>
+            <div class="bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-5 border border-white/5 relative overflow-hidden group">
+              <div class="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:bg-blue-500/20"></div>
+              <p class="text-sm font-medium text-slate-400">Total Tareas</p>
+              <p class="text-3xl font-bold text-white mt-2">{{ stats.total }}</p>
             </div>
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-4 border border-gray-200 dark:border-gray-700">
-              <p class="text-sm text-gray-600 dark:text-gray-400">Completadas</p>
-              <p class="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{{ stats.by_status.completed }}</p>
+            <div class="bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-5 border border-white/5 relative overflow-hidden group">
+               <div class="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:bg-emerald-500/20"></div>
+              <p class="text-sm font-medium text-slate-400">Completadas</p>
+              <p class="text-3xl font-bold text-emerald-400 mt-2">{{ stats.by_status.completed }}</p>
             </div>
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-4 border border-gray-200 dark:border-gray-700">
-              <p class="text-sm text-gray-600 dark:text-gray-400">Progreso Promedio</p>
-              <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{{ stats.avg_progress }}%</p>
+            <div class="bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-5 border border-white/5 relative overflow-hidden group">
+               <div class="absolute top-0 right-0 w-20 h-20 bg-indigo-500/10 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:bg-indigo-500/20"></div>
+              <p class="text-sm font-medium text-slate-400">Progreso Promedio</p>
+              <p class="text-3xl font-bold text-indigo-400 mt-2">{{ stats.avg_progress }}%</p>
             </div>
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-4 border border-gray-200 dark:border-gray-700">
-              <p class="text-sm text-gray-600 dark:text-gray-400">Bloqueadas</p>
-              <p class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{{ stats.blocked }}</p>
+            <div class="bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-5 border border-white/5 relative overflow-hidden group">
+               <div class="absolute top-0 right-0 w-20 h-20 bg-rose-500/10 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:bg-rose-500/20"></div>
+              <p class="text-sm font-medium text-slate-400">Bloqueadas</p>
+              <p class="text-3xl font-bold text-rose-400 mt-2">{{ stats.blocked }}</p>
             </div>
           </div>
 
           <!-- Acciones de Exportación -->
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft p-4 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Exportar Reporte</h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400">Descarga los resultados en tu formato preferido</p>
-              </div>
-              <div class="flex space-x-3">
-                <button
-                  @click="exportToCsv"
-                  :disabled="loading || !tasks.length"
-                  class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>CSV</span>
-                </button>
-                <button
-                  @click="exportToPdf"
-                  :disabled="loading || !tasks.length"
-                  class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                  <span>PDF</span>
-                </button>
-              </div>
+          <div class="bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h3 class="text-lg font-bold text-white">Exportar Reporte</h3>
+              <p class="text-sm text-slate-400">Descarga los resultados actuales en tu formato preferido</p>
+            </div>
+            <div class="flex space-x-3 w-full sm:w-auto">
+              <button
+                @click="exportToCsv"
+                :disabled="loading || !tasks.length"
+                class="flex-1 sm:flex-none px-4 py-2.5 bg-emerald-600/10 text-emerald-400 border border-emerald-600/20 rounded-xl hover:bg-emerald-600 hover:text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>CSV</span>
+              </button>
+              <button
+                @click="exportToPdf"
+                :disabled="loading || !tasks.length"
+                class="flex-1 sm:flex-none px-4 py-2.5 bg-rose-600/10 text-rose-400 border border-rose-600/20 rounded-xl hover:bg-rose-600 hover:text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <span>PDF</span>
+              </button>
             </div>
           </div>
 
           <!-- Tabla de Resultados -->
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                Resultados ({{ meta.total || 0 }} tareas)
+          <div class="bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/5 overflow-hidden">
+            <div class="px-6 py-4 border-b border-white/5 bg-slate-800/50">
+              <h3 class="text-lg font-bold text-white">
+                Resultados <span class="text-sm font-normal text-slate-400 ml-2">({{ meta.total || 0 }} registros)</span>
               </h3>
             </div>
 
-            <div v-if="loading" class="p-8 text-center">
-              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <p class="text-gray-600 dark:text-gray-400 mt-2">Cargando...</p>
+            <div v-if="loading" class="p-12 text-center">
+              <div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+              <p class="text-slate-400 mt-4 font-medium">Generando reporte...</p>
             </div>
 
-            <div v-else-if="tasks.length === 0" class="p-8 text-center">
-              <svg class="w-16 h-16 mx-auto text-gray-400 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p class="text-gray-600 dark:text-gray-400">No se encontraron tareas con los filtros aplicados</p>
+            <div v-else-if="tasks.length === 0" class="p-12 text-center">
+              <div class="bg-slate-800/50 p-4 rounded-full inline-block mb-4">
+                 <svg class="w-12 h-12 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <p class="text-slate-300 text-lg font-medium">No se encontraron datos</p>
+              <p class="text-slate-500 text-sm mt-1">Intenta ajustar los filtros de búsqueda</p>
             </div>
 
             <div v-else class="overflow-x-auto">
               <table class="w-full">
-                <thead class="bg-gray-50 dark:bg-gray-900">
+                <thead class="bg-slate-900/50">
                   <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">ID</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Título</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Prioridad</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Asignado</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Flujo</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Progreso</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">ID</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Título</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Estado</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Prioridad</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Asignado</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Flujo</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Progreso</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                  <tr v-for="task in tasks" :key="task.id" class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ task.id }}</td>
-                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">{{ task.title }}</td>
+                <tbody class="divide-y divide-white/5">
+                  <tr v-for="task in tasks" :key="task.id" class="hover:bg-slate-700/30 transition-colors">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-500">#{{ task.id }}</td>
+                    <td class="px-6 py-4 text-sm text-slate-200 font-medium">{{ task.title }}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                      <span :class="getStatusClass(task.status)" class="px-2 py-1 text-xs font-semibold rounded-full">
+                      <span :class="getStatusClass(task.status)" class="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border border-current/20">
                         {{ getStatusText(task.status) }}
                       </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                      <span :class="getPriorityClass(task.priority)" class="px-2 py-1 text-xs font-semibold rounded-full">
+                      <span :class="getPriorityClass(task.priority)" class="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border border-current/20">
                         {{ getPriorityText(task.priority) }}
                       </span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
                       {{ task.assignee?.name || 'Sin asignar' }}
                     </td>
-                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">{{ task.flow?.name || '-' }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ task.progress }}%</td>
+                    <td class="px-6 py-4 text-sm text-blue-400 hover:text-blue-300 font-medium cursor-pointer">{{ task.flow?.name || '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-200">{{ task.progress }}%</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
             <!-- Paginación -->
-            <div v-if="meta.last_page > 1" class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <div class="text-sm text-gray-600 dark:text-gray-400">
-                Página {{ meta.current_page }} de {{ meta.last_page }}
+            <div v-if="meta.last_page > 1" class="px-6 py-4 border-t border-white/5 flex items-center justify-between bg-slate-800/30">
+              <div class="text-sm text-slate-400">
+                Página <span class="text-white font-bold">{{ meta.current_page }}</span> de <span class="text-white font-bold">{{ meta.last_page }}</span>
               </div>
-              <div class="flex space-x-2">
+              <div class="flex space-x-3">
                 <button
                   @click="changePage(meta.current_page - 1)"
                   :disabled="meta.current_page === 1"
-                  class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Anterior
                 </button>
                 <button
                   @click="changePage(meta.current_page + 1)"
                   :disabled="meta.current_page === meta.last_page"
-                  class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Siguiente
                 </button>
@@ -336,7 +348,7 @@ const applyFilters = async () => {
     stats.value = statsData.data
   } catch (error) {
     console.error('Error al cargar reporte:', error)
-    alert('Error al cargar el reporte')
+    // alert('Error al cargar el reporte')
   } finally {
     loading.value = false
   }
@@ -417,14 +429,14 @@ const exportToPdf = async () => {
 
 const getStatusClass = (status) => {
   const classes = {
-    pending: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400',
-    in_progress: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400',
-    completed: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400',
-    paused: 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400',
-    cancelled: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400',
-    blocked: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
+    pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+    in_progress: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    completed: 'bg-green-500/10 text-green-400 border-green-500/20',
+    paused: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+    cancelled: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+    blocked: 'bg-rose-500/10 text-rose-400 border-rose-500/20'
   }
-  return classes[status] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+  return classes[status] || 'bg-slate-700/50 text-slate-400 border-slate-600/20'
 }
 
 const getStatusText = (status) => {
@@ -441,12 +453,12 @@ const getStatusText = (status) => {
 
 const getPriorityClass = (priority) => {
   const classes = {
-    low: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400',
-    medium: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400',
-    high: 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400',
-    urgent: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
+    low: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    medium: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+    high: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+    urgent: 'bg-rose-500/10 text-rose-400 border-rose-500/20'
   }
-  return classes[priority] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+  return classes[priority] || 'bg-slate-700/50 text-slate-400 border-slate-600/20'
 }
 
 const getPriorityText = (priority) => {

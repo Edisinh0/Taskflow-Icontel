@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+  <div class="min-h-screen bg-slate-900 transition-colors">
     <!-- Navbar profesional -->
     <Navbar />
 
@@ -7,12 +7,12 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div class="flex justify-between items-center mb-8">
         <div>
-          <h2 class="text-3xl font-bold text-gray-900 dark:text-white">Flujos de Trabajo</h2>
-          <p class="text-gray-600 dark:text-gray-400 mt-1">Gestiona tus proyectos y flujos</p>
+          <h2 class="text-3xl font-bold text-white tracking-tight">Flujos de Trabajo</h2>
+          <p class="text-slate-400 mt-1 text-lg">Gestiona tus proyectos y flujos</p>
         </div>
         <button
           @click="openNewFlowModal"
-          class="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 font-medium flex items-center shadow-lg transition-all hover:shadow-xl"
+          class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 font-bold flex items-center shadow-lg shadow-blue-900/20 transition-all hover:-translate-y-0.5"
         >
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -22,66 +22,70 @@
       </div>
 
       <!-- Grid de Flujos -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-if="flows.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div 
           v-for="flow in flows" 
           :key="flow.id" 
-          class="bg-white dark:bg-gray-800 rounded-xl shadow-soft dark:shadow-none hover:shadow-medium transition-all p-6 border border-gray-100 dark:border-gray-700 group"
+          class="bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl hover:bg-slate-800 transition-all p-6 border border-white/5 group relative overflow-hidden flex flex-col"
         >
-          <div class="flex items-start justify-between mb-3">
-            <h3 class="text-xl font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+          <!-- Background accent -->
+          <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none group-hover:bg-blue-500/20 transition-all"></div>
+
+          <div class="flex items-start justify-between mb-4 relative z-10">
+            <h3 class="text-xl font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-1 pr-4">
               {{ flow.name }}
             </h3>
-            <span :class="getStatusClass(flow.status)" class="px-3 py-1 text-xs font-semibold rounded-full whitespace-nowrap">
+            <span :class="getStatusClass(flow.status)" class="px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full whitespace-nowrap border border-current/20">
               {{ getStatusText(flow.status) }}
             </span>
           </div>
           
-          <p class="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
-            {{ flow.description }}
+          <p class="text-slate-400 text-sm mb-6 line-clamp-2 h-10 flex-grow">
+            {{ flow.description || 'Sin descripción' }}
           </p>
           
           <!-- Estadísticas -->
-          <div class="flex items-center justify-between mb-4 text-sm">
-            <div class="flex items-center text-gray-500 dark:text-gray-400">
-              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="flex items-center justify-between mb-3 text-sm mt-auto">
+            <div class="flex items-center text-slate-500 font-medium font-mono text-xs uppercase tracking-wide">
+              <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
               </svg>
               <span>{{ flow.tasks?.length || 0 }} tareas</span>
             </div>
-            <div class="text-gray-500 dark:text-gray-400">
-              <span class="font-semibold text-blue-600 dark:text-blue-400">{{ calculateProgress(flow) }}%</span>
+            <div class="text-slate-300 font-bold text-xs uppercase tracking-wide">
+              <span class="text-blue-400 text-sm mr-1">{{ flow.progress || 0 }}%</span> completado
             </div>
           </div>
 
           <!-- Barra de progreso -->
-          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
+          <div class="w-full bg-slate-700/50 rounded-full h-1.5 mb-6 overflow-hidden">
             <div 
-              class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all"
-              :style="`width: ${calculateProgress(flow)}%`"
+              class="bg-blue-500 h-1.5 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(59,130,246,0.3)]"
+              :style="`width: ${flow.progress || 0}%`"
+              :class="{ 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]': (flow.progress || 0) === 100 }"
             ></div>
           </div>
 
           <!-- Botones -->
-          <div class="flex space-x-2">
+          <div class="flex space-x-3 pt-5 border-t border-white/5 relative z-10">
             <router-link 
               :to="`/flows/${flow.id}`"
-              class="flex-1 text-center bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2.5 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all font-medium shadow-sm"
+              class="flex-1 text-center bg-blue-600/10 text-blue-400 py-2.5 rounded-xl hover:bg-blue-600 hover:text-white transition-all font-bold text-sm border border-blue-600/20 uppercase tracking-wide"
             >
               Ver Detalles
             </router-link>
             <button
               @click.prevent="openEditFlowModal(flow)"
-              class="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              class="px-3 py-2.5 bg-slate-700/30 text-slate-400 rounded-xl hover:bg-slate-700 hover:text-white transition-colors border border-white/5"
               title="Editar flujo"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
             </button>
             <button
               @click.prevent="deleteFlow(flow)"
-              class="px-4 py-2.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+              class="px-3 py-2.5 bg-rose-500/10 text-rose-400 rounded-xl hover:bg-rose-500 hover:text-white transition-colors border border-rose-500/20"
               title="Eliminar flujo"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,15 +94,23 @@
             </button>
           </div>
         </div>
+      </div>
 
-        <!-- Card vacía si no hay flujos -->
-        <div v-if="flows.length === 0" class="col-span-full flex flex-col items-center justify-center py-12">
-          <svg class="w-16 h-16 text-gray-400 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <p class="text-gray-500 dark:text-gray-400 text-lg mb-2">No hay flujos creados</p>
-          <p class="text-gray-400 dark:text-gray-500 text-sm">Crea tu primer flujo para comenzar</p>
+      <!-- Card vacía si no hay flujos -->
+      <div v-else class="col-span-full flex flex-col items-center justify-center py-20 bg-slate-800/30 rounded-3xl border-2 border-dashed border-slate-700/50 backdrop-blur-sm">
+        <div class="bg-slate-800 p-6 rounded-full mb-6 border border-white/5 shadow-xl">
+            <svg class="w-16 h-16 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            </svg>
         </div>
+        <p class="text-white text-2xl font-bold mb-3">No hay flujos creados</p>
+        <p class="text-slate-400 max-w-md text-center">Crea tu primer flujo de trabajo para comenzar a organizar y monitorear tus tareas de manera eficiente.</p>
+        <button
+          @click="openNewFlowModal"
+          class="mt-8 px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold transition-all shadow-lg hover:shadow-blue-600/20"
+        >
+          Crear Primer Flujo
+        </button>
       </div>
     </main>
 
@@ -171,12 +183,12 @@ const deleteFlow = async (flow) => {
 
 const getStatusClass = (status) => {
   const classes = {
-    active: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400',
-    paused: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400',
-    completed: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400',
-    cancelled: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
+    active: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    paused: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    completed: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    cancelled: 'bg-rose-500/10 text-rose-400 border-rose-500/20'
   }
-  return classes[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-400'
+  return classes[status] || 'bg-slate-700/50 text-slate-400 border-slate-600/30'
 }
 
 const getStatusText = (status) => {
@@ -187,12 +199,6 @@ const getStatusText = (status) => {
     cancelled: 'Cancelado'
   }
   return texts[status] || status
-}
-
-const calculateProgress = (flow) => {
-  if (!flow.tasks || flow.tasks.length === 0) return 0
-  const completed = flow.tasks.filter(t => t.status === 'completed').length
-  return Math.round((completed / flow.tasks.length) * 100)
 }
 
 const loadData = async () => {

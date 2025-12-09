@@ -1,26 +1,25 @@
 <template>
-  <!-- Overlay del Modal -->
   <Transition name="modal">
     <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto" @click.self="closeModal">
       <div class="flex min-h-screen items-center justify-center p-4">
         <!-- Fondo oscuro -->
-        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+        <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity"></div>
 
         <!-- Contenido del Modal -->
-        <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full p-6 z-10">
+        <div class="relative bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full p-8 z-10 border border-white/10">
           <!-- Header -->
-          <div class="flex justify-between items-start mb-6">
+          <div class="flex justify-between items-start mb-8">
             <div>
-              <h3 class="text-2xl font-bold text-gray-800 dark:text-white">
+              <h3 class="text-2xl font-bold text-white">
                 🔗 Gestionar Dependencias
               </h3>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <p class="text-sm text-slate-400 mt-1 font-medium">
                 {{ task?.title }}
               </p>
             </div>
             <button
               @click="closeModal"
-              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              class="text-slate-400 hover:text-white transition-colors"
             >
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -29,12 +28,12 @@
           </div>
 
           <!-- Estado Actual -->
-          <div v-if="task?.is_blocked" class="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div v-if="task?.is_blocked" class="mb-6 p-4 bg-rose-900/20 border border-rose-500/20 rounded-xl">
             <div class="flex items-start">
-              <span class="text-2xl mr-3">🔒</span>
+              <span class="text-2xl mr-3 filter drop-shadow">🔒</span>
               <div>
-                <p class="font-semibold text-red-800 dark:text-red-400">Esta tarea está bloqueada</p>
-                <p class="text-sm text-red-700 dark:text-red-300 mt-1">
+                <p class="font-bold text-rose-400">Esta tarea está bloqueada</p>
+                <p class="text-sm text-rose-300/80 mt-1">
                   No se puede iniciar o completar hasta que se cumplan sus dependencias.
                 </p>
               </div>
@@ -45,15 +44,15 @@
           <form @submit.prevent="handleSubmit">
             <!-- Tarea Precedente -->
             <div class="mb-6">
-              <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <label class="block text-sm font-bold text-slate-300 mb-2">
                 📋 Tarea Precedente
               </label>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              <p class="text-xs text-slate-500 mb-2">
                 Esta tarea no puede iniciarse hasta que se complete la tarea seleccionada
               </p>
               <select
                 v-model="formData.depends_on_task_id"
-                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               >
                 <option :value="null">Sin dependencia de tarea</option>
                 <option
@@ -69,12 +68,12 @@
               </select>
               
               <!-- Info de la tarea seleccionada -->
-              <div v-if="selectedPrecedentTask" class="mt-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div v-if="selectedPrecedentTask" class="mt-3 p-3 bg-slate-900/50 rounded-lg border border-white/5">
                 <div class="flex items-center justify-between">
-                  <span class="text-sm font-medium dark:text-white">{{ selectedPrecedentTask.title }}</span>
+                  <span class="text-sm font-medium text-slate-200">{{ selectedPrecedentTask.title }}</span>
                   <span
                     :class="getStatusBadgeClass(selectedPrecedentTask.status)"
-                    class="px-2 py-1 text-xs font-semibold rounded-full"
+                    class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border border-current/20"
                   >
                     {{ getStatusText(selectedPrecedentTask.status) }}
                   </span>
@@ -84,15 +83,15 @@
 
             <!-- Milestone Requerido -->
             <div class="mb-6">
-              <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <label class="block text-sm font-bold text-slate-300 mb-2">
                 ⭐ Milestone Requerido
               </label>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              <p class="text-xs text-slate-500 mb-2">
                 Esta tarea no puede iniciarse hasta que se complete el milestone seleccionado
               </p>
               <select
                 v-model="formData.depends_on_milestone_id"
-                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               >
                 <option :value="null">Sin dependencia de milestone</option>
                 <option
@@ -108,12 +107,12 @@
               </select>
 
               <!-- Info del milestone seleccionado -->
-              <div v-if="selectedMilestone" class="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <div v-if="selectedMilestone" class="mt-3 p-3 bg-yellow-900/10 rounded-lg border border-yellow-500/20">
                 <div class="flex items-center justify-between">
-                  <span class="text-sm font-medium dark:text-white">⭐ {{ selectedMilestone.title }}</span>
+                  <span class="text-sm font-medium text-yellow-100">⭐ {{ selectedMilestone.title }}</span>
                   <span
                     :class="getStatusBadgeClass(selectedMilestone.status)"
-                    class="px-2 py-1 text-xs font-semibold rounded-full"
+                    class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border border-current/20"
                   >
                     {{ getStatusText(selectedMilestone.status) }}
                   </span>
@@ -122,28 +121,28 @@
             </div>
 
             <!-- Advertencia de validación -->
-            <div v-if="validationError" class="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm">
-              {{ validationError }}
+            <div v-if="validationError" class="mb-6 p-4 bg-rose-900/20 border border-rose-500/30 text-rose-400 rounded-xl text-sm font-medium">
+              ⚠️ {{ validationError }}
             </div>
 
             <!-- Mensaje de error -->
-            <div v-if="error" class="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm">
+            <div v-if="error" class="mb-6 p-4 bg-rose-900/20 border border-rose-500/30 text-rose-400 rounded-xl text-sm">
               {{ error }}
             </div>
 
             <!-- Botones -->
-            <div class="flex justify-end space-x-3">
+            <div class="flex justify-end space-x-3 border-t border-white/5 pt-6">
               <button
                 type="button"
                 @click="closeModal"
-                class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
+                class="px-6 py-2.5 border border-slate-600/50 rounded-xl text-slate-300 hover:bg-slate-700 hover:text-white font-bold transition-all"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 :disabled="loading || !!validationError"
-                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 font-bold shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {{ loading ? 'Guardando...' : 'Guardar Dependencias' }}
               </button>
@@ -278,14 +277,14 @@ const handleSubmit = async () => {
 
 const getStatusBadgeClass = (status) => {
   const classes = {
-    pending: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-    blocked: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-    in_progress: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-    paused: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-    completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-    cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+    pending: 'bg-slate-700/50 text-slate-400 border-slate-600/30',
+    blocked: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+    in_progress: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    paused: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+    completed: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    cancelled: 'bg-red-500/10 text-red-400 border-red-500/20'
   }
-  return classes[status] || 'bg-gray-100 text-gray-800'
+  return classes[status] || 'bg-slate-700/50 text-slate-400'
 }
 
 const getStatusText = (status) => {

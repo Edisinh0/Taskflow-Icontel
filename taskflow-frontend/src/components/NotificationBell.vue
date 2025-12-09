@@ -3,7 +3,7 @@
     <!-- Botón de campana -->
     <button
       @click="toggleDropdown"
-      class="relative p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+      class="relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
       title="Notificaciones"
     >
       <!-- Icono de campana -->
@@ -14,7 +14,7 @@
       <!-- Badge de cantidad -->
       <span
         v-if="unreadCount > 0"
-        class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse"
+        class="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-rose-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg shadow-rose-900/50 animate-pulse"
       >
         {{ unreadCount > 9 ? '9+' : unreadCount }}
       </span>
@@ -31,50 +31,50 @@
     >
       <div
         v-if="isOpen"
-        class="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50"
+        class="absolute right-0 mt-2 w-96 bg-slate-800 rounded-xl shadow-2xl border border-white/10 z-50 backdrop-blur-xl"
         @click.stop
       >
         <!-- Header -->
-        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+        <div class="px-5 py-4 border-b border-white/5 flex justify-between items-center bg-slate-800/50 rounded-t-xl">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider">
             Notificaciones
           </h3>
           <button
             v-if="unreadCount > 0"
             @click="markAllAsRead"
-            class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
+            class="text-xs text-blue-400 hover:text-blue-300 font-bold transition-colors"
           >
-            Marcar todas como leídas
+            Marcar todas leídas
           </button>
         </div>
 
         <!-- Lista de notificaciones -->
-        <div class="max-h-96 overflow-y-auto">
+        <div class="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
           <div
             v-for="notification in notifications"
             :key="notification.id"
-            class="px-4 py-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
-            :class="{ 'bg-blue-50 dark:bg-blue-900/20': !notification.is_read }"
+            class="px-5 py-4 border-b border-white/5 hover:bg-slate-700/30 transition-colors cursor-pointer group"
+            :class="{ 'bg-blue-900/10': !notification.is_read }"
             @click="handleNotificationClick(notification)"
           >
-            <div class="flex items-start space-x-3">
+            <div class="flex items-start space-x-4">
               <!-- Icono según tipo -->
               <div
-                class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+                class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center shadow-inner border border-white/5"
                 :class="getNotificationIconClass(notification.type)"
               >
-                <span class="text-xl">{{ getNotificationIcon(notification.type) }}</span>
+                <span class="text-xl filter drop-shadow-sm">{{ getNotificationIcon(notification.type) }}</span>
               </div>
 
               <!-- Contenido -->
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-gray-900 dark:text-white">
+              <div class="flex-1 min-w-0 pt-0.5">
+                <p class="text-sm font-bold text-slate-200 group-hover:text-blue-400 transition-colors">
                   {{ notification.title }}
                 </p>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <p class="text-xs text-slate-400 mt-1 leading-relaxed line-clamp-2">
                   {{ notification.message }}
                 </p>
-                <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                <p class="text-[10px] font-bold text-slate-500 mt-2 uppercase tracking-wide">
                   {{ formatDate(notification.created_at) }}
                 </p>
               </div>
@@ -82,7 +82,7 @@
               <!-- Badge de prioridad -->
               <span
                 v-if="notification.priority === 'urgent'"
-                class="flex-shrink-0 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 text-xs font-semibold rounded-full"
+                class="flex-shrink-0 px-2 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] font-bold rounded-full uppercase tracking-wider"
               >
                 Urgente
               </span>
@@ -92,23 +92,25 @@
           <!-- Vacío -->
           <div
             v-if="notifications.length === 0"
-            class="px-4 py-8 text-center text-gray-500 dark:text-gray-400"
+            class="px-6 py-10 text-center"
           >
-            <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            <p>No tienes notificaciones</p>
+            <div class="bg-slate-800/80 p-3 rounded-full inline-block mb-3 border border-white/5">
+               <svg class="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </div>
+            <p class="text-slate-400 font-medium text-sm">No tienes notificaciones</p>
           </div>
         </div>
 
         <!-- Footer -->
-        <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+        <div class="px-4 py-3 border-t border-white/5 bg-slate-800/50 rounded-b-xl hover:bg-slate-700/30 transition-colors text-center">
           <router-link
             to="/notifications"
-            class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
+            class="text-xs font-bold text-slate-400 hover:text-white uppercase tracking-wider block w-full h-full"
             @click="isOpen = false"
           >
-            Ver todas las notificaciones →
+            Ver todas las notificaciones
           </router-link>
         </div>
       </div>
@@ -197,13 +199,13 @@ const getNotificationIcon = (type) => {
 
 const getNotificationIconClass = (type) => {
   const classes = {
-    sla_warning: 'bg-yellow-100 dark:bg-yellow-900/30',
-    task_overdue: 'bg-red-100 dark:bg-red-900/30',
-    task_completed: 'bg-green-100 dark:bg-green-900/30',
-    task_assigned: 'bg-blue-100 dark:bg-blue-900/30',
-    task_blocked: 'bg-gray-100 dark:bg-gray-700'
+    sla_warning: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+    task_overdue: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
+    task_completed: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+    task_assigned: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+    task_blocked: 'bg-slate-500/10 text-slate-400 border-slate-500/20'
   }
-  return classes[type] || 'bg-gray-100 dark:bg-gray-700'
+  return classes[type] || 'bg-slate-700/50 text-slate-400 border-slate-600/30'
 }
 
 const formatDate = (date) => {
