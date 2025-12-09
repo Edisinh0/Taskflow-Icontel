@@ -15,49 +15,38 @@ class TaskObserver
      * pero ANTES del INSERT en la base de datos.
      */
     public function saving(Task $task): void
-    {
-        // Solo ejecutar en creación, no en actualización
-        if ($task->exists) {
-            return;
-        }
-
-        Log::info('🔧 TaskObserver::saving() ejecutándose', [
-            'task_id' => $task->id ?? 'nuevo',
-            'title' => $task->title,
-            'status' => $task->status,
-            'depends_on_task_id' => $task->depends_on_task_id,
-            'depends_on_milestone_id' => $task->depends_on_milestone_id,
-            'is_blocked_ANTES' => $task->is_blocked ?? 'null',
-        ]);
-
-        // Calcular progreso basado en estado (para nuevas tareas y updates)
-        if ($task->isDirty('status')) {
-            $this->calculateProgressFromStatus($task);
-        }
-
-        try {
-            // Si tiene dependencias, la tarea DEBE estar bloqueada al inicio
-            if ($task->depends_on_task_id || $task->depends_on_milestone_id) {
-                $task->is_blocked = true;
-                Log::info('🔒 Tarea será creada BLOQUEADA', [
-                    'is_blocked_DESPUES' => $task->is_blocked,
-                    'attributes' => $task->getAttributes(),
-                ]);
-            } else {
-                // Sin dependencias, la tarea está libre
-                $task->is_blocked = false;
-                Log::info('🔓 Tarea será creada LIBRE', [
-                    'is_blocked_DESPUES' => $task->is_blocked,
-                ]);
-            }
-        } catch (\Exception $e) {
-            Log::error('❌ Error en TaskObserver::saving()', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            throw $e;
-        }
+{
+    // Solo ejecutar en creación, no en actualización
+    if ($task->exists) {
+        return;
     }
+
+    Log::info('🔧 TaskObserver::saving() ejecutándose', [
+        'task_id' => $task->id ?? 'nuevo',
+        'title' => $task->title,
+        'parent_task_id' => $task->parent_task_id,
+        'depends_on_task_id' => $task->depends_on_task_id,
+        'depends_on_milestone_id' => $task->depends_on_milestone_id,
+    ]);
+
+    try {
+        // Si tiene dependencias, la tarea DEBE estar bloqueada al inicio
+        if ($task->depends_on_task_id || $task->depends_on_milestone_id) {
+            $task->is_blocked = true;
+            Log::info('🔒 Tarea será creada BLOQUEADA');
+        } else {
+            // Sin dependencias, la tarea está libre
+            $task->is_blocked = false;
+            Log::info('🔓 Tarea será creada LIBRE (sin dependencias)');
+        }
+    } catch (\Exception $e) {
+        Log::error('❌ Error en TaskObserver::saving()', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        throw $e;
+    }
+}
 
     /**
      * Handle the Task "updating" event.
@@ -120,6 +109,10 @@ class TaskObserver
             if ($newAssigneeId) {
                 NotificationService::taskAssigned($task, $newAssigneeId);
             }
+        }
+        // 4. Calcular progreso basado en cambio de estado
+        if ($task->isDirty('status')) {
+            $this->calculateProgressFromStatus($task);
         }
     }
 
@@ -221,19 +214,28 @@ class TaskObserver
 
     /**
      * Handle the Task "saved" event (created or updated).
-     * Actualizar progreso del flujo padre.
+     * Actualizar progreso del flujo padre y del milestone padre.
+     */
+    /**
+     * Handle the Task "saved" event (created or updated).
+     * Actualizar progreso del flujo padre y del milestone padre.
      */
     public function saved(Task $task): void
     {
+        // 1. Primero actualizamos el padre (Milestone) para que su progreso esté al día
+        $this->updateParentProgress($task);
+        
+        // 2. Luego actualizamos el flujo, que podría depender del valor actualizado del padre
         $this->updateFlowProgress($task);
     }
 
     /**
      * Handle the Task "deleted" event.
-     * Actualizar progreso del flujo padre.
+     * Actualizar progreso del flujo padre y del milestone padre.
      */
     public function deleted(Task $task): void
     {
+        $this->updateParentProgress($task);
         $this->updateFlowProgress($task);
     }
 
@@ -252,8 +254,10 @@ class TaskObserver
                 return;
             }
 
-            // Calcular promedio de progreso de todas las tareas activas del flujo
-            $avgProgress = $flow->tasks()->avg('progress') ?? 0;
+            // Calcular promedio de progreso SOLO de las tareas RAÍZ (Milestones y tareas sueltas)
+            // Esto evita que las sub-tareas se cuenten doble (una vez solas y otra dentro del milestone)
+            // Y da el peso correcto a los Milestones como unidades de progreso.
+            $avgProgress = $flow->rootTasks()->avg('progress') ?? 0;
             $avgProgress = round($avgProgress);
 
             // Actualizar progreso
@@ -278,10 +282,50 @@ class TaskObserver
 
             $flow->saveQuietly(); // saveQuietly para evitar dispara eventos del flujo recursivos si los hubiera
 
-            Log::info("📊 Progreso del flujo actualizado: {$flow->id} -> {$avgProgress}% ({$flow->status})");
+            Log::info("📊 Progreso del flujo actualizado (basado en root tasks): {$flow->id} -> {$avgProgress}% ({$flow->status})");
 
         } catch (\Exception $e) {
             Log::error("❌ Error actualizando progreso del flujo {$task->flow_id}: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Actualizar el progreso del Milestone padre si esta es una subtarea
+     */
+    protected function updateParentProgress(Task $task): void
+    {
+        if (!$task->parent_task_id) {
+            return;
+        }
+
+        try {
+            $parent = $task->parentTask;
+            if (!$parent) {
+                return;
+            }
+
+            // Re-calcular progreso del padre usando helper del modelo o consulta directa
+            $newProgress = $parent->calculateProgress();
+             
+            // Solo actualizar si hay cambios
+            if ($parent->progress !== $newProgress) {
+                $parent->progress = $newProgress;
+                
+                // Actualizar estado del padre automáticamente basado en el nuevo progreso
+                if ($newProgress === 100 && $parent->status !== 'completed') {
+                    $parent->status = 'completed';
+                } elseif ($newProgress > 0 && $newProgress < 100 && $parent->status === 'pending') {
+                    $parent->status = 'in_progress';
+                } elseif ($newProgress === 0 && $parent->status === 'completed') {
+                    $parent->status = 'in_progress';
+                }
+                
+                $parent->saveQuietly();
+                Log::info("📊 Progreso del Milestone actualizado: {$parent->id} -> {$newProgress}% ({$parent->status})");
+            }
+            
+        } catch (\Exception $e) {
+            Log::error("❌ Error actualizando progreso del padre {$task->parent_task_id}: " . $e->getMessage());
         }
     }
 

@@ -345,7 +345,7 @@ watch([() => props.task, () => props.flowId, () => props.initialData], ([newTask
       estimated_start_at: defaults.estimated_start_at || '',
       estimated_end_at: defaults.estimated_end_at || '',
       flow_id: newFlowId || null,
-      parent_task_id: props.parentTaskId || null
+      parent_task_id: defaults.parent_task_id || props.parentTaskId || null
     }
   }
 }, { immediate: true })

@@ -140,15 +140,7 @@
               💡 Arrastra las tareas por el icono ≡ para reordenarlas
             </p>
           </div>
-          <button
-            @click="openNewTaskModal"
-            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center"
-          >
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-            Nueva Tarea
-          </button>
+
         </div>
         
         <!-- Contenedor con Drag & Drop -->
@@ -240,7 +232,23 @@ const users = ref([
 // Computed
 const milestones = computed(() => {
   if (!flow.value?.tasks) return []
-  return flow.value.tasks.filter(task => task.is_milestone)
+  
+  const allTasks = flow.value.tasks
+  
+  return allTasks.filter(task => task.is_milestone).map(milestone => {
+    // Manually find tasks that belong to this milestone to ensure 'subtasks' property exists
+    // Considers both parent_task_id (nested) and depends_on_milestone_id (legacy/blocking)
+    const subtasks = allTasks.filter(t => 
+      !t.is_milestone && 
+      (t.parent_task_id == milestone.id || t.depends_on_milestone_id == milestone.id)
+    )
+    
+    // Return a new object with the subtasks attached
+    return {
+      ...milestone,
+      subtasks: subtasks
+    }
+  })
 })
 
 const rootTasks = computed(() => {
@@ -349,39 +357,43 @@ const openNewTaskForMilestone = (milestone) => {
   selectedTask.value = null
   initialTaskData.value = null
   
-  console.log('🔍 Buscando última subtarea para Milestone:', milestone.title, 'ID:', milestone.id)
+  console.log('🔍 Creando tarea secuencial para Milestone:', milestone.title, 'ID:', milestone.id)
   
-  // 1. Encontrar tareas que son HIJAS de este milestone (parent_task_id)
-  // en lugar de depender de él.
+  // 1. Encontrar TODAS las tareas que son hijas de este milestone
   const childTasks = flow.value.tasks.filter(t => 
-    t.parent_task_id == milestone.id
+    t.parent_task_id == milestone.id && !t.is_milestone
   )
   
-  console.log('📋 Subtareas encontradas:', childTasks.length)
+  console.log('📋 Subtareas encontradas:', childTasks.length, childTasks.map(t => ({ id: t.id, title: t.title })))
 
-  // Ordenar por ID descendente para encontrar la última creada
+  // 2. Ordenar por ID descendente para encontrar la última creada
   childTasks.sort((a, b) => b.id - a.id)
   
   const lastTask = childTasks[0]
   
   if (lastTask) {
-      console.log('🔗 Última tarea encontrada (para secuencia):', lastTask.title, 'ID:', lastTask.id)
+    console.log('🔗 Última tarea encontrada (para secuencia):', lastTask.title, 'ID:', lastTask.id)
+  } else {
+    console.log('ℹ️ No hay tareas previas, esta será la primera tarea del milestone')
   }
   
+  // 3. Preparar datos iniciales
   initialTaskData.value = {
-    // CAMBIO CLAVE: Usar parent_task_id para que sea una "subtarea" del milestone
-    // Esto agrupa visual y lógicamente sin crear bloqueo "Task -> Milestone"
+    // Usar parent_task_id para agrupar bajo el milestone
     parent_task_id: milestone.id,
     
-    // NO establecer dependency al milestone para evitar bloqueo circular lógico 
-    // (el milestone espera a sus tareas, las tareas no pueden esperar al milestone)
+    // NO establecer depends_on_milestone_id para evitar bloqueo circular
     depends_on_milestone_id: null,
     
-    // Mantener la secuencia entre hermanas (Task B espera a Task A)
+    // Establecer dependencia de la última tarea (secuencial)
+    // Si no hay tarea previa, depends_on_task_id será null (primera tarea)
     depends_on_task_id: lastTask ? lastTask.id : null,
     
+    // Valores por defecto
     priority: 'medium',
-    title: `Tarea para ${milestone.title}`
+    status: 'pending',
+    is_milestone: false,
+    title: `Tarea ${childTasks.length + 1} - ${milestone.title}`
   }
   
   console.log('📦 Initial Data preparado:', initialTaskData.value)
