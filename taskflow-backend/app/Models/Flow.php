@@ -18,6 +18,7 @@ class Flow extends Model
         'template_id',
         'created_by',
         'status',
+        'progress',
         'started_at',
         'completed_at',
     ];

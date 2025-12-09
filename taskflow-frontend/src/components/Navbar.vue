@@ -29,7 +29,7 @@
                 <span>Dashboard</span>
               </span>
             </router-link>
-            <NotificationBell />
+            
             <router-link
               to="/flows"
               class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
@@ -109,7 +109,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
             </svg>
           </button>
-
+          <NotificationBell />
           <!-- Separador -->
           <div class="h-8 w-px bg-gray-300 dark:bg-gray-700"></div>
 

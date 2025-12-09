@@ -13,7 +13,10 @@ class ReportService
      */
     public function buildQuery(array $filters): Builder
     {
-        $query = Task::with(['assignee', 'flow', 'dependsOnTask', 'dependsOnMilestone']);
+        // Importante: whereHas('flow') filtra tareas cuyo flujo ha sido eliminado (soft deleted)
+        // Esto evita que aparezcan tareas "fantasmas" de flujos borrados
+        $query = Task::with(['assignee', 'flow', 'dependsOnTask', 'dependsOnMilestone'])
+            ->whereHas('flow');
 
         // Filtro por estado
         if (!empty($filters['status'])) {

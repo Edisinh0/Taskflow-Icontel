@@ -117,6 +117,11 @@ class FlowController extends Controller
     public function destroy($id)
     {
         $flow = Flow::findOrFail($id);
+        
+        // Eliminar tareas asociadas (Soft Delete) explícitamente
+        // Esto previene que queden tareas huérfanas si el Observer falla
+        $flow->tasks()->delete();
+        
         $flow->delete();
 
         return response()->json([

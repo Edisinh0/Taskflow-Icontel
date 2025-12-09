@@ -24,10 +24,16 @@ class TaskObserver
         Log::info('🔧 TaskObserver::saving() ejecutándose', [
             'task_id' => $task->id ?? 'nuevo',
             'title' => $task->title,
+            'status' => $task->status,
             'depends_on_task_id' => $task->depends_on_task_id,
             'depends_on_milestone_id' => $task->depends_on_milestone_id,
             'is_blocked_ANTES' => $task->is_blocked ?? 'null',
         ]);
+
+        // Calcular progreso basado en estado (para nuevas tareas y updates)
+        if ($task->isDirty('status')) {
+            $this->calculateProgressFromStatus($task);
+        }
 
         try {
             // Si tiene dependencias, la tarea DEBE estar bloqueada al inicio
@@ -115,39 +121,42 @@ class TaskObserver
                 NotificationService::taskAssigned($task, $newAssigneeId);
             }
         }
+    }
 
-        // 4. Calcular progress automáticamente basado en el estado
-        if ($task->isDirty('status')) {
-            $oldProgress = $task->progress;
+    /**
+     * Calcular progreso basado en el estado
+     */
+    protected function calculateProgressFromStatus(Task $task): void
+    {
+        $oldProgress = $task->progress ?? 0;
             
-            switch ($task->status) {
-                case 'pending':
-                    $task->progress = 0;
-                    break;
-                case 'in_progress':
-                    // Si está en progreso y tenía 0%, ponerlo en 50%
-                    // Si ya tenía progreso, mantenerlo (permite ajustes manuales)
-                    if ($task->progress === 0) {
-                        $task->progress = 50;
-                    }
-                    break;
-                case 'completed':
-                    $task->progress = 100;
-                    break;
-                case 'cancelled':
-                    $task->progress = 0;
-                    break;
-                case 'paused':
-                    // Mantener el progreso actual
-                    break;
-            }
+        switch ($task->status) {
+            case 'pending':
+                $task->progress = 0;
+                break;
+            case 'in_progress':
+                // Si está en progreso y tenía 0%, ponerlo en 50%
+                // Si ya tenía progreso, mantenerlo (permite ajustes manuales)
+                if ($task->progress === 0 || is_null($task->progress)) {
+                    $task->progress = 50;
+                }
+                break;
+            case 'completed':
+                $task->progress = 100;
+                break;
+            case 'cancelled':
+                $task->progress = 0;
+                break;
+            case 'paused':
+                // Mantener el progreso actual
+                break;
+        }
 
-            if ($oldProgress !== $task->progress) {
-                Log::info("📊 Progress auto-calculado: {$oldProgress}% → {$task->progress}%", [
-                    'task_id' => $task->id,
-                    'status' => $task->status
-                ]);
-            }
+        if ($oldProgress !== $task->progress) {
+            Log::info("📊 Progress auto-calculado: {$oldProgress}% → {$task->progress}%", [
+                'task_id' => $task->id ?? 'new',
+                'status' => $task->status
+            ]);
         }
     }
     /**
@@ -207,6 +216,72 @@ class TaskObserver
             Task::where('depends_on_milestone_id', $task->id)
                 ->where('is_blocked', false)
                 ->update(['is_blocked' => true]);
+        }
+    }
+
+    /**
+     * Handle the Task "saved" event (created or updated).
+     * Actualizar progreso del flujo padre.
+     */
+    public function saved(Task $task): void
+    {
+        $this->updateFlowProgress($task);
+    }
+
+    /**
+     * Handle the Task "deleted" event.
+     * Actualizar progreso del flujo padre.
+     */
+    public function deleted(Task $task): void
+    {
+        $this->updateFlowProgress($task);
+    }
+
+    /**
+     * Actualizar el progreso general del flujo basado en sus tareas
+     */
+    protected function updateFlowProgress(Task $task): void
+    {
+        if (!$task->flow_id) {
+            return;
+        }
+
+        try {
+            $flow = $task->flow;
+            if (!$flow) {
+                return;
+            }
+
+            // Calcular promedio de progreso de todas las tareas activas del flujo
+            $avgProgress = $flow->tasks()->avg('progress') ?? 0;
+            $avgProgress = round($avgProgress);
+
+            // Actualizar progreso
+            $flow->progress = $avgProgress;
+
+            // Actualizar estado del flujo automáticamente
+            if ($avgProgress == 100) {
+                $flow->status = 'completed';
+                if (!$flow->completed_at) {
+                    $flow->completed_at = now();
+                }
+            } elseif ($avgProgress > 0 && $flow->status === 'pending') {
+                $flow->status = 'in_progress';
+                if (!$flow->started_at) {
+                    $flow->started_at = now();
+                }
+            } elseif ($avgProgress == 0 && $flow->status === 'completed') {
+                // Caso raro: se reabren tareas de un flujo completado
+                $flow->status = 'in_progress';
+                $flow->completed_at = null;
+            }
+
+            $flow->saveQuietly(); // saveQuietly para evitar dispara eventos del flujo recursivos si los hubiera
+
+            Log::info("📊 Progreso del flujo actualizado: {$flow->id} -> {$avgProgress}% ({$flow->status})");
+
+        } catch (\Exception $e) {
+            Log::error("❌ Error actualizando progreso del flujo {$task->flow_id}: " . $e->getMessage());
         }
     }
 

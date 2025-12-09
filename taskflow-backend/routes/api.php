@@ -27,6 +27,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
+    
+    // Usuarios
+    Route::get('/users', [App\Http\Controllers\Api\UserController::class, 'index']);
 
     // Templates
     Route::apiResource('templates', TemplateController::class);
