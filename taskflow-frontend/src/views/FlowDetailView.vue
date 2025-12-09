@@ -58,12 +58,24 @@
 
       <!-- Milestones -->
       <div class="mb-6">
-        <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">🎯 Milestones (Hitos)</h3>
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-2xl font-bold text-gray-800 dark:text-white">🎯 Milestones (Hitos)</h3>
+          <button
+            @click="openNewMilestoneModal"
+            class="px-4 py-2 border border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 font-medium flex items-center transition-colors"
+          >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+            Nuevo Milestone
+          </button>
+        </div>
+        
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div 
             v-for="milestone in milestones" 
             :key="milestone.id"
-            class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4"
+            class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4 relative group"
             :class="getMilestoneClass(milestone)"
           >
             <div class="flex items-start justify-between mb-3">
@@ -72,7 +84,7 @@
             </div>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ milestone.description }}</p>
             
-            <div class="space-y-2">
+            <div class="space-y-2 mb-4">
               <div class="flex justify-between text-sm">
                 <span class="text-gray-500 dark:text-gray-400">Responsable:</span>
                 <span class="font-medium dark:text-white">{{ milestone.assignee?.name || 'Sin asignar' }}</span>
@@ -86,6 +98,17 @@
                 <span class="font-medium dark:text-white">{{ milestone.subtasks?.length || 0 }}</span>
               </div>
             </div>
+
+            <!-- Botón Agregar Tarea en Milestone -->
+            <button
+              @click="openNewTaskForMilestone(milestone)"
+              class="w-full py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Agregar Tarea Secuencial
+            </button>
 
             <div v-if="milestone.subtasks && milestone.subtasks.length > 0" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
               <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">TAREAS:</p>
@@ -129,16 +152,29 @@
         </div>
         
         <!-- Contenedor con Drag & Drop -->
-        <div ref="taskListRef" class="space-y-3">
-          <TaskTreeItem 
-            v-for="task in rootTasks" 
-            :key="task.id"
-            :task="task"
-            :level="0"
-            @edit="openEditTaskModal"
-            @delete="deleteTask"
-            @dependencies="openDependencyModal"
-          />
+        <div ref="taskListRef" class="space-y-4">
+          <!-- Agrupación visual por bloques (Milestone o Tareas Libres) -->
+          <div v-for="group in taskGroups" :key="group.id" class="task-group">
+             <!-- Encabezado de Grupo si es Milestone -->
+            <div v-if="group.isMilestone" class="flex items-center mb-2 px-2">
+                <span class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mr-2">
+                    Milestone: {{ group.title }}
+                </span>
+                <div class="h-px flex-1 bg-blue-100 dark:bg-blue-900/40"></div>
+            </div>
+
+            <div class="pl-2" :class="{'border-l-2 border-blue-100 dark:border-blue-900/50 pl-4': group.isMilestone}">
+                <TaskTreeItem 
+                    v-for="task in group.tasks" 
+                    :key="task.id"
+                    :task="task"
+                    :level="0"
+                    @edit="openEditTaskModal"
+                    @delete="deleteTask"
+                    @dependencies="openDependencyModal"
+                />
+            </div>
+          </div>
         </div>
 
         <div v-if="rootTasks.length === 0" class="text-center py-12">
@@ -157,6 +193,7 @@
       :flow-id="flow?.id"
       :users="users"
       :available-tasks="flow?.tasks || []"
+      :initial-data="initialTaskData"
       @close="closeTaskModal"
       @saved="handleTaskSaved"
     />
@@ -190,6 +227,7 @@ const loading = ref(true)
 const showTaskModal = ref(false)
 const showDependencyModal = ref(false)
 const selectedTask = ref(null)
+const initialTaskData = ref(null) // Para pasar datos pre-definidos al crear nueva tarea
 const taskListRef = ref(null)
 
 const users = ref([
@@ -208,6 +246,56 @@ const milestones = computed(() => {
 const rootTasks = computed(() => {
   if (!flow.value?.tasks) return []
   return flow.value.tasks.filter(task => !task.parent_task_id)
+})
+
+// Agrupar tareas por Milestone para visualización
+const taskGroups = computed(() => {
+    if (!rootTasks.value) return []
+
+    const groups = []
+    const processedTaskIds = new Set()
+
+    // 1. Grupos de Milestones
+    milestones.value.forEach(milestone => {
+        // Encontrar tareas que pertenecen a este milestone:
+        // 1. Por dependencia directa (legacy/bloqueo estricto)
+        // 2. Por ser hijo directo (parent_task_id) - Nueva Estrategia
+        
+        const milestoneTasks = rootTasks.value.filter(t => 
+            (t.depends_on_milestone_id == milestone.id || t.parent_task_id == milestone.id) && 
+            !t.is_milestone // Evitar el mismo milestone
+        )
+
+        if (milestoneTasks.length > 0) {
+            groups.push({
+                id: `milestone-${milestone.id}`,
+                title: milestone.title,
+                isMilestone: true,
+                tasks: milestoneTasks
+            })
+            milestoneTasks.forEach(t => processedTaskIds.add(t.id))
+        }
+    })
+
+    // 2. Tareas "Sueltas" (incluyendo los propios milestones si son root tasks)
+    // Filtramos las que ya están en algún grupo
+    const looseTasks = rootTasks.value.filter(t => !processedTaskIds.has(t.id))
+    
+    if (looseTasks.length > 0) {
+        groups.push({
+            id: 'general',
+            title: 'General',
+            isMilestone: false,
+            tasks: looseTasks
+        })
+    }
+
+    // Ordenar grupos: Primero los que tienen milestones, luego general
+    return groups.sort((a, b) => {
+        if (a.isMilestone && !b.isMilestone) return -1
+        if (!a.isMilestone && b.isMilestone) return 1
+        return 0
+    })
 })
 
 // Drag & Drop Setup
@@ -243,17 +331,74 @@ useDragAndDrop(taskListRef, {
 // Modals
 const openNewTaskModal = () => {
   selectedTask.value = null
+  initialTaskData.value = null
+  showTaskModal.value = true
+}
+
+const openNewMilestoneModal = () => {
+  selectedTask.value = null
+  initialTaskData.value = {
+    is_milestone: true,
+    title: 'Nuevo Milestone'
+  }
+  showTaskModal.value = true
+}
+
+// 🚀 Lógica clave: Agregar tarea secuencial a un milestone
+const openNewTaskForMilestone = (milestone) => {
+  selectedTask.value = null
+  initialTaskData.value = null
+  
+  console.log('🔍 Buscando última subtarea para Milestone:', milestone.title, 'ID:', milestone.id)
+  
+  // 1. Encontrar tareas que son HIJAS de este milestone (parent_task_id)
+  // en lugar de depender de él.
+  const childTasks = flow.value.tasks.filter(t => 
+    t.parent_task_id == milestone.id
+  )
+  
+  console.log('📋 Subtareas encontradas:', childTasks.length)
+
+  // Ordenar por ID descendente para encontrar la última creada
+  childTasks.sort((a, b) => b.id - a.id)
+  
+  const lastTask = childTasks[0]
+  
+  if (lastTask) {
+      console.log('🔗 Última tarea encontrada (para secuencia):', lastTask.title, 'ID:', lastTask.id)
+  }
+  
+  initialTaskData.value = {
+    // CAMBIO CLAVE: Usar parent_task_id para que sea una "subtarea" del milestone
+    // Esto agrupa visual y lógicamente sin crear bloqueo "Task -> Milestone"
+    parent_task_id: milestone.id,
+    
+    // NO establecer dependency al milestone para evitar bloqueo circular lógico 
+    // (el milestone espera a sus tareas, las tareas no pueden esperar al milestone)
+    depends_on_milestone_id: null,
+    
+    // Mantener la secuencia entre hermanas (Task B espera a Task A)
+    depends_on_task_id: lastTask ? lastTask.id : null,
+    
+    priority: 'medium',
+    title: `Tarea para ${milestone.title}`
+  }
+  
+  console.log('📦 Initial Data preparado:', initialTaskData.value)
+
   showTaskModal.value = true
 }
 
 const openEditTaskModal = (task) => {
   selectedTask.value = task
+  initialTaskData.value = null
   showTaskModal.value = true
 }
 
 const closeTaskModal = () => {
   showTaskModal.value = false
   selectedTask.value = null
+  initialTaskData.value = null
 }
 
 const openDependencyModal = (task) => {

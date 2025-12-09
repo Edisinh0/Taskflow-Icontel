@@ -252,6 +252,10 @@ const props = defineProps({
   availableTasks: {
     type: Array,
     default: () => []
+  },
+  initialData: {
+    type: Object,
+    default: () => null
   }
 })
 
@@ -264,19 +268,17 @@ const isEditMode = computed(() => !!props.task)
 
 // Filtrar tareas disponibles (excluir la tarea actual)
 const filteredAvailableTasks = computed(() => {
-  console.log('📋 availableTasks:', props.availableTasks)
-  console.log('📝 Tarea actual:', props.task?.id)
+  // console.log('📋 availableTasks:', props.availableTasks)
+  // console.log('📝 Tarea actual:', props.task?.id)
   
   if (!props.availableTasks) return []
   
   // Si estamos editando, excluir la tarea actual
   if (isEditMode.value && props.task) {
     const filtered = props.availableTasks.filter(task => task.id !== props.task.id)
-    console.log('✅ Tareas filtradas:', filtered.length)
     return filtered
   }
   
-  console.log('✅ Todas las tareas:', props.availableTasks.length)
   return props.availableTasks
 })
 
@@ -304,9 +306,10 @@ const formData = ref({
 })
 
 // Watch para cargar datos cuando se edita o cambia el flowId
-watch([() => props.task, () => props.flowId], ([newTask, newFlowId]) => {
+// También maneja initialData para pre-llenar en modo creación
+watch([() => props.task, () => props.flowId, () => props.initialData], ([newTask, newFlowId, newInitialData]) => {
   if (newTask) {
-    // Cargar datos de tarea existente
+    // Cargar datos de tarea existente (Modo Edición)
     formData.value = {
       title: newTask.title || '',
       description: newTask.description || '',
@@ -324,20 +327,23 @@ watch([() => props.task, () => props.flowId], ([newTask, newFlowId]) => {
       parent_task_id: newTask.parent_task_id
     }
   } else {
-    // Resetear formulario para nueva tarea
+    // Modo Creación
+    // Usar initialData si existe, sino defaults
+    const defaults = newInitialData || {}
+    
     formData.value = {
-      title: '',
-      description: '',
-      assignee_id: null,
-      priority: 'medium',
-      status: 'pending',
-      progress: 0,
-      is_milestone: false,
+      title: defaults.title || '',
+      description: defaults.description || '',
+      assignee_id: defaults.assignee_id || null,
+      priority: defaults.priority || 'medium',
+      status: defaults.status || 'pending',
+      progress: defaults.progress || 0,
+      is_milestone: defaults.is_milestone !== undefined ? defaults.is_milestone : false,
       blocked_reason: '',
-      depends_on_task_id: null,
-      depends_on_milestone_id: null,
-      estimated_start_at: '',
-      estimated_end_at: '',
+      depends_on_task_id: defaults.depends_on_task_id || null,
+      depends_on_milestone_id: defaults.depends_on_milestone_id || null,
+      estimated_start_at: defaults.estimated_start_at || '',
+      estimated_end_at: defaults.estimated_end_at || '',
       flow_id: newFlowId || null,
       parent_task_id: props.parentTaskId || null
     }
