@@ -78,30 +78,59 @@
 
 
       <!-- Resumen de Productividad -->
-      <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-xl p-8 mb-8 text-white relative overflow-hidden border border-white/10">
-        <!-- Glow Effect -->
-        <div class="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+      <!-- Resumen de Productividad -->
+      <div class="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-sm dark:shadow-lg p-8 mb-8 border border-slate-200 dark:border-white/5 relative overflow-hidden group">
+        <!-- Decorative Background Gradient -->
+        <div class="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-500/20 transition-all duration-700"></div>
+        <div class="absolute bottom-0 left-0 -mb-20 -ml-20 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-700"></div>
 
         <div class="flex flex-col md:flex-row items-center justify-between relative z-10">
-          <div class="mb-6 md:mb-0">
-            <h3 class="text-2xl font-bold mb-2 flex items-center">
-               <Rocket class="w-8 h-8 mr-3 text-yellow-300" />
-               Productividad Semanal
-            </h3>
-            <p class="text-blue-100/90">Has completado <strong class="text-white">{{ stats.completedThisWeek }}</strong> tareas de <strong class="text-white">{{ stats.totalThisWeek }}</strong> asignadas.</p>
+          <div class="mb-6 md:mb-0 max-w-lg">
+             <div class="flex items-center space-x-4 mb-3">
+                <div class="p-3 bg-blue-50 dark:bg-blue-500/10 rounded-2xl border border-blue-100 dark:border-blue-500/20 shadow-sm">
+                   <Rocket class="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                   <h3 class="text-2xl font-bold text-slate-800 dark:text-white">Productividad Semanal</h3>
+                   <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Tu rendimiento los últimos 7 días</p>
+                </div>
+             </div>
+            <p class="text-slate-600 dark:text-slate-300 text-lg leading-relaxed">
+              Has completado <strong class="text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-md mx-1">{{ stats.completedThisWeek }}</strong> 
+              tareas de <strong class="text-slate-800 dark:text-white font-bold">{{ stats.totalThisWeek }}</strong> asignadas.
+              <span v-if="stats.completedThisWeek > 0" class="block mt-1 text-sm text-slate-500">¡Sigue así! Estás avanzando hacia tus objetivos.</span>
+            </p>
           </div>
-          <div class="text-right flex items-center gap-6">
-             <div class="text-center">
-                 <p class="text-5xl font-extrabold tracking-tight">{{ Math.round((stats.completedThisWeek / stats.totalThisWeek) * 100) || 0 }}%</p>
-                 <p class="text-blue-200 text-xs font-bold uppercase tracking-wider mt-1">Efectividad</p>
+
+          <div class="flex items-center space-x-8">
+             <div class="text-right">
+                 <p class="text-6xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
+                   {{ Math.round((stats.completedThisWeek / stats.totalThisWeek) * 100) || 0 }}<span class="text-3xl font-bold text-slate-400">%</span>
+                 </p>
+                 <p class="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Efectividad Global</p>
              </div>
           </div>
         </div>
-        <div class="w-full bg-black/20 rounded-full h-3 mt-8 overflow-hidden backdrop-blur-sm">
-          <div 
-            class="bg-white h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-            :style="`width: ${Math.round((stats.completedThisWeek / stats.totalThisWeek) * 100) || 0}%`"
-          ></div>
+        
+        <!-- Modern Progress Bar -->
+        <div class="mt-8 relative">
+          <div class="flex justify-between mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <span>0%</span>
+            <span>Meta: 100%</span>
+          </div>
+          <div class="w-full bg-slate-100 dark:bg-slate-700/50 rounded-full h-4 overflow-hidden shadow-inner">
+            <div 
+              class="h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden"
+              :class="[
+                'bg-gradient-to-r from-blue-500 to-indigo-600',
+                Math.round((stats.completedThisWeek / stats.totalThisWeek) * 100) >= 100 ? 'shadow-[0_0_20px_rgba(79,70,229,0.5)]' : ''
+              ]"
+              :style="`width: ${Math.round((stats.completedThisWeek / stats.totalThisWeek) * 100) || 0}%`"
+            >
+              <!-- Shine effect -->
+              <div class="absolute top-0 right-0 bottom-0 left-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 animate-shimmer"></div>
+            </div>
+          </div>
         </div>
       </div>
 
