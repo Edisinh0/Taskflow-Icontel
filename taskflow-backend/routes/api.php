@@ -32,6 +32,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/users', [App\Http\Controllers\Api\UserController::class, 'index']);
 
     // Templates
+    Route::post('/templates/from-flow/{flowId}', [TemplateController::class, 'createFromFlow']);
     Route::apiResource('templates', TemplateController::class);
 
     // Flows

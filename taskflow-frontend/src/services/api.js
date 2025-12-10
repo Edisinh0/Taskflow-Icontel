@@ -51,6 +51,7 @@ export const templatesAPI = {
   getAll: () => api.get('/templates'),
   getOne: (id) => api.get(`/templates/${id}`),
   create: (data) => api.post('/templates', data),
+  createFromFlow: (flowId, data) => api.post(`/templates/from-flow/${flowId}`, data),
   update: (id, data) => api.put(`/templates/${id}`, data),
   delete: (id) => api.delete(`/templates/${id}`),
 }

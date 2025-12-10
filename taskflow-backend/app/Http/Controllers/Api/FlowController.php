@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Flow;
+use App\Models\Template;
+use App\Models\Task;
 use Illuminate\Http\Request;
 
 class FlowController extends Controller
@@ -53,11 +55,44 @@ class FlowController extends Controller
             'started_at' => now(),
         ]);
 
+        // Instanciar tareas desde la plantilla si existe
+        if ($request->template_id) {
+            $template = Template::find($request->template_id);
+            if ($template && isset($template->config['tasks']) && is_array($template->config['tasks'])) {
+                $this->createTasksFromTemplate($flow->id, $template->config['tasks']);
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Flujo creado exitosamente',
             'data' => $flow->load(['template', 'creator']),
         ], 201);
+    }
+
+    /**
+     * Recursively create tasks from template configuration
+     */
+    private function createTasksFromTemplate($flowId, $tasks, $parentId = null)
+    {
+        foreach ($tasks as $taskData) {
+            $task = Task::create([
+                'flow_id' => $flowId,
+                'parent_task_id' => $parentId,
+                'title' => $taskData['title'],
+                'description' => $taskData['description'] ?? null,
+                'is_milestone' => $taskData['is_milestone'] ?? false,
+                'priority' => $taskData['priority'] ?? 'medium',
+                'status' => 'pending',
+                'estimated_start_at' => isset($taskData['start_day_offset']) ? now()->addDays($taskData['start_day_offset']) : null,
+                'estimated_end_at' => isset($taskData['duration_days']) ? now()->addDays(($taskData['start_day_offset'] ?? 0) + $taskData['duration_days']) : null,
+            ]);
+
+            // Si tiene subtareas, crearlas recursivamente
+            if (isset($taskData['subtasks']) && is_array($taskData['subtasks'])) {
+                $this->createTasksFromTemplate($flowId, $taskData['subtasks'], $task->id);
+            }
+        }
     }
 
     /**

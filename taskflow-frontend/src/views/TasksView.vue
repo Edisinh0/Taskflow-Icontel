@@ -13,9 +13,7 @@
       <!-- Filtros -->
       <div class="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-sm dark:shadow-lg p-6 mb-8 border border-slate-200 dark:border-white/5">
         <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center">
-          <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
+          <Filter class="w-5 h-5 mr-2 text-blue-500" />
           Filtros
         </h3>
         
@@ -72,7 +70,9 @@
           <div class="flex items-center space-x-6">
             <label class="flex items-center cursor-pointer group">
               <input v-model="filters.milestones_only" @change="applyFilters" type="checkbox" class="w-4 h-4 text-blue-600 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-blue-500 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-800" />
-              <span class="ml-2 text-sm text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">Solo Milestones ⭐</span>
+              <div class="flex items-center ml-2 text-sm text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">
+                Solo Milestones <Target class="w-4 h-4 ml-1 text-yellow-500" />
+              </div>
             </label>
             <label class="flex items-center cursor-pointer group">
               <input v-model="filters.my_tasks_only" @change="applyFilters" type="checkbox" class="w-4 h-4 text-blue-600 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-blue-500 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-800" />
@@ -80,7 +80,7 @@
             </label>
           </div>
           <button @click="clearFilters" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors flex items-center">
-             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+             <X class="w-4 h-4 mr-1" />
             Limpiar filtros
           </button>
         </div>
@@ -98,18 +98,14 @@
               :class="viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'"
               class="px-3 py-1.5 rounded-md text-sm font-medium transition-all"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+              <List class="w-4 h-4" />
             </button>
             <button
               @click="viewMode = 'grid'"
               :class="viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'"
               class="px-3 py-1.5 rounded-md text-sm font-medium transition-all"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
+              <LayoutGrid class="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -125,7 +121,7 @@
             <div class="flex items-start justify-between">
               <div class="flex-1">
                 <div class="flex items-center space-x-3 mb-2">
-                  <span v-if="task.is_milestone" class="text-xl" title="Milestone">⭐</span>
+                  <Target v-if="task.is_milestone" class="w-5 h-5 text-yellow-500" title="Milestone" />
                   <h4 class="text-lg font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     {{ task.title }}
                   </h4>
@@ -133,15 +129,11 @@
                 <p class="text-sm text-slate-600 dark:text-slate-400 mb-3 font-medium">{{ task.description || 'Sin descripción' }}</p>
                 <div class="flex items-center space-x-6 text-sm">
                   <span class="flex items-center text-slate-600 dark:text-slate-500">
-                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
+                    <User class="w-4 h-4 mr-1.5" />
                     {{ task.assignee?.name || 'Sin asignar' }}
                   </span>
                   <span class="flex items-center text-slate-600 dark:text-slate-500">
-                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
+                    <TrendingUp class="w-4 h-4 mr-1.5" />
                     {{ task.progress }}%
                   </span>
                   <span :class="getPriorityColor(task.priority)" class="font-bold uppercase text-xs tracking-wide">
@@ -165,9 +157,7 @@
 
           <div v-if="filteredTasks.length === 0" class="p-16 text-center">
             <div class="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-full inline-block mb-4">
-              <svg class="w-12 h-12 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <Inbox class="w-12 h-12 text-slate-400 dark:text-slate-500" />
             </div>
             <p class="text-slate-800 dark:text-white text-lg font-bold">No se encontraron tareas</p>
             <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Intenta ajustar los filtros de búsqueda</p>
@@ -183,7 +173,7 @@
             @click="goToFlow(task.flow_id)"
           >
             <div class="flex items-start justify-between mb-4">
-              <span v-if="task.is_milestone" class="text-xl" title="Milestone">⭐</span>
+              <Target v-if="task.is_milestone" class="w-5 h-5 text-yellow-500" title="Milestone" />
               <span v-else class="w-8"></span> <!-- Spacer if no milestone -->
               <span :class="getStatusBadge(task.status)" class="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border border-current/20">
                 {{ getStatusText(task.status) }}
@@ -198,9 +188,7 @@
             <!-- Info adicional -->
             <div class="space-y-3 mb-2">
               <div class="flex items-center text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+                <User class="w-3 h-3 mr-1.5" />
                   {{ task.assignee?.name || 'Sin asignar' }}
               </div>
               <div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-white/5">
@@ -231,6 +219,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { tasksAPI } from '@/services/api'
 import Navbar from '@/components/Navbar.vue'
+import { Filter, X, List, LayoutGrid, User, TrendingUp, Inbox, Target } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()

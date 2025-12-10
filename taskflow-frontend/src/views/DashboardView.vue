@@ -76,6 +76,35 @@
         </div>
       </div>
 
+
+      <!-- Resumen de Productividad -->
+      <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-xl p-8 mb-8 text-white relative overflow-hidden border border-white/10">
+        <!-- Glow Effect -->
+        <div class="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="flex flex-col md:flex-row items-center justify-between relative z-10">
+          <div class="mb-6 md:mb-0">
+            <h3 class="text-2xl font-bold mb-2 flex items-center">
+               <Rocket class="w-8 h-8 mr-3 text-yellow-300" />
+               Productividad Semanal
+            </h3>
+            <p class="text-blue-100/90">Has completado <strong class="text-white">{{ stats.completedThisWeek }}</strong> tareas de <strong class="text-white">{{ stats.totalThisWeek }}</strong> asignadas.</p>
+          </div>
+          <div class="text-right flex items-center gap-6">
+             <div class="text-center">
+                 <p class="text-5xl font-extrabold tracking-tight">{{ Math.round((stats.completedThisWeek / stats.totalThisWeek) * 100) || 0 }}%</p>
+                 <p class="text-blue-200 text-xs font-bold uppercase tracking-wider mt-1">Efectividad</p>
+             </div>
+          </div>
+        </div>
+        <div class="w-full bg-black/20 rounded-full h-3 mt-8 overflow-hidden backdrop-blur-sm">
+          <div 
+            class="bg-white h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+            :style="`width: ${Math.round((stats.completedThisWeek / stats.totalThisWeek) * 100) || 0}%`"
+          ></div>
+        </div>
+      </div>
+
       <!-- Gráficos y Métricas -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <!-- Tendencia de Tareas (Últimos 7 días) -->
@@ -103,31 +132,7 @@
         </div>
       </div>
 
-      <!-- Resumen de Productividad -->
-      <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl shadow-xl p-8 mb-8 text-white relative overflow-hidden border border-white/10">
-        <!-- Glow Effect -->
-        <div class="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div class="flex flex-col md:flex-row items-center justify-between relative z-10">
-          <div class="mb-6 md:mb-0">
-            <h3 class="text-2xl font-bold mb-2">🚀 Productividad Semanal</h3>
-            <p class="text-blue-100/90">Has completado <strong class="text-white">{{ stats.completedThisWeek }}</strong> tareas de <strong class="text-white">{{ stats.totalThisWeek }}</strong> asignadas.</p>
-          </div>
-          <div class="text-right flex items-center gap-6">
-             <div class="text-center">
-                 <p class="text-5xl font-extrabold tracking-tight">{{ Math.round((stats.completedThisWeek / stats.totalThisWeek) * 100) || 0 }}%</p>
-                 <p class="text-blue-200 text-xs font-bold uppercase tracking-wider mt-1">Efectividad</p>
-             </div>
-             <!-- Circular Progress or Icon could go here -->
-          </div>
-        </div>
-        <div class="w-full bg-black/20 rounded-full h-3 mt-8 overflow-hidden backdrop-blur-sm">
-          <div 
-            class="bg-white h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-            :style="`width: ${Math.round((stats.completedThisWeek / stats.totalThisWeek) * 100) || 0}%`"
-          ></div>
-        </div>
-      </div>
 
       <!-- Tareas Urgentes y Flujos Recientes -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -143,10 +148,15 @@
             </span>
           </div>
           <div class="divide-y divide-slate-100 dark:divide-white/5">
-            <div v-for="task in urgentTasks" :key="task.id" class="px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors group">
+            <router-link 
+              v-for="task in urgentTasks" 
+              :key="task.id" 
+              :to="`/flows/${task.flow_id}`"
+              class="block px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors group"
+            >
               <div class="flex items-start justify-between">
                 <div class="flex-1">
-                  <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{{ task.title }}</h4>
+                  <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ task.title }}</h4>
                   <p class="text-xs text-slate-500 mt-1 flex items-center">
                     <svg class="w-3 h-3 mr-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
                     {{ task.flow?.name }}
@@ -156,7 +166,7 @@
                   {{ getDaysRemaining(task.estimated_end_at) }}
                 </span>
               </div>
-            </div>
+            </router-link>
             <div v-if="urgentTasks.length === 0" class="px-6 py-8 text-center text-slate-400 dark:text-slate-500 text-sm">
                 ¡Todo bajo control! No hay tareas urgentes.
             </div>
@@ -166,7 +176,10 @@
         <!-- Flujos Recientes -->
         <div class="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-sm dark:shadow-lg border border-slate-200 dark:border-white/5 flex flex-col">
           <div class="px-6 py-4 border-b border-slate-200 dark:border-white/5">
-            <h3 class="text-lg font-bold text-slate-800 dark:text-white">📁 Flujos Recientes</h3>
+            <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center">
+              <Folder class="w-5 h-5 mr-2 text-blue-500" />
+              Flujos Recientes
+            </h3>
           </div>
           <div class="divide-y divide-slate-100 dark:divide-white/5">
             <router-link
@@ -222,6 +235,7 @@ import {
   Title
 } from 'chart.js'
 import Navbar from '@/components/Navbar.vue'
+import { Rocket, Folder } from 'lucide-vue-next'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title)
 

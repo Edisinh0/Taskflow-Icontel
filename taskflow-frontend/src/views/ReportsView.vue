@@ -5,7 +5,10 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Header -->
       <div class="mb-8">
-        <h2 class="text-3xl font-bold text-slate-800 dark:text-white tracking-tight">📊 Reportes Operativos</h2>
+        <h2 class="text-3xl font-bold text-slate-800 dark:text-white tracking-tight flex items-center">
+            <BarChart3 class="w-8 h-8 mr-3 text-blue-500" />
+            Reportes Operativos
+        </h2>
         <p class="text-slate-500 dark:text-slate-400 mt-1 text-lg">Analiza el rendimiento de tus flujos con métricas detalladas</p>
       </div>
 
@@ -14,9 +17,7 @@
         <div class="lg:col-span-1">
           <div class="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-sm dark:shadow-lg p-6 border border-slate-200 dark:border-white/5 sticky top-4">
             <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center">
-              <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-              </svg>
+              <Filter class="w-5 h-5 mr-2 text-blue-500" />
               Filtros
             </h3>
             
@@ -188,9 +189,7 @@
                 :disabled="loading || !tasks.length"
                 class="flex-1 sm:flex-none px-4 py-2.5 bg-emerald-600/10 text-emerald-400 border border-emerald-600/20 rounded-xl hover:bg-emerald-600 hover:text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                <FileText class="w-5 h-5" />
                 <span>CSV</span>
               </button>
               <button
@@ -198,9 +197,7 @@
                 :disabled="loading || !tasks.length"
                 class="flex-1 sm:flex-none px-4 py-2.5 bg-rose-600/10 text-rose-400 border border-rose-600/20 rounded-xl hover:bg-rose-600 hover:text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
+                <FileDown class="w-5 h-5" />
                 <span>PDF</span>
               </button>
             </div>
@@ -221,9 +218,7 @@
 
             <div v-else-if="tasks.length === 0" class="p-12 text-center">
               <div class="bg-slate-100 dark:bg-slate-800/50 p-4 rounded-full inline-block mb-4">
-                 <svg class="w-12 h-12 text-slate-500 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                 <Inbox class="w-12 h-12 text-slate-500 dark:text-slate-600" />
               </div>
               <p class="text-slate-700 dark:text-slate-300 text-lg font-medium">No se encontraron datos</p>
               <p class="text-slate-500 text-sm mt-1">Intenta ajustar los filtros de búsqueda</p>
@@ -301,6 +296,7 @@ import { reportsAPI } from '@/services/reports'
 import { flowsAPI } from '@/services/api'
 import axios from 'axios'
 import Navbar from '@/components/Navbar.vue'
+import { Filter, FileText, FileDown, Inbox, BarChart3 } from 'lucide-vue-next'
 
 const loading = ref(false)
 const tasks = ref([])

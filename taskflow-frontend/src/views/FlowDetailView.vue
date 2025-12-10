@@ -34,6 +34,17 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
           </button>
+          
+          <!-- Botón Guardar como Plantilla -->
+          <button
+            @click="saveAsTemplate"
+            class="ml-2 mt-4 md:mt-0 p-2 text-slate-500 hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all duration-300 group"
+            title="Guardar como Plantilla"
+          >
+            <svg class="w-6 h-6 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+            </svg>
+          </button>
         </div>
 
         <!-- Info Grid -->
@@ -97,7 +108,7 @@
           <div 
             v-for="milestone in milestones" 
             :key="milestone.id"
-            class="bg-white dark:bg-slate-800/80 rounded-3xl p-6 border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-xl hover:shadow-md dark:hover:shadow-2xl hover:border-slate-300 dark:hover:border-slate-600/50 hover:bg-white dark:hover:bg-slate-800 transition-all duration-300 group flex flex-col"
+            class="bg-white dark:bg-slate-800/80 rounded-3xl p-6 border border-slate-300 dark:border-white/5 shadow-md dark:shadow-xl hover:shadow-lg dark:hover:shadow-2xl hover:border-slate-400 dark:hover:border-slate-600/50 transition-all duration-300 group flex flex-col"
           >
             <!-- Card Header -->
             <div class="flex items-start justify-between mb-4">
@@ -116,7 +127,7 @@
               </div>
             </div>
             
-            <p class="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed line-clamp-2 min-h-[40px]">
+            <p class="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed line-clamp-2 min-h-[40px] font-medium">
                 {{ milestone.description || 'Sin descripción' }}
             </p>
             
@@ -134,13 +145,13 @@
               <div class="flex justify-between items-center text-sm">
                  <span class="text-slate-500 font-medium">Progreso</span>
                  <div class="flex items-center gap-3 flex-1 justify-end">
-                    <div class="w-20 bg-slate-200 dark:bg-slate-700/50 rounded-full h-1.5">
-                        <div class="h-1.5 rounded-full transition-all duration-500" 
-                             :class="milestone.progress === 100 ? 'bg-emerald-500' : 'bg-blue-500'"
+                     <div class="w-20 bg-slate-200 dark:bg-slate-700/50 rounded-full h-1.5 border border-slate-300/50 dark:border-transparent">
+                        <div class="h-full rounded-full transition-all duration-500" 
+                             :class="milestone.progress === 100 ? 'bg-emerald-500' : 'bg-blue-600 dark:bg-blue-500'"
                              :style="`width: ${milestone.progress}%`">
                         </div>
                     </div>
-                    <span class="text-slate-700 dark:text-slate-200 font-bold text-xs w-8 text-right">{{ milestone.progress }}%</span>
+                    <span class="text-slate-900 dark:text-slate-200 font-bold text-xs w-8 text-right">{{ milestone.progress }}%</span>
                 </div>
               </div>
             </div>
@@ -148,7 +159,7 @@
             <!-- Boton Agregar -->
             <button
               @click="openNewTaskForMilestone(milestone)"
-              class="w-full py-3.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700/30 dark:hover:bg-slate-700/60 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white rounded-xl text-sm font-bold transition-all border border-dashed border-slate-300 dark:border-slate-600/50 hover:border-slate-400 dark:hover:border-slate-500 flex items-center justify-center mb-6"
+              class="w-full py-3.5 bg-slate-50 hover:bg-white dark:bg-slate-700/30 dark:hover:bg-slate-700/60 text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-white rounded-xl text-sm font-bold transition-all border border-dashed border-slate-300 hover:border-blue-400 dark:border-slate-600/50 dark:hover:border-slate-500 flex items-center justify-center mb-6 shadow-sm hover:shadow"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -169,7 +180,7 @@
                     <div 
                     v-for="subtask in milestone.subtasks" 
                     :key="subtask.id"
-                    class="flex items-center p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-all border border-transparent hover:border-slate-200 dark:hover:border-white/5 group/task cursor-pointer"
+                    class="flex items-center p-2.5 rounded-xl bg-slate-50 hover:bg-white dark:bg-slate-800/30 dark:hover:bg-slate-700/40 transition-all border border-slate-200 hover:border-blue-300 dark:border-white/5 dark:hover:border-white/10 shadow-sm hover:shadow group/task cursor-pointer mb-2"
                     @click="openEditTaskModal(subtask)"
                     >
                     <!-- Status Icon -->
@@ -180,18 +191,18 @@
                         <div v-else-if="subtask.status === 'in_progress'" class="w-6 h-6 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 flex items-center justify-center animate-pulse-slow">
                              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         </div>
-                        <div v-else-if="subtask.status === 'blocked'" class="w-6 h-6 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center">
+                        <div v-else-if="subtask.status === 'blocked'" class="w-6 h-6 rounded-full bg-rose-500/10 text-rose-600 border border-rose-500/20 flex items-center justify-center">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                         </div>
-                        <div v-else class="w-6 h-6 rounded-full border-2 border-slate-300 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/50"></div>
+                        <div v-else class="w-6 h-6 rounded-full border-2 border-slate-400 dark:border-slate-700/80 bg-white dark:bg-slate-800/50"></div>
                     </div>
                     
-                    <span class="flex-1 text-sm font-medium transition-colors line-clamp-1" :class="subtask.status === 'completed' ? 'text-slate-400 dark:text-slate-500 line-through decoration-slate-400 dark:decoration-slate-600' : 'text-slate-600 dark:text-slate-300 group-hover/task:text-slate-800 dark:group-hover/task:text-white'">
+                    <span class="flex-1 text-sm font-semibold transition-colors line-clamp-1" :class="subtask.status === 'completed' ? 'text-slate-400 dark:text-slate-500 line-through decoration-slate-400 dark:decoration-slate-600' : 'text-slate-700 dark:text-slate-200 group-hover/task:text-blue-700 dark:group-hover/task:text-white'">
                         {{ subtask.title }}
                     </span>
                     
                      <!-- Edit Icon on Hover -->
-                     <div class="opacity-0 group-hover/task:opacity-100 transition-opacity text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400">
+                     <div class="opacity-0 group-hover/task:opacity-100 transition-opacity text-slate-500 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                      </div>
                     </div>
@@ -263,7 +274,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { flowsAPI, tasksAPI } from '@/services/api'
+import { flowsAPI, tasksAPI, templatesAPI } from '@/services/api'
 import { useDragAndDrop } from '@/composables/useDragAndDrop'
 import TaskTreeItem from '@/components/TaskTreeItem.vue'
 import TaskModal from '@/components/TaskModal.vue'
@@ -512,6 +523,26 @@ const deleteFlow = async () => {
   } catch (error) {
     console.error('Error eliminando flujo:', error)
     alert('Error al eliminar el flujo')
+  }
+}
+
+const saveAsTemplate = async () => {
+  const name = prompt('Nombre para la nueva plantilla:', `Plantilla de ${flow.value.name}`)
+  if (!name) return
+
+  try {
+    loading.value = true
+    await templatesAPI.createFromFlow(flow.value.id, {
+      name: name,
+      description: `Generada a partir del flujo: ${flow.value.name}`,
+      version: '1.0'
+    })
+    alert('Plantilla creada exitosamente')
+  } catch (error) {
+    console.error('Error creando plantilla:', error)
+    alert('Error al crear la plantilla')
+  } finally {
+    loading.value = false
   }
 }
 

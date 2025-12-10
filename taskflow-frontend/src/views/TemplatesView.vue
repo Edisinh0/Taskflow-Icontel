@@ -27,14 +27,27 @@
                 Versión {{ template.version }}
               </span>
             </div>
-            <span 
-              :class="template.is_active 
-                ? 'bg-green-500/10 text-green-500 dark:text-green-400 border border-green-500/20' 
-                : 'bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-600/30'"
-              class="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full whitespace-nowrap"
-            >
-              {{ template.is_active ? 'Activa' : 'Inactiva' }}
-            </span>
+            
+            <div class="flex flex-col items-end gap-2">
+              <span 
+                :class="template.is_active 
+                  ? 'bg-green-500/10 text-green-500 dark:text-green-400 border border-green-500/20' 
+                  : 'bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-600/30'"
+                class="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full whitespace-nowrap"
+              >
+                {{ template.is_active ? 'Activa' : 'Inactiva' }}
+              </span>
+
+              <button 
+                @click.stop="deleteTemplate(template)"
+                class="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                title="Eliminar plantilla"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <!-- Descripción -->
@@ -102,6 +115,13 @@
         </div>
       </div>
     </main>
+
+    <!-- Modal de Nueva Plantilla -->
+    <TemplateModal
+      :isOpen="isTemplateModalOpen"
+      @close="isTemplateModalOpen = false"
+      @saved="handleTemplateSaved"
+    />
   </div>
 </template>
 
@@ -110,10 +130,20 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { templatesAPI, flowsAPI } from '@/services/api'
 import Navbar from '@/components/Navbar.vue'
+import TemplateModal from '@/components/TemplateModal.vue'
 
 const router = useRouter()
 const templates = ref([])
 const flows = ref([])
+const isTemplateModalOpen = ref(false)
+
+const openNewTemplateModal = () => {
+  isTemplateModalOpen.value = true
+}
+
+const handleTemplateSaved = async () => {
+  await loadData()
+}
 
 const getFlowCount = (templateId) => {
   return flows.value.filter(f => f.template_id === templateId).length
@@ -125,6 +155,18 @@ const useTemplate = (template) => {
     path: '/flows',
     query: { template: template.id }
   })
+}
+
+const deleteTemplate = async (template) => {
+  if (!confirm(`¿Estás seguro de eliminar la plantilla "${template.name}"?`)) return
+  
+  try {
+    await templatesAPI.delete(template.id)
+    await loadData()
+  } catch (error) {
+    console.error('Error eliminando plantilla:', error)
+    alert('Error al eliminar la plantilla')
+  }
 }
 
 const loadData = async () => {
