@@ -2,15 +2,15 @@
   <Transition name="modal">
     <div
       v-if="isOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 dark:bg-slate-900/80 backdrop-blur-sm"
       @click.self="closeModal"
     >
-      <div class="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4 border border-white/10">
-        <div class="sticky top-0 bg-slate-800 border-b border-white/5 px-6 py-4 flex justify-between items-center z-10">
-          <h2 class="text-2xl font-bold text-white">
+      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4 border border-slate-200 dark:border-white/10">
+        <div class="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-white/5 px-6 py-4 flex justify-between items-center z-10">
+          <h2 class="text-2xl font-bold text-slate-800 dark:text-white">
             {{ isEditMode ? 'Editar Tarea' : 'Nueva Tarea' }}
           </h2>
-          <button @click="closeModal" class="text-slate-400 hover:text-white transition-colors">
+          <button @click="closeModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -22,27 +22,27 @@
           <form @submit.prevent="handleSubmit">
             <!-- Título -->
             <div class="mb-5">
-              <label class="block text-sm font-bold text-slate-300 mb-2">
+              <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
               Título <span class="text-rose-500">*</span>
             </label>
             <input
               v-model="formData.title"
               type="text"
               required
-              class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               placeholder="Nombre de la tarea"
             />
             </div>
 
             <!-- Descripción -->
             <div class="mb-5">
-              <label class="block text-sm font-bold text-slate-300 mb-2">
+              <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
               Descripción
             </label>
             <textarea
               v-model="formData.description"
               rows="3"
-              class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               placeholder="Describe detalles, requerimientos..."
             ></textarea>
             </div>
@@ -51,12 +51,12 @@
             <div class="grid grid-cols-2 gap-5 mb-5">
               <!-- Responsable -->
               <div>
-                <label class="block text-sm font-bold text-slate-300 mb-2">
+                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                   Responsable
                 </label>
                 <select
                   v-model="formData.assignee_id"
-                  class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 >
                   <option :value="null">Sin asignar</option>
                   <option v-for="user in users" :key="user.id" :value="user.id">
@@ -67,12 +67,12 @@
 
               <!-- Prioridad -->
               <div>
-                <label class="block text-sm font-bold text-slate-300 mb-2">
+                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                   Prioridad
                 </label>
                 <select
                   v-model="formData.priority"
-                  class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 >
                   <option value="low">Baja</option>
                   <option value="medium">Media</option>
@@ -86,12 +86,12 @@
             <div class="grid grid-cols-2 gap-5 mb-5">
               <!-- Estado -->
               <div>
-                <label class="block text-sm font-bold text-slate-300 mb-2">
+                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                   Estado
                 </label>
                 <select
                   v-model="formData.status"
-                  class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 >
                   <option value="pending">Pendiente</option>
                   <option value="in_progress">En Progreso</option>
@@ -105,48 +105,48 @@
 
             <!-- Razón de bloqueo (solo si está bloqueada) -->
             <div v-if="formData.status === 'blocked'" class="mb-5">
-              <label class="block text-sm font-bold text-rose-400 mb-2">
+              <label class="block text-sm font-bold text-rose-500 dark:text-rose-400 mb-2">
                 Razón del Bloqueo
               </label>
               <textarea
                 v-model="formData.blocked_reason"
                 rows="2"
-                class="w-full px-4 py-3 bg-rose-900/20 border border-rose-500/30 rounded-xl text-white placeholder-rose-300/50 focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all"
+                class="w-full px-4 py-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-500/30 rounded-xl text-rose-900 dark:text-white placeholder-rose-300 dark:placeholder-rose-300/50 focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all"
                 placeholder="Explica por qué está bloqueada..."
               ></textarea>
             </div>
 
             <!-- Milestone Checkbox -->
-            <div class="mb-6 p-4 bg-slate-900/50 rounded-xl border border-white/5">
+            <div class="mb-6 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-white/5">
               <label class="flex items-center cursor-pointer group">
                 <input
                   v-model="formData.is_milestone"
                   type="checkbox"
-                  class="w-5 h-5 text-blue-600 border-slate-700 bg-slate-800 rounded focus:ring-blue-500 focus:ring-offset-slate-900"
+                  class="w-5 h-5 text-blue-600 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded focus:ring-blue-500 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-900"
                 />
-                <span class="ml-3 text-sm font-bold text-slate-300 group-hover:text-white transition-colors">
+                <span class="ml-3 text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                   ⭐ Esta tarea es un Milestone (Hito)
                 </span>
               </label>
             </div>
 
             <!-- Dependencias -->
-            <div class="mb-6 p-5 bg-slate-900/30 rounded-xl border border-white/5">
-              <h4 class="text-sm font-bold text-slate-300 mb-4 flex items-center">
+            <div class="mb-6 p-5 bg-slate-50 dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-white/5">
+              <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center">
                 🔗 Dependencias
               </h4>
               
               <!-- Tarea Precedente -->
               <div class="mb-5">
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                    Dependencia de Tarea
                 </label>
-                <p class="text-xs text-slate-500 mb-2">
+                <p class="text-xs text-slate-500 dark:text-slate-500 mb-2">
                   Esta tarea no puede iniciarse hasta que se complete la seleccionada
                 </p>
                 <select
                   v-model="formData.depends_on_task_id"
-                  class="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                  class="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
                 >
                   <option :value="null">Ninguna</option>
                   <option
@@ -161,15 +161,15 @@
 
               <!-- Milestone Requerido -->
               <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                    Dependencia de Milestone
                 </label>
-                <p class="text-xs text-slate-500 mb-2">
+                <p class="text-xs text-slate-500 dark:text-slate-500 mb-2">
                   Esta tarea depende de que se complete el siguiente milestone
                 </p>
                 <select
                   v-model="formData.depends_on_milestone_id"
-                  class="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                  class="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
                 >
                   <option :value="null">Ninguna</option>
                   <option
@@ -186,23 +186,23 @@
             <!-- Fechas estimadas -->
             <div class="grid grid-cols-2 gap-5 mb-6">
               <div>
-                <label class="block text-sm font-bold text-slate-300 mb-2">
+                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                   Inicio Estimado
                 </label>
                 <input
                   v-model="formData.estimated_start_at"
                   type="datetime-local"
-                  class="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  class="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
               </div>
               <div>
-                <label class="block text-sm font-bold text-slate-300 mb-2">
+                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                   Fin Estimado
                 </label>
                 <input
                   v-model="formData.estimated_end_at"
                   type="datetime-local"
-                  class="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  class="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
               </div>
             </div>
@@ -214,11 +214,11 @@
             </div>
 
             <!-- Botones -->
-            <div class="flex justify-end space-x-3 border-t border-white/5 pt-6">
+            <div class="flex justify-end space-x-3 border-t border-slate-200 dark:border-white/5 pt-6">
               <button
                 type="button"
                 @click="closeModal"
-                class="px-6 py-2.5 border border-slate-600/50 rounded-xl text-slate-300 hover:bg-slate-700 hover:text-white font-bold transition-all"
+                class="px-6 py-2.5 border border-slate-300 dark:border-slate-600/50 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white font-bold transition-all"
               >
                 Cancelar
               </button>

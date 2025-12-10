@@ -57,6 +57,7 @@ services:
     depends_on:
       - app-fpm
     networks:
-      - taskflow-network
+      - taskflow-network:
+          driver: bridge
 
 # ... (Definición de networks y volumes al final del archivo)

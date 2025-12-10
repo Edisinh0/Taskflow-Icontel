@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-slate-900 transition-colors font-sans selection:bg-blue-500/30 selection:text-blue-200">
+  <div class="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors font-sans selection:bg-blue-500/30 selection:text-blue-200">
     <Navbar />
 
     <div v-if="loading" class="flex justify-center items-center h-screen">
@@ -11,19 +11,19 @@
 
     <main v-else-if="flow" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Header del Flujo -->
-      <div class="rounded-3xl p-8 mb-8 border border-white/5 bg-slate-800/40 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+      <div class="rounded-3xl p-8 mb-8 border border-slate-200 dark:border-white/5 bg-white/80 dark:bg-slate-800/40 backdrop-blur-xl shadow-lg dark:shadow-2xl relative overflow-hidden">
         <!-- Background Glow -->
         <div class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div class="flex flex-col md:flex-row justify-between items-start mb-6 relative z-10">
           <div class="flex-1">
             <div class="flex items-center gap-4 mb-2">
-              <h2 class="text-4xl font-extrabold text-white tracking-tight">{{ flow.name }}</h2>
-              <span :class="getStatusClass(flow.status)" class="px-3 py-1 text-xs font-bold rounded-full tracking-wider uppercase border border-white/10 shadow-sm">
+              <h2 class="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">{{ flow.name }}</h2>
+              <span :class="getStatusClass(flow.status)" class="px-3 py-1 text-xs font-bold rounded-full tracking-wider uppercase border border-slate-200 dark:border-white/10 shadow-sm">
                 {{ getStatusText(flow.status) }}
               </span>
             </div>
-            <p class="text-slate-400 text-lg max-w-2xl leading-relaxed">{{ flow.description }}</p>
+            <p class="text-slate-500 dark:text-slate-400 text-lg max-w-2xl leading-relaxed">{{ flow.description }}</p>
           </div>
           <button
             @click="deleteFlow"
@@ -38,30 +38,30 @@
 
         <!-- Info Grid -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 relative z-10">
-          <div class="bg-slate-900/50 p-5 rounded-2xl border border-white/5 hover:border-blue-500/20 transition-colors group">
-            <p class="text-xs uppercase tracking-wider text-slate-500 font-bold mb-2 group-hover:text-blue-400 transition-colors">Plantilla</p>
-            <p class="text-base font-semibold text-slate-200 truncate">{{ flow.template?.name || 'Personalizado' }}</p>
+          <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-blue-500/20 transition-colors group">
+            <p class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-500 font-bold mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Plantilla</p>
+            <p class="text-base font-semibold text-slate-800 dark:text-slate-200 truncate">{{ flow.template?.name || 'Personalizado' }}</p>
           </div>
-          <div class="bg-slate-900/50 p-5 rounded-2xl border border-white/5 hover:border-blue-500/20 transition-colors group">
-            <p class="text-xs uppercase tracking-wider text-slate-500 font-bold mb-2 group-hover:text-blue-400 transition-colors">Creado por</p>
-            <p class="text-base font-semibold text-slate-200 truncate">{{ flow.creator?.name }}</p>
+          <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-blue-500/20 transition-colors group">
+            <p class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-500 font-bold mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Creado por</p>
+            <p class="text-base font-semibold text-slate-800 dark:text-slate-200 truncate">{{ flow.creator?.name }}</p>
           </div>
           <!-- FIX: Only count Tasks (non-milestones) -->
-          <div class="bg-slate-900/50 p-5 rounded-2xl border border-white/5 hover:border-blue-500/20 transition-colors group">
-            <p class="text-xs uppercase tracking-wider text-slate-500 font-bold mb-2 group-hover:text-blue-400 transition-colors">Tareas Activas</p>
+          <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-blue-500/20 transition-colors group">
+            <p class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-500 font-bold mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Tareas Activas</p>
              <div class="flex items-baseline gap-1">
-                <p class="text-2xl font-bold text-white">{{ flow.tasks?.filter(t => !t.is_milestone).length || 0 }}</p>
+                <p class="text-2xl font-bold text-slate-800 dark:text-white">{{ flow.tasks?.filter(t => !t.is_milestone).length || 0 }}</p>
                 <span class="text-sm text-slate-500 font-medium">tareas</span>
              </div>
           </div>
           <!-- FIX: Use flow.progress directly from backend -->
-          <div class="bg-slate-900/50 p-5 rounded-2xl border border-white/5 hover:border-blue-500/20 transition-colors group">
-            <p class="text-xs uppercase tracking-wider text-slate-500 font-bold mb-2 group-hover:text-blue-400 transition-colors">Progreso</p>
+          <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-blue-500/20 transition-colors group">
+            <p class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-500 font-bold mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Progreso</p>
             <div class="flex flex-col gap-2">
                <div class="flex justify-between items-end">
-                  <span class="text-2xl font-bold text-white">{{ flow.progress || 0 }}%</span>
+                  <span class="text-2xl font-bold text-slate-800 dark:text-white">{{ flow.progress || 0 }}%</span>
                </div>
-               <div class="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden">
+               <div class="w-full bg-slate-200 dark:bg-slate-700/50 rounded-full h-2 overflow-hidden">
                 <div 
                     class="h-full rounded-full shadow-[0_0_10px_rgba(59,130,246,0.6)] transition-all duration-1000 ease-out"
                     :class="flow.progress === 100 ? 'bg-emerald-500 shadow-emerald-500/50' : 'bg-blue-500'"
@@ -76,15 +76,15 @@
       <!-- Milestones Section -->
       <div class="mb-12">
         <div class="flex justify-between items-center mb-6">
-          <h3 class="text-2xl font-bold text-white flex items-center">
-            <span class="bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-blue-400 p-2.5 rounded-xl mr-3 border border-white/5">
+          <h3 class="text-2xl font-bold text-slate-800 dark:text-white flex items-center">
+            <span class="bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 text-blue-600 dark:text-blue-400 p-2.5 rounded-xl mr-3 border border-slate-200 dark:border-white/5">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
             </span>
             Hitos del Proyecto
           </h3>
           <button
             @click="openNewMilestoneModal"
-            class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold flex items-center shadow-lg shadow-blue-900/40 transition-all hover:scale-105 active:scale-95 border border-white/10"
+            class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold flex items-center shadow-lg shadow-blue-500/20 dark:shadow-blue-900/40 transition-all hover:scale-105 active:scale-95 border border-blue-500/20"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -97,18 +97,18 @@
           <div 
             v-for="milestone in milestones" 
             :key="milestone.id"
-            class="bg-slate-800/80 rounded-3xl p-6 border border-white/5 shadow-xl hover:shadow-2xl hover:border-slate-600/50 hover:bg-slate-800 transition-all duration-300 group flex flex-col"
+            class="bg-white dark:bg-slate-800/80 rounded-3xl p-6 border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-xl hover:shadow-md dark:hover:shadow-2xl hover:border-slate-300 dark:hover:border-slate-600/50 hover:bg-white dark:hover:bg-slate-800 transition-all duration-300 group flex flex-col"
           >
             <!-- Card Header -->
             <div class="flex items-start justify-between mb-4">
               <div class="flex items-center gap-3">
-                <span :class="getMilestoneIconBg(milestone.status)" class="p-2.5 rounded-xl inline-flex items-center justify-center border border-white/5 shadow-inner">
+                <span :class="getMilestoneIconBg(milestone.status)" class="p-2.5 rounded-xl inline-flex items-center justify-center border border-current/10 shadow-inner">
                     <svg v-if="milestone.status === 'completed'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                     <svg v-else-if="milestone.status === 'in_progress'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                     <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </span>
                 <div>
-                   <h4 class="text-lg font-bold text-white leading-tight">{{ milestone.title }}</h4>
+                   <h4 class="text-lg font-bold text-slate-800 dark:text-white leading-tight">{{ milestone.title }}</h4>
                    <span class="text-xs font-semibold text-slate-500 uppercase tracking-widest mt-1 block">
                     {{ getStatusText(milestone.status) }}
                    </span>
@@ -116,16 +116,16 @@
               </div>
             </div>
             
-            <p class="text-sm text-slate-400 mb-6 leading-relaxed line-clamp-2 min-h-[40px]">
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed line-clamp-2 min-h-[40px]">
                 {{ milestone.description || 'Sin descripción' }}
             </p>
             
             <!-- Metadata Box -->
-            <div class="space-y-3 mb-6 bg-slate-900/50 rounded-xl p-4 border border-white/5">
+            <div class="space-y-3 mb-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 border border-slate-200 dark:border-white/5">
               <div class="flex justify-between items-center text-sm">
                 <span class="text-slate-500 font-medium">Responsable</span>
-                <span class="text-slate-200 font-semibold flex items-center gap-2">
-                   <div class="w-5 h-5 rounded-full bg-slate-700 flex items-center justify-center text-xs text-slate-300">
+                <span class="text-slate-700 dark:text-slate-200 font-semibold flex items-center gap-2">
+                   <div class="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs text-slate-600 dark:text-slate-300">
                      {{ (milestone.assignee?.name || 'U').charAt(0) }}
                    </div>
                    {{ milestone.assignee?.name || 'Sin asignar' }}
@@ -134,13 +134,13 @@
               <div class="flex justify-between items-center text-sm">
                  <span class="text-slate-500 font-medium">Progreso</span>
                  <div class="flex items-center gap-3 flex-1 justify-end">
-                    <div class="w-20 bg-slate-700/50 rounded-full h-1.5">
+                    <div class="w-20 bg-slate-200 dark:bg-slate-700/50 rounded-full h-1.5">
                         <div class="h-1.5 rounded-full transition-all duration-500" 
                              :class="milestone.progress === 100 ? 'bg-emerald-500' : 'bg-blue-500'"
                              :style="`width: ${milestone.progress}%`">
                         </div>
                     </div>
-                    <span class="text-slate-200 font-bold text-xs w-8 text-right">{{ milestone.progress }}%</span>
+                    <span class="text-slate-700 dark:text-slate-200 font-bold text-xs w-8 text-right">{{ milestone.progress }}%</span>
                 </div>
               </div>
             </div>
@@ -148,7 +148,7 @@
             <!-- Boton Agregar -->
             <button
               @click="openNewTaskForMilestone(milestone)"
-              class="w-full py-3.5 bg-slate-700/30 hover:bg-slate-700/60 text-slate-400 hover:text-white rounded-xl text-sm font-bold transition-all border border-dashed border-slate-600/50 hover:border-slate-500 flex items-center justify-center mb-6 group-hover:bg-slate-700/40"
+              class="w-full py-3.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700/30 dark:hover:bg-slate-700/60 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white rounded-xl text-sm font-bold transition-all border border-dashed border-slate-300 dark:border-slate-600/50 hover:border-slate-400 dark:hover:border-slate-500 flex items-center justify-center mb-6"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -161,7 +161,7 @@
                 <div v-if="milestone.subtasks && milestone.subtasks.length > 0">
                 <div class="flex items-center justify-between mb-3 px-1">
                     <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Tareas Secuenciales</p>
-                    <span class="text-xs font-medium text-slate-600 bg-slate-800/80 px-2 py-0.5 rounded-md border border-white/5">
+                    <span class="text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/5">
                         {{ milestone.subtasks.length }}
                     </span>
                 </div>
@@ -169,7 +169,7 @@
                     <div 
                     v-for="subtask in milestone.subtasks" 
                     :key="subtask.id"
-                    class="flex items-center p-2.5 rounded-xl hover:bg-slate-700/40 transition-all border border-transparent hover:border-white/5 group/task cursor-pointer"
+                    class="flex items-center p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-all border border-transparent hover:border-slate-200 dark:hover:border-white/5 group/task cursor-pointer"
                     @click="openEditTaskModal(subtask)"
                     >
                     <!-- Status Icon -->
@@ -183,15 +183,15 @@
                         <div v-else-if="subtask.status === 'blocked'" class="w-6 h-6 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                         </div>
-                        <div v-else class="w-6 h-6 rounded-full border-2 border-slate-700/80 bg-slate-800/50"></div>
+                        <div v-else class="w-6 h-6 rounded-full border-2 border-slate-300 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/50"></div>
                     </div>
                     
-                    <span class="flex-1 text-sm font-medium transition-colors line-clamp-1" :class="subtask.status === 'completed' ? 'text-slate-500 line-through decoration-slate-600' : 'text-slate-300 group-hover/task:text-white'">
+                    <span class="flex-1 text-sm font-medium transition-colors line-clamp-1" :class="subtask.status === 'completed' ? 'text-slate-400 dark:text-slate-500 line-through decoration-slate-400 dark:decoration-slate-600' : 'text-slate-600 dark:text-slate-300 group-hover/task:text-slate-800 dark:group-hover/task:text-white'">
                         {{ subtask.title }}
                     </span>
                     
                      <!-- Edit Icon on Hover -->
-                     <div class="opacity-0 group-hover/task:opacity-100 transition-opacity text-slate-500 hover:text-blue-400">
+                     <div class="opacity-0 group-hover/task:opacity-100 transition-opacity text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                      </div>
                     </div>
@@ -206,9 +206,9 @@
       </div>
 
       <!-- Footer / Additional drag drop zone (Collapsed by default or simplified) -->
-      <div class="border-t border-slate-800 pt-8 mt-12 pb-12">
-        <div class="bg-slate-800/30 rounded-3xl p-6 border border-white/5 opacity-80 hover:opacity-100 transition-opacity">
-            <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+      <div class="border-t border-slate-200 dark:border-slate-800 pt-8 mt-12 pb-12">
+        <div class="bg-white/50 dark:bg-slate-800/30 rounded-3xl p-6 border border-slate-100 dark:border-white/5 opacity-80 hover:opacity-100 transition-opacity">
+            <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 Vista Estructural
             </h3>
@@ -551,10 +551,10 @@ const getMilestoneIcon = (status) => {
 }
 
 const getMilestoneIconBg = (status) => {
-  if (status === 'completed') return 'bg-emerald-500/20 text-emerald-500'
-  if (status === 'in_progress') return 'bg-blue-500/20 text-blue-500'
-  if (status === 'blocked') return 'bg-rose-500/20 text-rose-500'
-  return 'bg-slate-700 text-slate-400'
+  if (status === 'completed') return 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-500'
+  if (status === 'in_progress') return 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-500'
+  if (status === 'blocked') return 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-500'
+  return 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
 }
 
 const getTaskIcon = (status) => {
