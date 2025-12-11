@@ -37,9 +37,9 @@ services:
   taskflow-php:
     container_name: taskflow-php
     # Aquí puedes usar una imagen base o construir una desde un Dockerfile
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile.php
+    build:
+      context: .
+      dockerfile: Dockerfile.php
     restart: unless-stopped
     working_dir: /var/www
     volumes:
