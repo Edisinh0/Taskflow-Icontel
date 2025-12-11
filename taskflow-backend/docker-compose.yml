@@ -39,7 +39,7 @@ services:
     # Aquí puedes usar una imagen base o construir una desde un Dockerfile
     build:
       context: .
-      dockerfile: Dockerfile.php
+      dockerfile: Dockerfile
     restart: unless-stopped
     working_dir: /var/www
     volumes:
