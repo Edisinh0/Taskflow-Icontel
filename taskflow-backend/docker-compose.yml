@@ -1,63 +1,123 @@
+version: '3.8'
+
 services:
-  # 1. Base de datos MySQL
+  # 1. Base de datos MariaDB/MySQL
   mysql:
     image: mariadb:11
-    container_name: taskflow-mysql # 🎯 NOMBRE DEL CONTENEDOR DB
+    container_name: taskflow-mysql
     restart: unless-stopped
-    # ... (Resto de la configuración: environment, volumes)
+    # platform: linux/arm64 # Comentar o eliminar si estás en un VPS x64
+    environment:
+      MYSQL_ROOT_PASSWORD: wenawena
+      MYSQL_DATABASE: taskflow_db
+      MYSQL_USER: taskflow_user
+      MYSQL_PASSWORD: taskflow_pass
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
       - taskflow-network
 
-  # 2. Redis
+  # 2. Redis para caché y colas
   redis:
     image: redis:7-alpine
-    container_name: taskflow-redis # 🎯 NOMBRE DEL CONTENEDOR REDIS
-    # ... (Resto de la configuración)
+    container_name: taskflow-redis
+    restart: unless-stopped
     volumes:
       - redis_data:/data
     networks:
       - taskflow-network
 
-  # 3. Backend (PHP-FPM)
+  # 3. Backend (PHP-FPM) - CAMBIO DE NOMBRE A 'app-fpm'
   app-fpm:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: taskflow-app-fpm # 🎯 NOMBRE DEL CONTENEDOR FPM
+    container_name: taskflow-app-fpm
     restart: unless-stopped
     working_dir: /var/www
     volumes:
-      - ./:/var/www
-      - laravel_storage:/var/www/storage # Persistencia de storage
+      - /Taskflow-Icontel/taskflow-backend/:/var/www
+      - laravel_storage:/var/www/storage
     depends_on:
       - mysql
       - redis
     networks:
       - taskflow-network
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: taskflow
+      DB_USERNAME: taskflow_user
+      DB_PASSWORD: taskflow_pass
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
 
-  # 4. Reverse Proxy (Nginx)
+  # 4. Reverse Proxy (Nginx) - ¡NUEVO SERVICIO!
   nginx:
     image: nginx:stable-alpine
-    container_name: taskflow-nginx # 🎯 NOMBRE DEL CONTENEDOR NGINX
+    container_name: taskflow-nginx 
     restart: unless-stopped
     ports:
-      - "80:80" # HTTP (Necesario para Certbot)
+      - "80:80"   # HTTP para Certbot
       - "443:443" # HTTPS
     volumes:
-      # Montaje de la configuración Nginx
-      - ./nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro
-      # Montaje del código
-      - ./:/var/www
-      # Montaje del directorio de Certbot para el desafío ACME (Host -> Contenedor)
-      - /var/www/certbot:/var/www/certbot:ro
-      # Montaje de los certificados SSL (Host -> Contenedor, ¡REEMPLAZAR!)
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+      # 2. MONTAJE CRÍTICO DEL CERTIFICADO (Asegúrate de que esta carpeta exista en el HOST)
+      - ./nginx/certs:/etc/nginx/certs:ro
+
+      # 3. Monta tu código de aplicación
+      - ../:/var/www
+      # Placeholders de Certbot:
+#      - /var/www/certbot:/var/www/certbot:ro
+      # ¡IMPORTANTE! Reemplazar tudominio.com cuando sea real:
       - /etc/letsencrypt/live/tudominio.com:/etc/nginx/certs:ro
     depends_on:
       - app-fpm
     networks:
-      - taskflow-network:
-          driver: bridge
+      - taskflow-network
 
-# ... (Definición de networks y volumes al final del archivo)
+  # 5. Worker de Colas (Queue Worker)
+  taskflow-queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taskflow-queue-worker
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan queue:work --tries=3 --delay=3 --sleep=3
+    volumes:
+      - ./:/var/www
+      - laravel_storage:/var/www/storage
+    depends_on:
+      - redis
+      - app-fpm
+    networks:
+      - taskflow-network
+
+  # 6. Tareas Programadas (Scheduler)
+  taskflow-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taskflow-scheduler
+    restart: unless-stopped
+    working_dir: /var/www
+    command: while true; do php artisan schedule:run --verbose --no-interaction & sleep 60; done
+    volumes:
+      - ./:/var/www
+      - laravel_storage:/var/www/storage
+    depends_on:
+      - app-fpm
+    networks:
+      - taskflow-network
+
+volumes:
+  mysql_data:
+  redis_data:
+  laravel_storage:
+
+networks:
+  taskflow-network:
+    driver: bridge
