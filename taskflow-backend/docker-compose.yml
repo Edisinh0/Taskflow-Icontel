@@ -37,7 +37,6 @@ services:
   taskflow-php:
     container_name: taskflow-php
     # Aquí puedes usar una imagen base o construir una desde un Dockerfile
-    image: your-app-php-image:latest # Cambia por tu imagen o Dockerfile
     # build:
     #   context: .
     #   dockerfile: Dockerfile.php

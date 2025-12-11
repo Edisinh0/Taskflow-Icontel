@@ -1,36 +1,28 @@
-# Usar imagen oficial de PHP 8.4
-FROM php:8.4-fpm
+# Usa una imagen base de PHP-FPM con la versión que necesites
+FROM php:8.2-fpm-alpine
 
-# Instalar dependencias del sistema
-RUN apt-get update && apt-get install -y \
+# Instalar dependencias del sistema necesarias para PHP
+RUN apk add --no-cache \
     git \
     curl \
-    libpng-dev \
-    libonig-dev \
     libxml2-dev \
-    zip \
-    unzip \
-    libzip-dev \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+    postgresql-dev \
+    autoconf \
+    g++ \
+    make
 
-# Instalar Composer
+# Instalar extensiones de PHP comunes para Laravel/aplicaciones web
+# Aquí instalamos pgsql (para PostgreSQL) y otras importantes
+RUN docker-php-ext-install pdo pdo_pgsql opcache \
+    && docker-php-ext-enable opcache
+
+# Si necesitas Composer, agrégalo
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Configurar directorio de trabajo
-WORKDIR /var/www
+# Configurar el usuario no-root para seguridad
+RUN adduser -D -u 1000 appuser
+USER appuser
 
-# Copiar archivos del proyecto
-COPY . .
-
-# Instalar dependencias de Laravel
-RUN composer install --no-interaction --optimize-autoloader
-
-# Permisos para storage y cache
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
-RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
-
-# Exponer puerto 8000
-# EXPOSE 8000
-
-# Comando para iniciar Laravel
-# CMD php artisan serve --host=0.0.0.0 --port=8000
+# Exponer el puerto de PHP-FPM
+EXPOSE 9000
+CMD ["php-fpm"]
