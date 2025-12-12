@@ -1,28 +1,82 @@
-# Usa una imagen base de PHP-FPM con la versión que necesites
-FROM php:8.2-fpm-alpine
+# Archivo: /Taskflow-Icontel/taskflow-backend/Dockerfile
 
-# Instalar dependencias del sistema necesarias para PHP
+FROM php:8.3-fpm-alpine
+
+# Instalar dependencias del sistema
 RUN apk add --no-cache \
     git \
     curl \
+    libpng-dev \
+    oniguruma-dev \
     libxml2-dev \
-    postgresql-dev \
-    autoconf \
-    g++ \
-    make
+    zip \
+    unzip \
+    nodejs \
+    npm \
+    shadow
 
-# Instalar extensiones de PHP comunes para Laravel/aplicaciones web
-# Aquí instalamos pgsql (para PostgreSQL) y otras importantes
-RUN docker-php-ext-install pdo pdo_pgsql opcache \
-    && docker-php-ext-enable opcache
+# Instalar extensiones PHP requeridas por Laravel
+RUN docker-php-ext-install \
+    pdo_mysql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    opcache
 
-# Si necesitas Composer, agrégalo
+# Instalar Redis extension
+RUN apk add --no-cache pcre-dev $PHPIZE_DEPS \
+    && pecl install redis \
+    && docker-php-ext-enable redis
+
+# Configurar PHP para producción
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+# Optimizaciones PHP
+RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.memory_consumption=256" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.max_accelerated_files=20000" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini
+
+# Copiar Composer desde imagen oficial
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Configurar el usuario no-root para seguridad
-RUN adduser -D -u 1000 appuser
-USER appuser
+# Establecer directorio de trabajo
+WORKDIR /var/www/html
 
-# Exponer el puerto de PHP-FPM
+# Copiar archivos de dependencias primero (para cachear layer)
+COPY composer.json composer.lock ./
+COPY package.json package-lock.json ./
+
+# Instalar dependencias PHP (sin archivos de desarrollo en producción)
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+
+# Instalar dependencias Node
+RUN npm ci --only=production
+
+# Copiar el resto de la aplicación
+COPY . .
+
+# Completar instalación de Composer
+RUN composer dump-autoload --optimize --classmap-authoritative
+
+# Compilar assets de Vue (si aplica)
+RUN npm run build || echo "No build script found, skipping..."
+
+# Crear usuario www-data con UID/GID específicos
+RUN usermod -u 1000 www-data && groupmod -g 1000 www-data
+
+# Configurar permisos
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html \
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache
+
+# Cambiar al usuario www-data
+USER www-data
+
+# Exponer puerto PHP-FPM
 EXPOSE 9000
+
 CMD ["php-fpm"]

@@ -1,77 +1,100 @@
+# Este archivo va en: /Icontel-Taskflow/taskflow-backend/docker-compose.yml
+# (Si solo tienes el backend o es un proyecto unificado)
+
 version: '3.8'
 
 services:
-  # =========================================================
-  # 1. Servicio NGINX (taskflow-nginx)
-  # =========================================================
-  taskflow-nginx:
-    container_name: taskflow-nginx
-    # Usamos la imagen oficial de Nginx
-    image: nginx:stable-alpine
-    restart: unless-stopped
+  # Nginx - Servidor Web
+  nginx:
+    image: nginx:alpine
+    container_name: taskflow_nginx
     ports:
-      # Exponer HTTP y HTTPS
       - "80:80"
       - "443:443"
-    depends_on:
-      - taskflow-php
     volumes:
-      # 1. Configuración de Nginx: Monta el archivo default.conf en la ruta correcta del contenedor
-      # Origen en HOST: ./nginx/default.conf
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-
-      # 2. Certificados SSL/TLS (¡CRÍTICO!)
-      # Origen en HOST: ./nginx/certs (Asegúrate de que esta carpeta contenga fullchain.pem y privkey.pem)
-      - ./nginx/certs:/etc/nginx/certs:ro
-
-      # 3. Código de la aplicación: Monta la carpeta 'taskflow-backend' del host
-      # Origen en HOST: ../ (esto apunta a /Taskflow-icontel/)
-      - ../:/var/www
-
+      # IMPORTANTE: Estas rutas son relativas al directorio actual
+      - .:/var/www/html
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
     networks:
-      - taskflow-network
+      - taskflow_network
+    restart: unless-stopped
 
-  # =========================================================
-  # 2. Servicio PHP-FPM (taskflow-php)
-  # =========================================================
-  taskflow-php:
-    container_name: taskflow-php
-    # Aquí puedes usar una imagen base o construir una desde un Dockerfile
+  # PHP-FPM + Laravel
+  app:
     build:
       context: .
       dockerfile: Dockerfile
-    restart: unless-stopped
-    working_dir: /var/www
+    container_name: taskflow_app
     volumes:
-      # Montar el código de la aplicación (debe ser la misma ruta que Nginx)
-      - ../:/var/www
-    networks:
-      - taskflow-network
-
-  # =========================================================
-  # 3. Servicio de Base de Datos (taskflow-db - Ejemplo)
-  # =========================================================
-  taskflow-db:
-    container_name: taskflow-db
-    image: postgres:15-alpine # O mysql, mariadb, etc.
-    restart: unless-stopped
-    ports:
-      - "5432:5432"
+      - .:/var/www/html
     environment:
-      POSTGRES_DB: taskflow_db
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - db-data:/var/lib/postgresql/data
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=mariadb
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+    depends_on:
+      - mariadb
+      - redis
     networks:
-      - taskflow-network
+      - taskflow_network
+    restart: unless-stopped
 
-# =========================================================
-# REDES Y VOLUMENES
-# =========================================================
-networks:
-  taskflow-network:
-    driver: bridge
+  # MariaDB
+  mariadb:
+    image: mariadb:10.11
+    container_name: taskflow_mariadb
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - taskflow_network
+    restart: unless-stopped
+
+  # Redis
+  redis:
+    image: redis:alpine
+    container_name: taskflow_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - taskflow_network
+    restart: unless-stopped
+
+  # Queue Worker
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taskflow_queue
+    command: php artisan queue:work --sleep=3 --tries=3
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - app
+      - redis
+    networks:
+      - taskflow_network
+    restart: unless-stopped
 
 volumes:
-  db-data:
+  mariadb_data:
+  redis_data:
+
+networks:
+  taskflow_network:
+    driver: bridge
