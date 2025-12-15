@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # FRONTEND (Vue.js + Nginx interno)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./taskflow-frontend
+      dockerfile: Dockerfile
+    container_name: taskflow_frontend
+    restart: unless-stopped
+    networks:
+      - taskflow_net
+
+  # ---------------------------------------------------------------------------
+  # BACKEND (Laravel + PHP-FPM)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./taskflow-backend
+      dockerfile: Dockerfile
+    container_name: taskflow_backend
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      APP_DEBUG: false
+      DB_HOST: db
+      REDIS_HOST: redis
+    volumes:
+      - ./taskflow-backend:/var/www/html
+    depends_on:
+      - db
+      - redis
+    networks:
+      - taskflow_net
+
+  # ---------------------------------------------------------------------------
+  # WORKER (Laravel Queue)
+  # ---------------------------------------------------------------------------
+  queue:
+    build:
+      context: ./taskflow-backend
+      dockerfile: Dockerfile
+    container_name: taskflow_queue
+    command: php artisan queue:work --sleep=3 --tries=3
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - redis
+      - db
+    volumes:
+      - ./taskflow-backend:/var/www/html
+    networks:
+      - taskflow_net
+
+  # ---------------------------------------------------------------------------
+  # GATEWAY (Nginx Principal - Unifica Front y Back)
+  # ---------------------------------------------------------------------------
+  gateway:
+    image: nginx:alpine
+    container_name: taskflow_gateway
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      # - "443:443" # Descomentar cuando configures SSL
+    volumes:
+      - ./nginx-gateway/conf.d:/etc/nginx/conf.d
+      - ./taskflow-backend/public:/var/www/backend/public # Para servir assets del back si fuera necesario
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - taskflow_net
+
+  # ---------------------------------------------------------------------------
+  # BASE DE DATOS
+  # ---------------------------------------------------------------------------
+  db:
+    image: mariadb:10.11
+    container_name: taskflow_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - taskflow_net
+
+  # ---------------------------------------------------------------------------
+  # CACHE
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:alpine
+    container_name: taskflow_redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - taskflow_net
+
+networks:
+  taskflow_net:
+    driver: bridge
+
+volumes:
+  db_data:
+  redis_data:
