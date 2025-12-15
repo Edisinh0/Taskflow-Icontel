@@ -112,9 +112,8 @@ class TemplateController extends Controller
      */
     public function createFromFlow(Request $request, $flowId)
     {
-        $flow = Flow::with(['tasks' => function ($query) {
-            $query->orderBy('id'); // Mantener orden de creación
-        }])->findOrFail($flowId);
+        // Cargar tareas con sus dependencias
+        $flow = Flow::with(['tasks.dependencies'])->findOrFail($flowId);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -125,11 +124,15 @@ class TemplateController extends Controller
         // Construir configuración de tareas
         $tasksConfig = [];
         
+        // Mapa para rastrear IDs originales -> temp_refs para dependencias
+        // Usaremos el ID original como referencia temporal
+        
         // 1. Identificar hitos
         $milestones = $flow->tasks->where('is_milestone', true);
         
         foreach ($milestones as $milestone) {
             $milestoneConfig = [
+                'temp_ref_id' => $milestone->id,
                 'title' => $milestone->title,
                 'description' => $milestone->description,
                 'is_milestone' => true,
@@ -137,17 +140,25 @@ class TemplateController extends Controller
             ];
 
             // 2. Encontrar subtareas para este hito
-            // Usamos la misma lógica que en el frontend: parent_task_id o depends_on_milestone_id
             $subtasks = $flow->tasks->filter(function ($task) use ($milestone) {
                 return !$task->is_milestone && 
                        ($task->parent_task_id == $milestone->id || $task->depends_on_milestone_id == $milestone->id);
             });
 
             foreach ($subtasks as $subtask) {
+                // Recopilar IDs de tareas de las que depende esta subtarea (Sistema M:N)
+                $dependencyRefs = [];
+                foreach ($subtask->dependencies as $dep) {
+                    $dependencyRefs[] = $dep->depends_on_task_id;
+                }
+
                 $milestoneConfig['subtasks'][] = [
+                    'temp_ref_id' => $subtask->id, // Guardamos ID original para mapear
                     'title' => $subtask->title,
                     'description' => $subtask->description,
                     'priority' => $subtask->priority,
+                    'dependencies' => $dependencyRefs, // Sistema complejo (pivote)
+                    'depends_on_task_ref' => $subtask->depends_on_task_id, // Sistema simple (columna, usado por frontend)
                     'duration_days' => $subtask->estimated_end_at && $subtask->estimated_start_at 
                         ? $subtask->estimated_start_at->diffInDays($subtask->estimated_end_at) 
                         : 1
@@ -166,14 +177,14 @@ class TemplateController extends Controller
             'is_active' => true,
             'config' => [
                 'tasks' => $tasksConfig,
-                'estimated_duration_days' => 7, // Valor por defecto
+                'estimated_duration_days' => 7,
                 'priority' => 'medium'
             ]
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Plantilla generada correctamente desde el flujo',
+            'message' => 'Plantilla generada correctamente desde el flujo. IMPORTANTE: Las dependencias se han guardado.',
             'data' => $template
         ], 201);
     }
