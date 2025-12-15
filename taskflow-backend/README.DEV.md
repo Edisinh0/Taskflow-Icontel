@@ -63,6 +63,12 @@ Esto hará:
 
 # Ejecutar tests
 ./dev.sh test
+
+# Generar nueva APP_KEY
+./dev.sh key
+
+# Verificar consistencia de versiones PHP
+./dev.sh version
 ```
 
 ---
@@ -188,6 +194,7 @@ Los siguientes archivos están en `.gitignore`:
 |---------|-----------|------------|
 | Archivo Docker Compose | `docker-compose.dev.yml` | `docker-compose.yml` |
 | Dockerfile | `Dockerfile.dev` | `Dockerfile` |
+| **Versión PHP** | **8.3** | **8.3** |
 | Variables de entorno | `.env.local` | `.env` |
 | Puerto HTTP | 8080 | 80 |
 | Puerto MariaDB | 3307 | 3306 |
@@ -197,6 +204,8 @@ Los siguientes archivos están en `.gitignore`:
 | Cache | Deshabilitado | Habilitado |
 | Emails | Mailhog | SMTP real |
 | Volúmenes | Hot-reload | Copiados en build |
+| Xdebug | ✅ Habilitado | ❌ Deshabilitado |
+| OPcache | ❌ Deshabilitado | ✅ Habilitado |
 
 ---
 
@@ -213,6 +222,16 @@ ports:
 ```bash
 sudo chown -R $USER:$USER .
 chmod -R 755 storage bootstrap/cache
+```
+
+### Error: "No application encryption key has been specified"
+```bash
+# Generar nueva APP_KEY
+./dev.sh key
+
+# O manualmente:
+docker-compose -f docker-compose.dev.yml exec app php artisan key:generate --show
+# Luego copiar la key generada al archivo .env
 ```
 
 ### Limpiar todo y empezar de nuevo

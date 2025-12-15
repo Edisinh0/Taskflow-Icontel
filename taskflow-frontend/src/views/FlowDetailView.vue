@@ -387,7 +387,7 @@ useDragAndDrop(taskListRef, {
     try {
       // Actualizar orden en el backend
       const token = localStorage.getItem('token')
-      await fetch(`http://localhost:8000/api/v1/tasks/${movedTaskId}/reorder`, {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1"}/tasks/${movedTaskId}/reorder`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

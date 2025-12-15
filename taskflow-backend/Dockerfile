@@ -47,13 +47,13 @@ WORKDIR /var/www/html
 
 # Copiar archivos de dependencias primero (para cachear layer)
 COPY composer.json composer.lock ./
-COPY package.json package-lock.json ./
+COPY package.json package*.json ./
 
 # Instalar dependencias PHP (sin archivos de desarrollo en producción)
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
 
-# Instalar dependencias Node
-RUN npm ci --only=production
+# Instalar dependencias Node (si existen)
+RUN npm ci --only=production || npm install --only=production || echo "No npm dependencies"
 
 # Copiar el resto de la aplicación
 COPY . .

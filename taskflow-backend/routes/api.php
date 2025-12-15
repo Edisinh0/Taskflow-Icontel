@@ -14,6 +14,25 @@ use App\Http\Controllers\Api\NotificationController;
 |--------------------------------------------------------------------------
 */
 
+// Ruta de bienvenida de la API
+Route::get('/', function () {
+    return response()->json([
+        'name' => 'TaskFlow API',
+        'version' => 'v1',
+        'status' => 'active',
+        'endpoints' => [
+            'auth' => '/api/v1/auth/*',
+            'users' => '/api/v1/users',
+            'templates' => '/api/v1/templates',
+            'flows' => '/api/v1/flows',
+            'tasks' => '/api/v1/tasks',
+            'notifications' => '/api/v1/notifications',
+            'reports' => '/api/v1/reports',
+        ],
+        'documentation' => '/api/v1/docs',
+    ]);
+});
+
 // Rutas públicas (sin autenticación)
 Route::prefix('v1')->group(function () {
     // Autenticación

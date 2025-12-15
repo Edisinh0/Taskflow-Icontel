@@ -6,6 +6,7 @@
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+RED='\033[0;31m'
 NC='\033[0m'
 
 COMPOSE_DEV="docker-compose -f docker-compose.dev.yml"
@@ -72,6 +73,65 @@ case "$1" in
         $COMPOSE_DEV exec app php artisan test
         ;;
     
+    version)
+        echo -e "${BLUE}Verificando consistencia de versiones PHP...${NC}\n"
+        
+        # Extraer versión de Dockerfile.dev
+        DEV_VERSION=$(grep "FROM php:" Dockerfile.dev | cut -d: -f2 | cut -d- -f1)
+        
+        # Extraer versión de Dockerfile
+        PROD_VERSION=$(grep "FROM php:" Dockerfile | cut -d: -f2 | cut -d- -f1)
+        
+        echo -e "${YELLOW}Dockerfile.dev:${NC} PHP $DEV_VERSION"
+        echo -e "${YELLOW}Dockerfile (prod):${NC} PHP $PROD_VERSION"
+        
+        # Verificar si están corriendo los contenedores
+        if docker ps | grep -q taskflow_app_dev; then
+            RUNNING_VERSION=$($COMPOSE_DEV exec app php -v | head -n1 | cut -d' ' -f2)
+            echo -e "${YELLOW}Contenedor activo:${NC} PHP $RUNNING_VERSION"
+        fi
+        
+        echo ""
+        
+        if [ "$DEV_VERSION" = "$PROD_VERSION" ]; then
+            echo -e "${GREEN}✓ Versiones consistentes${NC}"
+        else
+            echo -e "${RED}✗ ADVERTENCIA: Versiones diferentes!${NC}"
+            echo -e "${RED}  Desarrollo: $DEV_VERSION | Producción: $PROD_VERSION${NC}"
+        fi
+        ;;
+    
+    key)
+        echo -e "${YELLOW}Generando nueva APP_KEY...${NC}"
+        
+        # Verificar si los contenedores están corriendo
+        if ! docker ps | grep -q taskflow_app_dev; then
+            echo -e "${RED}✗ Los contenedores no están corriendo${NC}"
+            echo -e "${YELLOW}Ejecuta: ./dev.sh start${NC}"
+            exit 1
+        fi
+        
+        # Generar nueva key
+        APP_KEY=$($COMPOSE_DEV exec app php artisan key:generate --show 2>/dev/null | tail -n1)
+        
+        if [ ! -z "$APP_KEY" ]; then
+            # Actualizar archivos
+            sed -i.bak "s|^APP_KEY=.*|APP_KEY=$APP_KEY|" .env && rm -f .env.bak
+            sed -i.bak "s|^APP_KEY=.*|APP_KEY=$APP_KEY|" .env.local && rm -f .env.local.bak
+            
+            # Limpiar caché
+            $COMPOSE_DEV exec app php artisan config:clear > /dev/null 2>&1
+            
+            echo -e "${GREEN}✓ APP_KEY generada y guardada${NC}"
+            echo -e "${BLUE}Nueva key: $APP_KEY${NC}"
+            echo -e "${YELLOW}Reiniciando contenedores...${NC}"
+            $COMPOSE_DEV restart app nginx > /dev/null 2>&1
+            echo -e "${GREEN}✓ Listo${NC}"
+        else
+            echo -e "${RED}✗ Error al generar APP_KEY${NC}"
+        fi
+        ;;
+    
     setup)
         echo -e "${GREEN}Configuración inicial del entorno de desarrollo...${NC}"
         
@@ -102,7 +162,16 @@ case "$1" in
         
         # Generar key
         echo -e "${YELLOW}Generando APP_KEY...${NC}"
-        $COMPOSE_DEV exec app php artisan key:generate
+        APP_KEY=$($COMPOSE_DEV exec app php artisan key:generate --show 2>/dev/null | tail -n1)
+        
+        # Actualizar .env y .env.local con la nueva key
+        if [ ! -z "$APP_KEY" ]; then
+            sed -i.bak "s|^APP_KEY=.*|APP_KEY=$APP_KEY|" .env && rm -f .env.bak
+            sed -i.bak "s|^APP_KEY=.*|APP_KEY=$APP_KEY|" .env.local && rm -f .env.local.bak
+            echo -e "${GREEN}✓ APP_KEY generada y guardada${NC}"
+        else
+            echo -e "${RED}✗ Error al generar APP_KEY${NC}"
+        fi
         
         # Ejecutar migraciones
         echo -e "${YELLOW}Ejecutando migraciones...${NC}"
@@ -136,6 +205,8 @@ case "$1" in
         echo "  npm        - Ejecutar comando NPM"
         echo "  fresh      - Refrescar base de datos"
         echo "  test       - Ejecutar tests"
+        echo "  key        - Generar nueva APP_KEY"
+        echo "  version    - Verificar consistencia de versiones PHP"
         echo ""
         echo "Ejemplos:"
         echo "  ./dev.sh setup"

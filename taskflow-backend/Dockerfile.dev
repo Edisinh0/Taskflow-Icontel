@@ -24,8 +24,8 @@ RUN docker-php-ext-install \
     bcmath \
     gd
 
-# Instalar Redis extension
-RUN apk add --no-cache pcre-dev $PHPIZE_DEPS \
+# Instalar Redis extension y Xdebug
+RUN apk add --no-cache pcre-dev linux-headers $PHPIZE_DEPS \
     && pecl install redis xdebug \
     && docker-php-ext-enable redis xdebug
 

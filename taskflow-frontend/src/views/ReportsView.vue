@@ -339,11 +339,12 @@ const applyFilters = async () => {
       reportsAPI.getStats(activeFilters)
     ])
 
-    tasks.value = reportData.data
-    meta.value = reportData.meta
-    stats.value = statsData.data
+    tasks.value = reportData.data || []
+    meta.value = reportData.meta || { current_page: 1, last_page: 1, total: 0, per_page: 50 }
+    stats.value = statsData.data || null
   } catch (error) {
     console.error('Error al cargar reporte:', error)
+    tasks.value = []
     // alert('Error al cargar el reporte')
   } finally {
     loading.value = false
@@ -378,10 +379,11 @@ const changePage = async (page) => {
     if (filters.value.is_milestone) activeFilters.is_milestone = 1
 
     const reportData = await reportsAPI.getReport(activeFilters, page)
-    tasks.value = reportData.data
-    meta.value = reportData.meta
+    tasks.value = reportData.data || []
+    meta.value = reportData.meta || { current_page: 1, last_page: 1, total: 0, per_page: 50 }
   } catch (error) {
     console.error('Error al cambiar página:', error)
+    tasks.value = []
   } finally {
     loading.value = false
   }
@@ -472,11 +474,12 @@ const loadInitialData = async () => {
     const token = localStorage.getItem('token')
     
     // Cargar usuarios y flujos para los filtros
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
     const [usersRes, flowsRes] = await Promise.all([
-      axios.get('http://localhost:8000/api/v1/users', {
+      axios.get(`${apiUrl}/users`, {
         headers: { Authorization: `Bearer ${token}` }
       }).catch(() => ({ data: { data: [] } })),
-      flowsAPI.getAll()
+      flowsAPI.getAll().catch(() => ({ data: { data: [] } }))
     ])
 
     users.value = usersRes.data.data || []

@@ -1,8 +1,6 @@
 # Este archivo va en: /Icontel-Taskflow/taskflow-backend/docker-compose.yml
 # (Si solo tienes el backend o es un proyecto unificado)
 
-version: '3.8'
-
 services:
   # Nginx - Servidor Web
   nginx:
@@ -94,6 +92,7 @@ services:
 volumes:
   mariadb_data:
   redis_data:
+
 
 networks:
   taskflow_network:

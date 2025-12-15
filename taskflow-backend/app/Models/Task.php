@@ -123,7 +123,8 @@ class Task extends Model implements Auditable
 
         // Verificar si alguna dependencia no está completada
         foreach ($this->dependencies as $dependency) {
-            $dependsOnTask = Task::find($dependency->depends_on_task_id);
+            // Usar la relación si está cargada, o cargarla (evita find() manual que es menos eficiente)
+            $dependsOnTask = $dependency->dependsOnTask; 
             if ($dependsOnTask && $dependsOnTask->status !== 'completed') {
                 return true;
             }

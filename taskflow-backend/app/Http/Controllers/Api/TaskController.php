@@ -105,22 +105,39 @@ class TaskController extends Controller
      */
     public function show($id)
     {
-        $task = Task::with([
-            'flow',
-            'assignee',
-            'parentTask',
-            'subtasks.assignee',
-            'dependencies.dependsOnTask',
-            'dependents.task'
-        ])->findOrFail($id);
+        try {
+            $task = Task::with([
+                'flow',
+                'assignee',
+                'parentTask',
+                'subtasks.assignee',
+                'dependencies.dependsOnTask',
+                'dependents.task'
+            ])->findOrFail($id);
 
-        // Verificar si está bloqueada
-        $task->is_blocked = $task->isBlocked();
+            // Verificar si está bloqueada
+            // Usamos try-catch interno por si hay errores de recursión o datos corruptos
+            try {
+                $task->is_blocked = $task->isBlocked();
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Error calculando isBlocked para tarea $id: " . $e->getMessage());
+                // Fallback seguro
+                $task->is_blocked = false; 
+            }
 
-        return response()->json([
-            'success' => true,
-            'data' => $task,
-        ], 200);
+            return response()->json([
+                'success' => true,
+                'data' => $task,
+            ], 200);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Error mostrando tarea $id: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error interno al cargar la tarea.',
+                'error_debug' => env('APP_DEBUG') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     /**
