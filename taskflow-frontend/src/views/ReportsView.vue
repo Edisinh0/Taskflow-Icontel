@@ -295,7 +295,7 @@ import { ref, onMounted } from 'vue'
 import { reportsAPI } from '@/services/reports'
 import { flowsAPI } from '@/services/api'
 import axios from 'axios'
-import Navbar from '@/components/Navbar.vue'
+import Navbar from '@/components/AppNavbar.vue'
 import { Filter, FileText, FileDown, Inbox, BarChart3 } from 'lucide-vue-next'
 
 const loading = ref(false)

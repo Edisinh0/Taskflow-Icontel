@@ -264,7 +264,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { flowsAPI, templatesAPI } from '@/services/api'
 import FlowModal from '@/components/FlowModal.vue'
-import Navbar from '@/components/Navbar.vue'
+import Navbar from '@/components/AppNavbar.vue'
 import { 
   Plus, 
   Search, 

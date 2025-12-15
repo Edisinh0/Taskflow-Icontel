@@ -263,7 +263,7 @@ import {
   LineElement,
   Title
 } from 'chart.js'
-import Navbar from '@/components/Navbar.vue'
+import Navbar from '@/components/AppNavbar.vue'
 import { Rocket, Folder } from 'lucide-vue-next'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title)
@@ -400,7 +400,7 @@ const chartOptions = {
   animation: {
     duration: 2000,
     easing: 'easeInOutQuart',
-    onProgress: function(animation) {
+    onProgress: function() {
       // Animación suave durante el progreso
     },
     onComplete: function() {

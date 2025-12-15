@@ -114,10 +114,10 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch } from 'vue'
 import { templatesAPI } from '@/services/api'
 
-const props = defineProps({
+defineProps({
   isOpen: Boolean
 })
 
@@ -139,7 +139,7 @@ watch(jsonConfigString, (newVal) => {
   try {
     formData.value.config = JSON.parse(newVal)
     jsonError.value = false
-  } catch (e) {
+  } catch {
     jsonError.value = true
   }
 })

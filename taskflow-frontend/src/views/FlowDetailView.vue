@@ -279,7 +279,7 @@ import { useDragAndDrop } from '@/composables/useDragAndDrop'
 import TaskTreeItem from '@/components/TaskTreeItem.vue'
 import TaskModal from '@/components/TaskModal.vue'
 import DependencyManager from '@/components/DependencyManager.vue'
-import Navbar from '@/components/Navbar.vue'
+import Navbar from '@/components/AppNavbar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -407,12 +407,6 @@ useDragAndDrop(taskListRef, {
 })
 
 // Modals
-const openNewTaskModal = () => {
-  selectedTask.value = null
-  initialTaskData.value = null
-  showTaskModal.value = true
-}
-
 const openNewMilestoneModal = () => {
   selectedTask.value = null
   initialTaskData.value = {
@@ -547,6 +541,7 @@ const saveAsTemplate = async () => {
 }
 
 // Utility functions
+// Utility functions
 const getStatusClass = (status) => {
   const classes = {
     active: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400',
@@ -567,42 +562,11 @@ const getStatusText = (status) => {
   return texts[status] || status
 }
 
-const getMilestoneClass = (milestone) => {
-  if (milestone.status === 'completed') return 'border-green-500 bg-green-50 dark:bg-green-900/20'
-  if (milestone.status === 'in_progress') return 'border-blue-500 dark:border-blue-600'
-  if (milestone.status === 'blocked') return 'border-red-500 bg-red-50 dark:bg-red-900/20'
-  return 'border-gray-300 dark:border-gray-600'
-}
-
-const getMilestoneIcon = (status) => {
-  if (status === 'completed') return '✅'
-  if (status === 'in_progress') return '🔄'
-  if (status === 'blocked') return '🔒'
-  return '⏳'
-}
-
 const getMilestoneIconBg = (status) => {
   if (status === 'completed') return 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-500'
   if (status === 'in_progress') return 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-500'
   if (status === 'blocked') return 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-500'
   return 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
-}
-
-const getTaskIcon = (status) => {
-  const classes = {
-    completed: 'text-green-600 dark:text-green-400',
-    in_progress: 'text-blue-600 dark:text-blue-400',
-    blocked: 'text-red-600 dark:text-red-400',
-    pending: 'text-gray-400'
-  }
-  return classes[status] || 'text-gray-400'
-}
-
-const getTaskIconSymbol = (status) => {
-  if (status === 'completed') return '✓'
-  if (status === 'in_progress') return '→'
-  if (status === 'blocked') return '🔒'
-  return '○'
 }
 
 const calculateOverallProgress = () => {

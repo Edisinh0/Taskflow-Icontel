@@ -129,7 +129,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { templatesAPI, flowsAPI } from '@/services/api'
-import Navbar from '@/components/Navbar.vue'
+import Navbar from '@/components/AppNavbar.vue'
 import TemplateModal from '@/components/TemplateModal.vue'
 
 const router = useRouter()

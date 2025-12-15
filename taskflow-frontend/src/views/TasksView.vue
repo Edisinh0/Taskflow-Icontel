@@ -218,7 +218,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { tasksAPI } from '@/services/api'
-import Navbar from '@/components/Navbar.vue'
+import Navbar from '@/components/AppNavbar.vue'
 import { Filter, X, List, LayoutGrid, User, TrendingUp, Inbox, Target } from 'lucide-vue-next'
 
 const router = useRouter()
