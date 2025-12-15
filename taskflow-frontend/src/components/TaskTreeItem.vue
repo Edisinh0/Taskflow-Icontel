@@ -53,9 +53,15 @@
         <!-- Información adicional -->
         <div class="flex items-center space-x-6 mt-4 pt-3 border-t border-slate-200 dark:border-white/5">
           <!-- Responsable -->
-          <div class="flex items-center text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-500">
+          <div class="flex items-center text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-500 mr-4">
             <User class="w-3.5 h-3.5 mr-1.5" />
             {{ task.assignee?.name || 'Sin asignar' }}
+          </div>
+          
+          <!-- Última edición -->
+          <div v-if="task.last_editor" class="flex items-center text-[10px] text-slate-400 dark:text-slate-500 mr-4 whitespace-nowrap" title="Último editor">
+             <span class="mr-1">Edit:</span>
+             <span class="font-semibold text-slate-500 dark:text-slate-400 border-b border-dotted border-slate-400">{{ task.last_editor.name }}</span>
           </div>
 
           <!-- Progreso -->
@@ -76,15 +82,31 @@
             {{ task.subtasks.length }} subtareas
           </div>
           
-           <!-- Botones de acción (movidos abajo para mejor acceso) -->
-           <div class="flex items-center space-x-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                @click.stop.prevent="handleEdit"
-                class="p-1.5 text-blue-400 hover:text-white hover:bg-blue-500/20 rounded-lg transition-colors"
-                title="Editar"
-              >
-                <Pencil class="w-4 h-4" />
-              </button>
+
+           
+           <!-- Botón Adjuntos (Visible Siempre si permitido) -->
+           <button
+                v-if="task.allow_attachments"
+                @click.stop.prevent="handleAttachments"
+                class="ml-auto flex items-center px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-300 dark:border-slate-600 shadow-sm"
+                title="Adjuntar Documentos"
+           >
+                <Paperclip class="w-3.5 h-3.5 mr-1.5" />
+                Adjuntar Documentos
+           </button>
+           
+            <!-- Botones de acción (movidos abajo para mejor acceso) -->
+            <div 
+              class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              :class="!task.allow_attachments ? 'ml-auto' : 'ml-2'"
+            >
+               <button
+                 @click.stop.prevent="handleEdit"
+                 class="p-1.5 text-blue-400 hover:text-white hover:bg-blue-500/20 rounded-lg transition-colors"
+                 title="Editar"
+               >
+                 <Pencil class="w-4 h-4" />
+               </button>
               <button
                 @click.stop.prevent="handleDependencies"
                 class="p-1.5 text-purple-400 hover:text-white hover:bg-purple-500/20 rounded-lg transition-colors"
@@ -143,6 +165,7 @@
         @edit="(task) => emit('edit', task)"
         @delete="(task) => emit('delete', task)"
         @dependencies="(task) => emit('dependencies', task)"
+        @attachments="(task) => emit('attachments', task)"
       />
     </div>
   </div>
@@ -152,7 +175,7 @@
 import { defineProps, defineEmits, computed } from 'vue'
 import { 
   GripVertical, User, ListTodo, Pencil, Link, Trash2, 
-  Lock, CheckCircle2, RotateCw, PauseCircle, ClipboardList, Target 
+  Lock, CheckCircle2, RotateCw, PauseCircle, ClipboardList, Target, Paperclip 
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -166,7 +189,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['edit', 'delete', 'dependencies'])
+const emit = defineEmits(['edit', 'delete', 'dependencies', 'attachments'])
 
 // Funciones handler para evitar problemas de propagación
 const handleEdit = () => {
@@ -179,6 +202,10 @@ const handleDelete = () => {
 
 const handleDependencies = () => {
   emit('dependencies', props.task)
+}
+
+const handleAttachments = () => {
+  emit('attachments', props.task)
 }
 
 const taskIcon = computed(() => {

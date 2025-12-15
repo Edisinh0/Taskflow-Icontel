@@ -54,8 +54,9 @@
             <p class="text-base font-semibold text-slate-800 dark:text-slate-200 truncate">{{ flow.template?.name || 'Personalizado' }}</p>
           </div>
           <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-blue-500/20 transition-colors group">
-            <p class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-500 font-bold mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Creado por</p>
+            <p class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-500 font-bold mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Responsables</p>
             <p class="text-base font-semibold text-slate-800 dark:text-slate-200 truncate">{{ flow.creator?.name }}</p>
+            <p v-if="flow.last_editor" class="text-xs text-slate-500 mt-1 truncate">Edit: {{ flow.last_editor.name }}</p>
           </div>
           <!-- FIX: Only count Tasks (non-milestones) -->
           <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-blue-500/20 transition-colors group">
@@ -142,6 +143,12 @@
                    {{ milestone.assignee?.name || 'Sin asignar' }}
                 </span>
               </div>
+              <div v-if="milestone.last_editor" class="flex justify-between items-center text-sm">
+                <span class="text-slate-500 font-medium">Últ. Edición</span>
+                <span class="text-slate-700 dark:text-slate-200 font-semibold text-xs border-b border-dotted border-slate-400">
+                   {{ milestone.last_editor.name }}
+                </span>
+              </div>
               <div class="flex justify-between items-center text-sm">
                  <span class="text-slate-500 font-medium">Progreso</span>
                  <div class="flex items-center gap-3 flex-1 justify-end">
@@ -197,13 +204,25 @@
                         <div v-else class="w-6 h-6 rounded-full border-2 border-slate-400 dark:border-slate-700/80 bg-white dark:bg-slate-800/50"></div>
                     </div>
                     
-                    <span class="flex-1 text-sm font-semibold transition-colors line-clamp-1" :class="subtask.status === 'completed' ? 'text-slate-400 dark:text-slate-500 line-through decoration-slate-400 dark:decoration-slate-600' : 'text-slate-700 dark:text-slate-200 group-hover/task:text-blue-700 dark:group-hover/task:text-white'">
+                    <span class="flex-1 text-sm font-semibold transition-colors line-clamp-1 mr-2" :class="subtask.status === 'completed' ? 'text-slate-400 dark:text-slate-500 line-through decoration-slate-400 dark:decoration-slate-600' : 'text-slate-700 dark:text-slate-200 group-hover/task:text-blue-700 dark:group-hover/task:text-white'">
                         {{ subtask.title }}
                     </span>
+
+                    <!-- Botón Adjuntar Destacado -->
+                    <button 
+                        v-if="subtask.allow_attachments"
+                        @click.stop="openAttachmentsModal(subtask)"
+                        class="hidden group-hover/task:flex items-center px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-300 dark:border-slate-600 shadow-sm mr-2 whitespace-nowrap"
+                    >
+                        <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                        Adjuntar Documentos
+                    </button>
                     
                      <!-- Edit Icon on Hover -->
-                     <div class="opacity-0 group-hover/task:opacity-100 transition-opacity text-slate-500 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                     <div class="opacity-0 group-hover/task:opacity-100 transition-opacity flex items-center gap-2">
+                         <div class="text-slate-500 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 p-1 cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                         </div>
                      </div>
                     </div>
                 </div>
@@ -240,6 +259,7 @@
                             @edit="openEditTaskModal"
                             @delete="deleteTask"
                             @dependencies="openDependencyModal"
+                            @attachments="openAttachmentsModal"
                         />
                     </div>
                 </div>
@@ -268,6 +288,14 @@
       @close="closeDependencyModal"
       @updated="handleDependenciesUpdated"
     />
+
+    <!-- Modal de Adjuntos (Nuevo) -->
+    <AttachmentsModal
+      :is-open="showAttachmentsModal"
+      :task="selectedTaskForAttachments"
+      @close="showAttachmentsModal = false"
+      @updated="handleAttachmentsUpdated"
+    />
   </div>
 </template>
 
@@ -279,6 +307,7 @@ import { useDragAndDrop } from '@/composables/useDragAndDrop'
 import TaskTreeItem from '@/components/TaskTreeItem.vue'
 import TaskModal from '@/components/TaskModal.vue'
 import DependencyManager from '@/components/DependencyManager.vue'
+import AttachmentsModal from '@/components/AttachmentsModal.vue'
 import Navbar from '@/components/AppNavbar.vue'
 
 const route = useRoute()
@@ -288,7 +317,9 @@ const flow = ref(null)
 const loading = ref(true)
 const showTaskModal = ref(false)
 const showDependencyModal = ref(false)
+const showAttachmentsModal = ref(false)
 const selectedTask = ref(null)
+const selectedTaskForAttachments = ref(null)
 const initialTaskData = ref(null) // Para pasar datos pre-definidos al crear nueva tarea
 const taskListRef = ref(null)
 
@@ -589,4 +620,14 @@ const loadFlow = async () => {
 onMounted(() => {
   loadFlow()
 })
+
+
+const openAttachmentsModal = (task) => {
+    selectedTaskForAttachments.value = task
+    showAttachmentsModal.value = true
+}
+
+const handleAttachmentsUpdated = async () => {
+    await loadFlow()
+}
 </script>

@@ -66,6 +66,7 @@ class TaskController extends Controller
             'priority' => 'nullable|in:low,medium,high,urgent',
             'status' => 'nullable|in:pending,blocked,in_progress,paused,completed,cancelled',
             'is_milestone' => 'nullable|boolean',
+            'allow_attachments' => 'nullable|boolean', // <-- Permitir adjuntos
             'estimated_start_at' => 'nullable|date',
             'estimated_end_at' => 'nullable|date',
             // ⚠️ NO permitir que el frontend controle is_blocked
@@ -109,10 +110,12 @@ class TaskController extends Controller
             $task = Task::with([
                 'flow',
                 'assignee',
+                'lastEditor',
                 'parentTask',
                 'subtasks.assignee',
                 'dependencies.dependsOnTask',
-                'dependents.task'
+                'dependents.task',
+                'attachments.uploader' // Cargar adjuntos
             ])->findOrFail($id);
 
             // Verificar si está bloqueada
@@ -156,6 +159,7 @@ class TaskController extends Controller
         'assignee_id' => 'nullable|exists:users,id',
         'estimated_end_at' => 'nullable|date',
         'is_milestone' => 'sometimes|boolean',
+        'allow_attachments' => 'sometimes|boolean',
         'order' => 'sometimes|integer|min:0',
         'depends_on_task_id' => 'nullable|exists:tasks,id',
         'depends_on_milestone_id' => 'nullable|exists:tasks,id',
@@ -163,15 +167,14 @@ class TaskController extends Controller
         'priority' => ['sometimes', 'string', Rule::in(['low', 'medium', 'high', 'urgent'])],
     ]);
 
-    // 🎯 MOTOR DE CONTROL DE FLUJOS (Lógica de Bloqueo)
+    // 🎯 MOTOR DE CONTROL DE FLUJOS (Lógica de Bloqueo y Requisitos)
     if (isset($validated['status'])) {
         // ⚠️ IMPORTANTE: Refrescar desde BD para obtener el valor actualizado de is_blocked
-        // El Observer puede haber desbloqueado esta tarea al completar otra
         $task->refresh();
+        $newStatus = $validated['status'];
         
+        // 1. Verificar Bloqueo
         if ($task->is_blocked) {
-            $newStatus = $validated['status'];
-            
             // Si intenta iniciarla o finalizarla estando bloqueada
             if (in_array($newStatus, ['in_progress', 'completed'])) {
                 
@@ -200,6 +203,16 @@ class TaskController extends Controller
                     'success' => false,
                     'message' => "🔒 Acción prohibida: {$blockMessage}",
                 ], 403);
+            }
+        }
+        
+        // 2. Validar adjuntos obligatorios al completar
+        if ($newStatus === 'completed' && $task->allow_attachments) {
+            if ($task->attachments()->count() === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "⚠️ Requisito faltante: Debes adjuntar al menos un documento para completar esta tarea.",
+                ], 422);
             }
         }
     }

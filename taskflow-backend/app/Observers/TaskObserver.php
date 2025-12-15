@@ -15,14 +15,19 @@ class TaskObserver
      * pero ANTES del INSERT en la base de datos.
      */
     public function saving(Task $task): void
-{
-    // Solo ejecutar en creación, no en actualización
-    if ($task->exists) {
-        return;
-    }
+    {
+        // Registrar quién modifica (Creación o Actualización)
+        if (auth()->check()) {
+            $task->last_updated_by = auth()->id();
+        }
 
-    Log::info('🔧 TaskObserver::saving() ejecutándose', [
-        'task_id' => $task->id ?? 'nuevo',
+        // Solo ejecutar en creación, no en actualización
+        if ($task->exists) {
+            return;
+        }
+
+        Log::info('🔧 TaskObserver::saving() ejecutándose', [
+            'task_id' => $task->id ?? 'nuevo',
         'title' => $task->title,
         'parent_task_id' => $task->parent_task_id,
         'depends_on_task_id' => $task->depends_on_task_id,

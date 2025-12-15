@@ -8,6 +8,16 @@ use Illuminate\Support\Facades\Log;
 class FlowObserver
 {
     /**
+     * Handle the Flow "saving" event.
+     */
+    public function saving(Flow $flow): void
+    {
+        if (auth()->check()) {
+            $flow->last_updated_by = auth()->id();
+        }
+    }
+
+    /**
      * Handle the Flow "deleted" event.
      * Soft-delete all tasks associated with the flow.
      */

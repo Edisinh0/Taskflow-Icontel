@@ -80,7 +80,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/reports/export/csv', [App\Http\Controllers\Api\ReportController::class, 'exportCsv']);
     Route::get('/reports/export/pdf', [App\Http\Controllers\Api\ReportController::class, 'exportPdf']);
 
-    // Reordenamiento de tareas
-Route::post('/tasks/reorder', [TaskController::class, 'reorder']);
-Route::post('/tasks/{id}/move', [TaskController::class, 'move']);
+    // Adjuntos de Tareas
+    Route::post('/tasks/{task}/attachments', [App\Http\Controllers\Api\TaskAttachmentController::class, 'store']);
+    Route::delete('/attachments/{attachment}', [App\Http\Controllers\Api\TaskAttachmentController::class, 'destroy']);
 });

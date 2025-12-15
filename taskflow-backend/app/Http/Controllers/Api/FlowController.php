@@ -189,14 +189,20 @@ class FlowController extends Controller
         $flow = Flow::with([
             'template',
             'creator',
+            'lastEditor',
             'tasks.assignee',
+            'tasks.lastEditor', // Cargar creador/editor de tareas
             'tasks.subtasks',
+            'tasks.subtasks.lastEditor', // Cargar creador/editor de subtareas
             'tasks.dependsOnTask',      // Tarea precedente
             'tasks.dependsOnMilestone', // Milestone requerido
             'tasks.subtasks.dependsOnTask', // Dependencias de subtareas
             'tasks.subtasks.dependsOnMilestone',
+            'tasks.attachments.uploader', // Adjuntos
+            'tasks.subtasks.attachments.uploader', // Adjuntos de subtareas
             'tasks.subtasks.assignee', // Responsable de subtareas
-            'milestones'
+            'milestones.lastEditor',
+            'milestones.assignee'
         ])->findOrFail($id);
 
         return response()->json([

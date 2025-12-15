@@ -23,6 +23,7 @@ class Flow extends Model implements Auditable
         'progress',
         'started_at',
         'completed_at',
+        'last_updated_by',
     ];
 
     protected $casts = [
@@ -71,5 +72,10 @@ class Flow extends Model implements Auditable
     public function milestones(): HasMany
     {
         return $this->hasMany(Task::class)->where('is_milestone', true);
+    }
+
+    public function lastEditor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'last_updated_by');
     }
 }

@@ -23,6 +23,7 @@ class Task extends Model implements Auditable
         'priority',
         'status',
         'is_milestone',
+        'allow_attachments', // <-- AGREGAR
         'is_blocked',           // <-- AGREGAR
         'depends_on_task_id',   // <-- AGREGAR
         'depends_on_milestone_id',
@@ -37,10 +38,12 @@ class Task extends Model implements Auditable
         'actual_end_at',
         'progress',
         'blocked_reason',
+        'last_updated_by', // Nuevo
     ];
 
     protected $casts = [
         'is_milestone' => 'boolean',
+        'allow_attachments' => 'boolean',
         'milestone_auto_complete' => 'boolean',
         'milestone_requires_validation' => 'boolean',
         'milestone_target_date' => 'datetime',
@@ -180,5 +183,18 @@ class Task extends Model implements Auditable
     public function dependentOnMilestone(): HasMany
     {
         return $this->hasMany(Task::class, 'depends_on_milestone_id');
+    }
+
+    /**
+     * Relación: Archivos adjuntos
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(TaskAttachment::class);
+    }
+
+    public function lastEditor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'last_updated_by');
     }
 }

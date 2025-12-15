@@ -37,10 +37,11 @@
             <!-- Descripción -->
             <div class="mb-5">
               <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-              Descripción
+              Descripción <span class="text-rose-500">*</span>
             </label>
             <textarea
               v-model="formData.description"
+              required
               rows="3"
               class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               placeholder="Describe detalles, requerimientos..."
@@ -52,13 +53,14 @@
               <!-- Responsable -->
               <div>
                 <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                  Responsable
+                  Responsable <span class="text-rose-500">*</span>
                 </label>
                 <select
                   v-model="formData.assignee_id"
+                  required
                   class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 >
-                  <option :value="null">Sin asignar</option>
+                  <option :value="null" disabled>Selecciona...</option>
                   <option v-for="user in users" :key="user.id" :value="user.id">
                     {{ user.name }}
                   </option>
@@ -68,10 +70,11 @@
               <!-- Prioridad -->
               <div>
                 <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                  Prioridad
+                  Prioridad <span class="text-rose-500">*</span>
                 </label>
                 <select
                   v-model="formData.priority"
+                  required
                   class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 >
                   <option value="low">Baja</option>
@@ -87,10 +90,11 @@
               <!-- Estado -->
               <div>
                 <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                  Estado
+                  Estado <span class="text-rose-500">*</span>
                 </label>
                 <select
                   v-model="formData.status"
+                  required
                   class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 >
                   <option value="pending">Pendiente</option>
@@ -103,13 +107,14 @@
               </div>
             </div>
 
-            <!-- Razón de bloqueo (solo si está bloqueada) -->
+            <!-- Razón de bloqueo -->
             <div v-if="formData.status === 'blocked'" class="mb-5">
               <label class="block text-sm font-bold text-rose-500 dark:text-rose-400 mb-2">
-                Razón del Bloqueo
+                Razón del Bloqueo <span class="text-rose-500">*</span>
               </label>
               <textarea
                 v-model="formData.blocked_reason"
+                required
                 rows="2"
                 class="w-full px-4 py-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-500/30 rounded-xl text-rose-900 dark:text-white placeholder-rose-300 dark:placeholder-rose-300/50 focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all"
                 placeholder="Explica por qué está bloqueada..."
@@ -117,7 +122,7 @@
             </div>
 
             <!-- Milestone Checkbox -->
-            <div class="mb-6 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-white/5">
+            <div class="mb-4 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-white/5">
               <label class="flex items-center cursor-pointer group">
                 <input
                   v-model="formData.is_milestone"
@@ -128,6 +133,23 @@
                   ⭐ Esta tarea es un Milestone (Hito)
                 </span>
               </label>
+            </div>
+
+            <!-- Attachments Checkbox (Permiso) -->
+            <div class="mb-6 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-white/5">
+              <label class="flex items-center cursor-pointer group">
+                <input
+                  v-model="formData.allow_attachments"
+                  type="checkbox"
+                  class="w-5 h-5 text-purple-600 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded focus:ring-purple-500 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-900"
+                />
+                <span class="ml-3 text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                  📎 Permitir adjuntar archivos
+                </span>
+              </label>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 ml-8">
+                Habilita el botón de adjuntos en la lista de tareas.
+              </p>
             </div>
 
             <!-- Dependencias -->
@@ -141,9 +163,6 @@
                 <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                    Dependencia de Tarea
                 </label>
-                <p class="text-xs text-slate-500 dark:text-slate-500 mb-2">
-                  Esta tarea no puede iniciarse hasta que se complete la seleccionada
-                </p>
                 <select
                   v-model="formData.depends_on_task_id"
                   class="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
@@ -164,9 +183,6 @@
                 <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                    Dependencia de Milestone
                 </label>
-                <p class="text-xs text-slate-500 dark:text-slate-500 mb-2">
-                  Esta tarea depende de que se complete el siguiente milestone
-                </p>
                 <select
                   v-model="formData.depends_on_milestone_id"
                   class="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
@@ -187,21 +203,23 @@
             <div class="grid grid-cols-2 gap-5 mb-6">
               <div>
                 <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                  Inicio Estimado
+                  Inicio Estimado <span class="text-rose-500">*</span>
                 </label>
                 <input
                   v-model="formData.estimated_start_at"
                   type="datetime-local"
+                  required
                   class="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
               </div>
               <div>
                 <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                  Fin Estimado
+                  Fin Estimado <span class="text-rose-500">*</span>
                 </label>
                 <input
                   v-model="formData.estimated_end_at"
                   type="datetime-local"
+                  required
                   class="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
               </div>
@@ -297,6 +315,7 @@ const formData = ref({
   status: 'pending',
   progress: 0,
   is_milestone: false,
+  allow_attachments: false,
   blocked_reason: '',
   depends_on_task_id: null,
   depends_on_milestone_id: null,
@@ -305,6 +324,12 @@ const formData = ref({
   flow_id: null,
   parent_task_id: null
 })
+
+const formatDBDate = (dateStr) => {
+    if (!dateStr) return ''
+    // Asegurar formato YYYY-MM-DDTHH:mm para input datetime-local
+    return dateStr.replace(' ', 'T').slice(0, 16)
+}
 
 // Watch para cargar datos cuando se edita o cambia el flowId
 watch([() => props.task, () => props.flowId, () => props.initialData], ([newTask, newFlowId, newInitialData]) => {
@@ -318,11 +343,12 @@ watch([() => props.task, () => props.flowId, () => props.initialData], ([newTask
       status: newTask.status || 'pending',
       progress: newTask.progress || 0,
       is_milestone: newTask.is_milestone || false,
+      allow_attachments: newTask.allow_attachments || false,
       blocked_reason: newTask.blocked_reason || '',
       depends_on_task_id: newTask.depends_on_task_id || null,
       depends_on_milestone_id: newTask.depends_on_milestone_id || null,
-      estimated_start_at: newTask.estimated_start_at || '',
-      estimated_end_at: newTask.estimated_end_at || '',
+      estimated_start_at: formatDBDate(newTask.estimated_start_at),
+      estimated_end_at: formatDBDate(newTask.estimated_end_at),
       flow_id: newTask.flow_id,
       parent_task_id: newTask.parent_task_id
     }
@@ -338,6 +364,7 @@ watch([() => props.task, () => props.flowId, () => props.initialData], ([newTask
       status: defaults.status || 'pending',
       progress: defaults.progress || 0,
       is_milestone: defaults.is_milestone !== undefined ? defaults.is_milestone : false,
+      allow_attachments: defaults.allow_attachments !== undefined ? defaults.allow_attachments : false,
       blocked_reason: '',
       depends_on_task_id: defaults.depends_on_task_id || null,
       depends_on_milestone_id: defaults.depends_on_milestone_id || null,
@@ -358,6 +385,16 @@ const handleSubmit = async () => {
   try {
     loading.value = true
     error.value = null
+
+    // Validar campos obligatorios que el HTML5 podría no atajar si son null
+    const required = ['title', 'description', 'assignee_id', 'priority', 'status', 'estimated_start_at', 'estimated_end_at']
+    const missing = required.filter(k => !formData.value[k])
+    
+    if (missing.length > 0) {
+        error.value = "Por favor complete todos los campos obligatorios (*)"
+        loading.value = false
+        return
+    }
 
     if (isEditMode.value) {
       // Actualizar tarea existente

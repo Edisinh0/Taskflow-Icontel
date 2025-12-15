@@ -72,6 +72,11 @@ export const tasksAPI = {
   create: (data) => api.post('/tasks', data),
   update: (id, data) => api.put(`/tasks/${id}`, data),
   delete: (id) => api.delete(`/tasks/${id}`),
+  uploadAttachment: (taskId, formData, onUploadProgress) => api.post(`/tasks/${taskId}/attachments`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress
+  }),
+  deleteAttachment: (fileId) => api.delete(`/attachments/${fileId}`),
 }
 
 export default api

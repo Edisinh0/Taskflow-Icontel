@@ -5,6 +5,8 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use App\Models\Task;
 use App\Observers\TaskObserver;
+use App\Models\Flow;
+use App\Observers\FlowObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
     \Log::info('🚀 AppServiceProvider::boot() ejecutándose');
     
     Task::observe(TaskObserver::class);
+    Flow::observe(FlowObserver::class);
     
     \Log::info('✅ TaskObserver registrado correctamente');
     }
