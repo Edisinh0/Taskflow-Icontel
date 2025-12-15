@@ -137,9 +137,7 @@ const templates = ref([])
 const flows = ref([])
 const isTemplateModalOpen = ref(false)
 
-const openNewTemplateModal = () => {
-  isTemplateModalOpen.value = true
-}
+
 
 const handleTemplateSaved = async () => {
   await loadData()

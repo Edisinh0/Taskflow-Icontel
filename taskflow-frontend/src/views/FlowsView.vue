@@ -261,7 +261,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+
 import { flowsAPI, templatesAPI } from '@/services/api'
 import FlowModal from '@/components/FlowModal.vue'
 import Navbar from '@/components/AppNavbar.vue'
@@ -274,11 +274,9 @@ import {
   Edit2, 
   Trash2, 
   FolderPen, 
-  Filter 
 } from 'lucide-vue-next'
 
 const router = useRouter()
-const authStore = useAuthStore()
 const flows = ref([])
 const templates = ref([])
 const showFlowModal = ref(false)

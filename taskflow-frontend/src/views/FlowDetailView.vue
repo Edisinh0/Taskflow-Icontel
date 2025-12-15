@@ -569,11 +569,7 @@ const getMilestoneIconBg = (status) => {
   return 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
 }
 
-const calculateOverallProgress = () => {
-  if (!flow.value?.tasks || flow.value.tasks.length === 0) return 0
-  const totalProgress = flow.value.tasks.reduce((sum, task) => sum + task.progress, 0)
-  return Math.round(totalProgress / flow.value.tasks.length)
-}
+
 
 // Load data
 const loadFlow = async () => {
