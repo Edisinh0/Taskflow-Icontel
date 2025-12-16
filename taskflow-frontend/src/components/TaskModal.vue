@@ -87,8 +87,8 @@
 
             <!-- Grid de 2 columnas -->
             <div class="grid grid-cols-2 gap-5 mb-5">
-              <!-- Estado -->
-              <div>
+              <!-- Estado (Solo visible si NO es milestone y NO es subtarea) -->
+              <div v-if="!formData.is_milestone && !formData.parent_task_id">
                 <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                   Estado <span class="text-rose-500">*</span>
                 </label>
@@ -104,6 +104,32 @@
                   <option value="paused">Pausada</option>
                   <option value="cancelled">Cancelada</option>
                 </select>
+              </div>
+
+              <!-- Si es milestone, mostrar estado fijo -->
+              <div v-else-if="formData.is_milestone">
+                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  Estado <span class="text-rose-500">*</span>
+                </label>
+                <div class="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-400">
+                  <span class="flex items-center">
+                    <Zap class="w-4 h-4 mr-2 text-blue-500" />
+                    En Progreso (automático)
+                  </span>
+                </div>
+              </div>
+
+              <!-- Si es subtarea, mostrar estado automático -->
+              <div v-else-if="formData.parent_task_id">
+                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  Estado <span class="text-rose-500">*</span>
+                </label>
+                <div class="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-400">
+                  <span class="flex items-center">
+                    <Clock class="w-4 h-4 mr-2 text-slate-500" />
+                    Automático (secuencial)
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -261,6 +287,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { tasksAPI } from '@/services/api'
+import { Zap, Clock } from 'lucide-vue-next'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -355,13 +382,14 @@ watch([() => props.task, () => props.flowId, () => props.initialData], ([newTask
   } else {
     // Modo Creación
     const defaults = newInitialData || {}
-    
+
     formData.value = {
       title: defaults.title || '',
       description: defaults.description || '',
       assignee_id: defaults.assignee_id || null,
       priority: defaults.priority || 'medium',
-      status: defaults.status || 'pending',
+      // Solo establecer status si viene en defaults, sino dejar que el backend lo determine
+      status: defaults.status !== undefined ? defaults.status : 'pending',
       progress: defaults.progress || 0,
       is_milestone: defaults.is_milestone !== undefined ? defaults.is_milestone : false,
       allow_attachments: defaults.allow_attachments !== undefined ? defaults.allow_attachments : false,
@@ -376,6 +404,13 @@ watch([() => props.task, () => props.flowId, () => props.initialData], ([newTask
   }
 }, { immediate: true })
 
+// Watch para cambiar estado automáticamente cuando se marca como milestone
+watch(() => formData.value.is_milestone, (isMilestone) => {
+  if (isMilestone) {
+    formData.value.status = 'in_progress'
+  }
+})
+
 const closeModal = () => {
   error.value = null
   emit('close')
@@ -387,9 +422,9 @@ const handleSubmit = async () => {
     error.value = null
 
     // Validar campos obligatorios que el HTML5 podría no atajar si son null
-    const required = ['title', 'description', 'assignee_id', 'priority', 'status', 'estimated_start_at', 'estimated_end_at']
+    const required = ['title', 'description', 'assignee_id', 'priority', 'estimated_start_at', 'estimated_end_at']
     const missing = required.filter(k => !formData.value[k])
-    
+
     if (missing.length > 0) {
         error.value = "Por favor complete todos los campos obligatorios (*)"
         loading.value = false
@@ -401,7 +436,16 @@ const handleSubmit = async () => {
       await tasksAPI.update(props.task.id, formData.value)
     } else {
       // Crear nueva tarea
-      await tasksAPI.create(formData.value)
+      // Preparar datos para envío - remover status si es el default para que backend lo determine
+      const dataToSend = { ...formData.value }
+
+      // Si la tarea tiene parent_task_id y status es 'pending' (default), no enviar status
+      // para que el backend determine si debe ser 'in_progress' (primera subtarea)
+      if (dataToSend.parent_task_id && dataToSend.status === 'pending') {
+        delete dataToSend.status
+      }
+
+      await tasksAPI.create(dataToSend)
     }
 
     emit('saved')

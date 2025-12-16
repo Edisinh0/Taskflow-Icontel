@@ -46,42 +46,23 @@
               ></textarea>
             </div>
 
-            <!-- Grid de 2 columnas -->
-            <div class="grid grid-cols-2 gap-5 mb-5">
-              <!-- Plantilla -->
-              <div>
-                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                  Plantilla Base
-                </label>
-                <select
-                  v-model="formData.template_id"
-                  class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                >
-                  <option :value="null">Sin plantilla</option>
-                  <option v-for="template in templates" :key="template.id" :value="template.id">
-                    {{ template.name }} (v{{ template.version }})
-                  </option>
-                </select>
-                <p class="text-xs text-slate-500 mt-2">
-                  Opcional: Selecciona una plantilla para pre-cargar tareas
-                </p>
-              </div>
-
-              <!-- Estado -->
-              <div>
-                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                  Estado
-                </label>
-                <select
-                  v-model="formData.status"
-                  class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                >
-                  <option value="active">Activo</option>
-                  <option value="paused">Pausado</option>
-                  <option value="completed">Completado</option>
-                  <option value="cancelled">Cancelado</option>
-                </select>
-              </div>
+            <!-- Plantilla Base -->
+            <div class="mb-5">
+              <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                Plantilla Base
+              </label>
+              <select
+                v-model="formData.template_id"
+                class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              >
+                <option :value="null">Sin plantilla</option>
+                <option v-for="template in templates" :key="template.id" :value="template.id">
+                  {{ template.name }} (v{{ template.version }})
+                </option>
+              </select>
+              <p class="text-xs text-slate-500 mt-2">
+                Opcional: Selecciona una plantilla para pre-cargar tareas
+              </p>
             </div>
 
             <!-- Información de plantilla seleccionada -->

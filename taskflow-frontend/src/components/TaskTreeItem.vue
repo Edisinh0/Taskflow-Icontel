@@ -88,17 +88,27 @@
            <button
                 v-if="task.allow_attachments"
                 @click.stop.prevent="handleAttachments"
-                class="ml-auto flex items-center px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-300 dark:border-slate-600 shadow-sm"
+                class="flex items-center px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-300 dark:border-slate-600 shadow-sm"
                 title="Adjuntar Documentos"
            >
                 <Paperclip class="w-3.5 h-3.5 mr-1.5" />
                 Adjuntar Documentos
            </button>
-           
+
+           <!-- Botón Completar Tarea (Solo en subtareas, NO en milestones) -->
+           <button
+                v-if="!task.is_milestone && task.status !== 'completed' && !task.is_blocked"
+                @click.stop.prevent="handleComplete"
+                class="flex items-center px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-lg transition-all shadow-md hover:shadow-lg ml-2"
+                title="Completar tarea"
+           >
+                <CheckCircle2 class="w-4 h-4 mr-1.5" />
+                Completar
+           </button>
+
             <!-- Botones de acción (movidos abajo para mejor acceso) -->
-            <div 
-              class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity"
-              :class="!task.allow_attachments ? 'ml-auto' : 'ml-2'"
+            <div
+              class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2"
             >
                <button
                  @click.stop.prevent="handleEdit"
@@ -157,8 +167,8 @@
 
     <!-- Subtareas (recursivo) -->
     <div v-if="task.subtasks && task.subtasks.length > 0" class="ml-6 border-l border-slate-200 dark:border-white/5 pl-4 relative">
-      <TaskTreeItem 
-        v-for="subtask in task.subtasks" 
+      <TaskTreeItem
+        v-for="subtask in task.subtasks"
         :key="subtask.id"
         :task="subtask"
         :level="level + 1"
@@ -166,6 +176,7 @@
         @delete="(task) => emit('delete', task)"
         @dependencies="(task) => emit('dependencies', task)"
         @attachments="(task) => emit('attachments', task)"
+        @complete="(task) => emit('complete', task)"
       />
     </div>
   </div>
@@ -189,7 +200,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['edit', 'delete', 'dependencies', 'attachments'])
+const emit = defineEmits(['edit', 'delete', 'dependencies', 'attachments', 'complete'])
 
 // Funciones handler para evitar problemas de propagación
 const handleEdit = () => {
@@ -206,6 +217,10 @@ const handleDependencies = () => {
 
 const handleAttachments = () => {
   emit('attachments', props.task)
+}
+
+const handleComplete = () => {
+  emit('complete', props.task)
 }
 
 const taskIcon = computed(() => {

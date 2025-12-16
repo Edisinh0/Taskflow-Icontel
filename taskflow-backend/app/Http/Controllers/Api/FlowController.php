@@ -158,7 +158,19 @@ class FlowController extends Controller
      */
     private function createTasksFromTemplate($flowId, $tasks, $parentId = null, &$idMap = [], &$pendingDependencies = [])
     {
+        $previousSubtaskId = null;
+        $isFirstSubtask = true;
+
         foreach ($tasks as $taskData) {
+            // Determinar el estado inicial de la tarea
+            $initialStatus = 'pending';
+
+            // Si es una subtarea (tiene parent_task_id) y es la primera, debe estar "in_progress"
+            if ($parentId !== null && $isFirstSubtask) {
+                $initialStatus = 'in_progress';
+                $isFirstSubtask = false;
+            }
+
             $task = Task::create([
                 'flow_id' => $flowId,
                 'parent_task_id' => $parentId,
@@ -166,7 +178,7 @@ class FlowController extends Controller
                 'description' => $taskData['description'] ?? null,
                 'is_milestone' => $taskData['is_milestone'] ?? false,
                 'priority' => $taskData['priority'] ?? 'medium',
-                'status' => 'pending',
+                'status' => $initialStatus,
                 'estimated_start_at' => isset($taskData['start_day_offset']) ? now()->addDays($taskData['start_day_offset']) : null,
                 'estimated_end_at' => isset($taskData['duration_days']) ? now()->addDays(($taskData['start_day_offset'] ?? 0) + $taskData['duration_days']) : null,
             ]);
@@ -192,8 +204,20 @@ class FlowController extends Controller
                 $hasPending = true;
             }
 
+            // Si es una subtarea (no la primera) y hay una subtarea anterior, debe depender de ella
+            if ($parentId !== null && $previousSubtaskId !== null) {
+                $pendingData['depends_on_task_ref'] = 'prev_subtask_' . $previousSubtaskId;
+                $idMap['prev_subtask_' . $previousSubtaskId] = $previousSubtaskId;
+                $hasPending = true;
+            }
+
             if ($hasPending) {
                 $pendingDependencies[] = $pendingData;
+            }
+
+            // Actualizar el ID de la subtarea anterior para la próxima iteración
+            if ($parentId !== null) {
+                $previousSubtaskId = $task->id;
             }
 
             // Si tiene subtareas, crearlas recursivamente

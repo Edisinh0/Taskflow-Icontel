@@ -209,15 +209,26 @@
                     </span>
 
                     <!-- Botón Adjuntar Destacado -->
-                    <button 
+                    <button
                         v-if="subtask.allow_attachments"
                         @click.stop="openAttachmentsModal(subtask)"
-                        class="hidden group-hover/task:flex items-center px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-300 dark:border-slate-600 shadow-sm mr-2 whitespace-nowrap"
+                        class="hidden group-hover/task:flex items-center px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-300 dark:border-slate-600 shadow-sm mr-2 whitespace-nowrap"
                     >
                         <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
                         Adjuntar Documentos
                     </button>
-                    
+
+                    <!-- Botón Completar Tarea (Solo subtareas, NO milestones) -->
+                    <button
+                        v-if="!subtask.is_milestone && subtask.status !== 'completed' && !subtask.is_blocked"
+                        @click.stop="completeTask(subtask)"
+                        class="flex items-center px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-lg transition-all shadow-md hover:shadow-lg mr-2 whitespace-nowrap"
+                        title="Completar tarea"
+                    >
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        Completar
+                    </button>
+
                      <!-- Edit Icon on Hover -->
                      <div class="opacity-0 group-hover/task:opacity-100 transition-opacity flex items-center gap-2">
                          <div class="text-slate-500 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 p-1 cursor-pointer">
@@ -251,8 +262,8 @@
                         <div class="h-px flex-1 bg-slate-700/50"></div>
                     </div>
                     <div class="pl-2" :class="{'border-l-2 border-slate-700/30 pl-4': group.isMilestone}">
-                        <TaskTreeItem 
-                            v-for="task in group.tasks" 
+                        <TaskTreeItem
+                            v-for="task in group.tasks"
                             :key="task.id"
                             :task="task"
                             :level="0"
@@ -260,6 +271,7 @@
                             @delete="deleteTask"
                             @dependencies="openDependencyModal"
                             @attachments="openAttachmentsModal"
+                            @complete="completeTask"
                         />
                     </div>
                 </div>
@@ -476,17 +488,18 @@ const openNewTaskForMilestone = (milestone) => {
   initialTaskData.value = {
     // Usar parent_task_id para agrupar bajo el milestone
     parent_task_id: milestone.id,
-    
+
     // NO establecer depends_on_milestone_id para evitar bloqueo circular
     depends_on_milestone_id: null,
-    
+
     // Establecer dependencia de la última tarea (secuencial)
     // Si no hay tarea previa, depends_on_task_id será null (primera tarea)
     depends_on_task_id: lastTask ? lastTask.id : null,
-    
+
     // Valores por defecto
     priority: 'medium',
-    status: 'pending',
+    // NO establecer status aquí - dejar que el backend lo determine automáticamente
+    // (primera subtarea = in_progress, las demás = pending)
     is_milestone: false,
     title: `Tarea ${childTasks.length + 1} - ${milestone.title}`
   }
@@ -629,5 +642,26 @@ const openAttachmentsModal = (task) => {
 
 const handleAttachmentsUpdated = async () => {
     await loadFlow()
+}
+
+// Completar tarea
+const completeTask = async (task) => {
+  try {
+    // Actualizar el estado de la tarea a 'completed'
+    await tasksAPI.update(task.id, {
+      status: 'completed'
+    })
+
+    // Recargar el flujo para reflejar los cambios
+    await loadFlow()
+  } catch (error) {
+    console.error('Error completando tarea:', error)
+    // Mostrar mensaje de error específico si viene del backend
+    if (error.response?.data?.message) {
+      alert(error.response.data.message)
+    } else {
+      alert('Error al completar la tarea')
+    }
+  }
 }
 </script>

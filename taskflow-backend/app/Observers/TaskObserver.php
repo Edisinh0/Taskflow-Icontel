@@ -375,7 +375,16 @@ class TaskObserver
         
         // Si no hay dependencias pendientes Y la tarea está bloqueada, la liberamos
         if ($canUnlock && $task->is_blocked) {
-            $task->update(['is_blocked' => false]);
+            // Preparar datos para actualización
+            $updateData = ['is_blocked' => false];
+
+            // Si es una subtarea (tiene parent_task_id) y está en pending, cambiarla a in_progress
+            if ($task->parent_task_id && $task->status === 'pending') {
+                $updateData['status'] = 'in_progress';
+                Log::info("🚀 Subtarea {$task->id} cambiada a 'in_progress' automáticamente");
+            }
+
+            $task->update($updateData);
             Log::info("🔓 Tarea {$task->id} desbloqueada.");
         }
     }

@@ -74,11 +74,11 @@ class TaskController extends Controller
             'depends_on_task_id' => 'nullable|exists:tasks,id',
             'depends_on_milestone_id' => 'nullable|exists:tasks,id',
         ]);
-        
+
         // Validar dependencias circulares y auto-referencia
         if (isset($validated['depends_on_task_id'])) {
             // Verificar que no sea la misma tarea (aunque aún no tiene ID, prevenir en updates)
-            if (isset($validated['depends_on_milestone_id']) && 
+            if (isset($validated['depends_on_milestone_id']) &&
                 $validated['depends_on_task_id'] === $validated['depends_on_milestone_id']) {
                 return response()->json([
                     'success' => false,
@@ -86,9 +86,33 @@ class TaskController extends Controller
                 ], 422);
             }
         }
-        
+
         // ✅ NO establecer is_blocked aquí - el Observer lo maneja automáticamente
         // El Observer::creating() verificará las dependencias y establecerá is_blocked correctamente
+
+        // 🔧 Lógica especial para subtareas de milestones
+        if (isset($validated['parent_task_id'])) {
+            // Verificar si hay otras subtareas hermanas
+            $siblingSubtasks = Task::where('parent_task_id', $validated['parent_task_id'])
+                ->orderBy('order', 'asc')
+                ->orderBy('created_at', 'asc')
+                ->get();
+
+            // Si es la primera subtarea, debe estar en "in_progress"
+            if ($siblingSubtasks->isEmpty()) {
+                if (!isset($validated['status'])) {
+                    $validated['status'] = 'in_progress';
+                }
+            } else {
+                // Si no es la primera, debe depender de la última subtarea creada
+                // (solo si no se especificó otra dependencia manualmente)
+                if (!isset($validated['depends_on_task_id'])) {
+                    $lastSubtask = $siblingSubtasks->last();
+                    $validated['depends_on_task_id'] = $lastSubtask->id;
+                }
+                // Si no se especificó estado, dejarla en "pending" (por defecto)
+            }
+        }
 
         $task = Task::create($validated);
 
