@@ -115,9 +115,9 @@
             <div class="flex items-start justify-between mb-4">
               <div class="flex items-center gap-3">
                 <span :class="getMilestoneIconBg(milestone.status)" class="p-2.5 rounded-xl inline-flex items-center justify-center border border-current/10 shadow-inner">
-                    <svg v-if="milestone.status === 'completed'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                    <svg v-else-if="milestone.status === 'in_progress'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <CheckCircle2 v-if="milestone.status === 'completed'" class="w-6 h-6" />
+                    <Zap v-else-if="milestone.status === 'in_progress'" class="w-6 h-6" />
+                    <Clock v-else class="w-6 h-6" />
                 </span>
                 <div>
                    <h4 class="text-lg font-bold text-slate-800 dark:text-white leading-tight">{{ milestone.title }}</h4>
@@ -193,13 +193,13 @@
                     <!-- Status Icon -->
                     <div class="mr-3 flex-shrink-0">
                         <div v-if="subtask.status === 'completed'" class="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center">
-                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                             <CheckCircle2 class="w-3.5 h-3.5" />
                         </div>
                         <div v-else-if="subtask.status === 'in_progress'" class="w-6 h-6 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 flex items-center justify-center animate-pulse-slow">
-                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                             <Zap class="w-3.5 h-3.5" />
                         </div>
                         <div v-else-if="subtask.status === 'blocked'" class="w-6 h-6 rounded-full bg-rose-500/10 text-rose-600 border border-rose-500/20 flex items-center justify-center">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                            <Clock class="w-3.5 h-3.5" />
                         </div>
                         <div v-else class="w-6 h-6 rounded-full border-2 border-slate-400 dark:border-slate-700/80 bg-white dark:bg-slate-800/50"></div>
                     </div>
@@ -214,25 +214,14 @@
                         @click.stop="openAttachmentsModal(subtask)"
                         class="hidden group-hover/task:flex items-center px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg transition-all border border-slate-300 dark:border-slate-600 shadow-sm mr-2 whitespace-nowrap"
                     >
-                        <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                        <Paperclip class="w-3.5 h-3.5 mr-1.5" />
                         Adjuntar Documentos
-                    </button>
-
-                    <!-- Botón Completar Tarea (Solo subtareas, NO milestones) -->
-                    <button
-                        v-if="!subtask.is_milestone && subtask.status !== 'completed' && !subtask.is_blocked"
-                        @click.stop="completeTask(subtask)"
-                        class="flex items-center px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-lg transition-all shadow-md hover:shadow-lg mr-2 whitespace-nowrap"
-                        title="Completar tarea"
-                    >
-                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                        Completar
                     </button>
 
                      <!-- Edit Icon on Hover -->
                      <div class="opacity-0 group-hover/task:opacity-100 transition-opacity flex items-center gap-2">
                          <div class="text-slate-500 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 p-1 cursor-pointer">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            <Pencil class="w-4 h-4" />
                          </div>
                      </div>
                     </div>
@@ -321,6 +310,7 @@ import TaskModal from '@/components/TaskModal.vue'
 import DependencyManager from '@/components/DependencyManager.vue'
 import AttachmentsModal from '@/components/AttachmentsModal.vue'
 import Navbar from '@/components/AppNavbar.vue'
+import { CheckCircle2, Zap, Clock, Paperclip, Pencil } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
