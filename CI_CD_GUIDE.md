@@ -71,4 +71,3 @@ Si en el futuro deseas que la aplicación se actualice sola en tu servidor (VPS,
 ```
 
 ---
-*Generado por Antigravity*

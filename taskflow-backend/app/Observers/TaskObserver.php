@@ -54,6 +54,17 @@ class TaskObserver
 }
 
     /**
+     * Handle the Task "created" event.
+     * Notificar asignación inicial.
+     */
+    public function created(Task $task): void
+    {
+        if ($task->assignee_id) {
+             NotificationService::taskAssigned($task, $task->assignee_id);
+        }
+    }
+
+    /**
      * Handle the Task "updating" event.
      * Recalcula is_blocked cuando cambian las dependencias.
      * Calcula progress automáticamente basado en el estado.
