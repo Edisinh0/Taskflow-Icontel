@@ -11,9 +11,7 @@
             {{ isEditMode ? 'Editar Tarea' : 'Nueva Tarea' }}
           </h2>
           <button @click="closeModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X class="w-6 h-6" />
           </button>
         </div>
 
@@ -155,8 +153,9 @@
                   type="checkbox"
                   class="w-5 h-5 text-blue-600 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded focus:ring-blue-500 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-900"
                 />
-                <span class="ml-3 text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
-                  ⭐ Esta tarea es un Milestone (Hito)
+                <span class="ml-3 text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors flex items-center">
+                  <Target class="w-4 h-4 mr-2 text-yellow-500" />
+                  Esta tarea es un Milestone (Hito)
                 </span>
               </label>
             </div>
@@ -169,8 +168,9 @@
                   type="checkbox"
                   class="w-5 h-5 text-purple-600 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded focus:ring-purple-500 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-900"
                 />
-                <span class="ml-3 text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
-                  📎 Permitir adjuntar archivos
+                <span class="ml-3 text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors flex items-center">
+                  <Paperclip class="w-4 h-4 mr-2 text-purple-500" />
+                  Permitir adjuntar archivos
                 </span>
               </label>
               <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 ml-8">
@@ -181,7 +181,8 @@
             <!-- Dependencias -->
             <div class="mb-6 p-5 bg-slate-50 dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-white/5">
               <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center">
-                🔗 Dependencias
+                <Link2 class="w-4 h-4 mr-2 text-blue-500" />
+                Dependencias
               </h4>
               
               <!-- Tarea Precedente -->
@@ -253,7 +254,7 @@
 
             <!-- Mensaje de error -->
             <div v-if="error" class="mb-6 p-4 bg-rose-900/20 border border-rose-500/30 text-rose-400 rounded-xl text-sm flex items-start">
-              <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <AlertCircle class="w-5 h-5 mr-2 flex-shrink-0" />
               {{ error }}
             </div>
 
@@ -287,7 +288,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { tasksAPI } from '@/services/api'
-import { Zap, Clock } from 'lucide-vue-next'
+import { Zap, Clock, X, Target, Paperclip, Link2, AlertCircle } from 'lucide-vue-next'
 
 const props = defineProps({
   isOpen: Boolean,
