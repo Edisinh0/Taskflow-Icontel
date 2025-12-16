@@ -50,11 +50,16 @@ echo -e "${YELLOW}[5/6] Levantando servicios...${NC}"
 docker-compose -f docker-compose.prod.yml up -d
 echo -e "${GREEN}✓ Servicios iniciados${NC}\n"
 
-# Paso 6: Esperar y limpiar cachés
-echo -e "${YELLOW}[6/6] Esperando a que los servicios estén listos...${NC}"
+# Paso 6: Esperar y ejecutar migraciones
+echo -e "${YELLOW}[6/7] Esperando a que los servicios estén listos...${NC}"
 sleep 10
 
-echo -e "${BLUE}Limpiando cachés de Laravel...${NC}"
+echo -e "${BLUE}Ejecutando migraciones de base de datos...${NC}"
+docker-compose -f docker-compose.prod.yml exec -T backend php artisan migrate --force
+echo -e "${GREEN}✓ Migraciones ejecutadas${NC}\n"
+
+# Paso 7: Limpiar cachés
+echo -e "${YELLOW}[7/7] Limpiando cachés de Laravel...${NC}"
 docker-compose -f docker-compose.prod.yml exec -T backend php artisan optimize:clear
 docker-compose -f docker-compose.prod.yml exec -T backend php artisan config:cache
 docker-compose -f docker-compose.prod.yml exec -T backend php artisan route:cache
