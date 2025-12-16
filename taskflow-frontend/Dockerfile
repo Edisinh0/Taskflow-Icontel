@@ -9,6 +9,9 @@ RUN npm ci
 
 COPY . .
 
+# Copiar archivo de configuración de producción
+COPY .env.production .env.production
+
 RUN npm run build
 
 # Etapa 2: Producción con Nginx

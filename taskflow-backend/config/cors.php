@@ -12,10 +12,13 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        'http://localhost:5173',  // Frontend Vue en desarrollo
-        'http://127.0.0.1:5173',
-    ],
+    'allowed_origins' => env('APP_ENV') === 'production' 
+        ? ['*']  // En producción, permitir todos los orígenes (o especifica tu IP)
+        : [
+            'http://localhost:5173',  // Frontend Vue en desarrollo
+            'http://127.0.0.1:5173',
+            'http://172.16.10.25',    // IP del VPS
+        ],
 
     'allowed_origins_patterns' => [],
 
