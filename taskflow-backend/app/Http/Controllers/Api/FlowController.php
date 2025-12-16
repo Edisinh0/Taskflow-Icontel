@@ -42,18 +42,28 @@ class FlowController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'template_id' => 'nullable|exists:templates,id',
-            'status' => 'nullable|in:active,paused,completed,cancelled',
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'template_id' => 'nullable|exists:templates,id',
+                'status' => 'nullable|in:active,paused,completed,cancelled',
+            ]);
 
-        $flow = Flow::create([
-            ...$validated,
-            'created_by' => $request->user()->id,
-            'started_at' => now(),
-        ]);
+            // Verificar que el usuario esté autenticado
+            if (!$request->user()) {
+                \Illuminate\Support\Facades\Log::error('Flow creation failed: User not authenticated');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado',
+                ], 401);
+            }
+
+            $flow = Flow::create([
+                ...$validated,
+                'created_by' => $request->user()->id,
+                'started_at' => now(),
+            ]);
 
         // Instanciar tareas desde la plantilla si existe
         if ($request->template_id) {
@@ -128,6 +138,19 @@ class FlowController extends Controller
             'message' => 'Flujo creado exitosamente',
             'data' => $flow->load(['template', 'creator']),
         ], 201);
+        
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Illuminate\Support\Facades\Log::error('Flow creation validation failed: ' . json_encode($e->errors()));
+            throw $e;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Flow creation failed: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear el flujo: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
