@@ -61,6 +61,7 @@
             </router-link>
 
             <router-link
+              v-if="canManageTemplates"
               to="/templates"
               class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
               :class="isActive('/templates') 
@@ -229,6 +230,7 @@
             </router-link>
 
             <router-link
+              v-if="canManageTemplates"
               to="/templates"
               @click="mobileMenuOpen = false"
               class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
@@ -281,6 +283,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import NotificationBell from './NotificationBell.vue'
+import { computed } from 'vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -288,6 +291,11 @@ const authStore = useAuthStore()
 const themeStore = useThemeStore()
 
 const mobileMenuOpen = ref(false)
+
+const canManageTemplates = computed(() => {
+  const role = authStore.user?.role
+  return ['admin', 'project_manager', 'pm'].includes(role)
+})
 
 const isActive = (path) => {
   return route.path.startsWith(path)

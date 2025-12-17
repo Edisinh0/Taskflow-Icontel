@@ -580,12 +580,12 @@ const loadData = async () => {
       }]
     }
 
-    // Actualizar gráficos con datos reales
+    // Actualizar gráficos con datos reales (solo pendientes o en progreso)
     priorityChartData.value.datasets[0].data = [
-      tasks.filter(t => t.priority === 'low').length,
-      tasks.filter(t => t.priority === 'medium').length,
-      tasks.filter(t => t.priority === 'high').length,
-      tasks.filter(t => t.priority === 'urgent').length
+      tasks.filter(t => t.priority === 'low' && ['pending', 'in_progress'].includes(t.status)).length,
+      tasks.filter(t => t.priority === 'medium' && ['pending', 'in_progress'].includes(t.status)).length,
+      tasks.filter(t => t.priority === 'high' && ['pending', 'in_progress'].includes(t.status)).length,
+      tasks.filter(t => t.priority === 'urgent' && ['pending', 'in_progress'].includes(t.status)).length
     ]
   } catch (error) {
     console.error('Error cargando datos:', error)

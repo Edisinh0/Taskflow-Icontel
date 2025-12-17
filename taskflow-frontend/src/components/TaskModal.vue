@@ -46,6 +46,19 @@
             ></textarea>
             </div>
 
+            <!-- Notas (Opcional) -->
+            <div class="mb-5">
+              <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+              Notas Adicionales
+            </label>
+            <textarea
+              v-model="formData.notes"
+              rows="2"
+              class="w-full px-4 py-3 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-500/20 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500/50 focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all"
+              placeholder="Agrega notas, observaciones o comentarios..."
+            ></textarea>
+            </div>
+
             <!-- Grid de 2 columnas -->
             <div class="grid grid-cols-2 gap-5 mb-5">
               <!-- Responsable -->
@@ -338,6 +351,7 @@ const availableMilestones = computed(() => {
 const formData = ref({
   title: '',
   description: '',
+  notes: '', // <-- Notas
   assignee_id: null,
   priority: 'medium',
   status: 'pending',
@@ -366,6 +380,7 @@ watch([() => props.task, () => props.flowId, () => props.initialData], ([newTask
     formData.value = {
       title: newTask.title || '',
       description: newTask.description || '',
+      notes: newTask.notes || '',
       assignee_id: newTask.assignee_id || null,
       priority: newTask.priority || 'medium',
       status: newTask.status || 'pending',
@@ -387,6 +402,7 @@ watch([() => props.task, () => props.flowId, () => props.initialData], ([newTask
     formData.value = {
       title: defaults.title || '',
       description: defaults.description || '',
+      notes: defaults.notes || '',
       assignee_id: defaults.assignee_id || null,
       priority: defaults.priority || 'medium',
       // Solo establecer status si viene en defaults, sino dejar que el backend lo determine

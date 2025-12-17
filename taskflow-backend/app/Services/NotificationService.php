@@ -96,6 +96,12 @@ class NotificationService
             return;
         }
 
+        // Verificar si el creador es un Admin o PM (para evitar ruido a usuarios normales)
+        $creator = User::find($flow->created_by);
+        if (!$creator || !in_array($creator->role, ['admin', 'project_manager', 'pm'])) {
+            return;
+        }
+
         Log::info('📬 Creando notificación: Tarea completada', [
             'task_id' => $task->id,
             'flow_creator' => $flow->created_by
@@ -107,7 +113,7 @@ class NotificationService
             'flow_id' => $task->flow_id,
             'type' => 'task_completed',
             'title' => 'Tarea Completada',
-            'message' => "La tarea '{$task->title}' ha sido completada",
+            'message' => "La tarea '{$task->title}' ha sido completada por " . ($task->assignee ? $task->assignee->name : 'un usuario'),
             'priority' => 'medium',
         ]);
     }
@@ -127,17 +133,20 @@ class NotificationService
             'flow_id' => $flow->id
         ]);
 
-        // Notificar al creador del flujo
+        // Notificar al creador del flujo (Solo si es Admin/PM)
         if ($flow->created_by) {
-            Notification::create([
-                'user_id' => $flow->created_by,
-                'task_id' => $milestone->id,
-                'flow_id' => $milestone->flow_id,
-                'type' => 'milestone_completed',
-                'title' => '🎯 Milestone Completado',
-                'message' => "El milestone '{$milestone->title}' ha sido completado",
-                'priority' => 'high',
-            ]);
+             $creator = User::find($flow->created_by);
+             if ($creator && in_array($creator->role, ['admin', 'project_manager', 'pm'])) {
+                Notification::create([
+                    'user_id' => $flow->created_by,
+                    'task_id' => $milestone->id,
+                    'flow_id' => $milestone->flow_id,
+                    'type' => 'milestone_completed',
+                    'title' => '🎯 Milestone Completado',
+                    'message' => "El milestone '{$milestone->title}' ha sido completado",
+                    'priority' => 'high',
+                ]);
+             }
         }
 
         // Notificar a todos los asignados de tareas que dependían de este milestone
@@ -146,6 +155,7 @@ class NotificationService
             ->get();
 
         foreach ($dependentTasks as $task) {
+            // Evitar notificar al mismo creador dos veces si también es asignado
             if ($task->assignee_id !== $flow->created_by) {
                 Notification::create([
                     'user_id' => $task->assignee_id,

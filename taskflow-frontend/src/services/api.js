@@ -77,6 +77,26 @@ export const tasksAPI = {
     onUploadProgress
   }),
   deleteAttachment: (fileId) => api.delete(`/attachments/${fileId}`),
+  deleteAttachment: (fileId) => api.delete(`/attachments/${fileId}`),
+}
+
+// ========== FLOW BUILDER MODULE (PM/Admin) ==========
+export const flowBuilderAPI = {
+  createFlow: (data) => api.post('/flow-builder/flows', data),
+  updateFlow: (id, data) => api.put(`/flow-builder/flows/${id}`, data),
+  deleteFlow: (id) => api.delete(`/flow-builder/flows/${id}`),
+
+  createTask: (data) => api.post('/flow-builder/tasks', data),
+  updateTaskStructure: (id, data) => api.put(`/flow-builder/tasks/${id}`, data),
+  deleteTask: (id) => api.delete(`/flow-builder/tasks/${id}`),
+  configureDependencies: (id, data) => api.put(`/flow-builder/tasks/${id}/dependencies`, data),
+}
+
+// ========== TASK CENTER MODULE (Users) ==========
+export const taskCenterAPI = {
+  getMyTasks: (params) => api.get('/task-center/my-tasks', { params }),
+  getTask: (id) => api.get(`/task-center/tasks/${id}`),
+  executeTask: (id, data) => api.put(`/task-center/tasks/${id}/execute`, data),
 }
 
 export default api

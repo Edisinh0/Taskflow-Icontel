@@ -59,6 +59,9 @@ class FlowController extends Controller
                 ], 401);
             }
 
+            // Autorización mediante Policy (Solo PM/Admin pueden crear)
+            \Illuminate\Support\Facades\Gate::authorize('create', Flow::class);
+
             $flow = Flow::create([
                 ...$validated,
                 'created_by' => $request->user()->id,
@@ -266,6 +269,9 @@ class FlowController extends Controller
     {
         $flow = Flow::findOrFail($id);
 
+        // Autorización mediante Policy (Solo PM/Admin pueden actualizar)
+        \Illuminate\Support\Facades\Gate::authorize('update', $flow);
+
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
@@ -293,6 +299,9 @@ class FlowController extends Controller
     public function destroy($id)
     {
         $flow = Flow::findOrFail($id);
+        
+        // Autorización mediante Policy (Solo PM/Admin pueden eliminar)
+        \Illuminate\Support\Facades\Gate::authorize('delete', $flow);
         
         // Eliminar tareas asociadas (Soft Delete) explícitamente
         // Esto previene que queden tareas huérfanas si el Observer falla

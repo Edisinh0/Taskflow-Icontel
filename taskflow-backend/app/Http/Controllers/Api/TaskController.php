@@ -57,6 +57,8 @@ class TaskController extends Controller
      */
     public function store(Request $request)
     {
+        // Autorización: Solo PM/Admin pueden crear tareas (modificar estructura)
+        \Illuminate\Support\Facades\Gate::authorize('create', Task::class);
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -175,6 +177,20 @@ class TaskController extends Controller
 {
     $task = Task::findOrFail($id);
     
+    // Determinar si es una actualización de estructura o de ejecución
+    $isStructuralChange = $request->hasAny([
+        'title', 'description', 'parent_task_id', 'is_milestone', 
+        'depends_on_task_id', 'depends_on_milestone_id', 'priority', 
+        'estimated_start_at', 'estimated_end_at', 'assignee_id'
+    ]);
+
+    if ($isStructuralChange) {
+        \Illuminate\Support\Facades\Gate::authorize('updateStructure', $task);
+    } else {
+        // Si solo es estado/progreso/adjuntos, es ejecución
+        \Illuminate\Support\Facades\Gate::authorize('execute', $task);
+    }
+    
     $validated = $request->validate([
         'flow_id' => 'sometimes|exists:flows,id',
         'title' => 'sometimes|string|max:255',
@@ -189,6 +205,7 @@ class TaskController extends Controller
         'depends_on_milestone_id' => 'nullable|exists:tasks,id',
         'progress' => 'sometimes|integer|min:0|max:100',
         'priority' => ['sometimes', 'string', Rule::in(['low', 'medium', 'high', 'urgent'])],
+        'notes' => 'nullable|string', // <-- Permitir notas
     ]);
 
     // 🎯 MOTOR DE CONTROL DE FLUJOS (Lógica de Bloqueo y Requisitos)
@@ -270,6 +287,9 @@ class TaskController extends Controller
     public function destroy($id)
     {
         $task = Task::findOrFail($id);
+
+        // Autorización: Solo PM/Admin pueden eliminar
+        \Illuminate\Support\Facades\Gate::authorize('delete', $task);
         $task->delete();
 
         return response()->json([
@@ -280,6 +300,8 @@ class TaskController extends Controller
 
     public function reorder(Request $request)
     {
+        // Autorización: Modificar orden es estructural (PM/Admin)
+        \Illuminate\Support\Facades\Gate::authorize('create', Task::class); // Usamos create o una permission genérica de estructura
         $validated = $request->validate([
             'tasks' => 'required|array',
             'tasks.*.id' => 'required|exists:tasks,id',
@@ -320,6 +342,9 @@ class TaskController extends Controller
     public function move(Request $request, $id)
     {
         $task = Task::findOrFail($id);
+        
+        // Autorización: Mover es cambio estructural
+        \Illuminate\Support\Facades\Gate::authorize('updateStructure', $task);
 
         $validated = $request->validate([
             'parent_task_id' => 'nullable|exists:tasks,id',

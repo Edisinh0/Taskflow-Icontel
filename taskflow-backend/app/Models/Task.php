@@ -38,6 +38,7 @@ class Task extends Model implements Auditable
         'actual_end_at',
         'progress',
         'blocked_reason',
+        'notes', // <-- Nuevo campo para notas
         'last_updated_by', // Nuevo
     ];
 

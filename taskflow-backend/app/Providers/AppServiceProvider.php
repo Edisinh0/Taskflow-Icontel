@@ -3,10 +3,13 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Gate;
 use App\Models\Task;
-use App\Observers\TaskObserver;
 use App\Models\Flow;
+use App\Observers\TaskObserver;
 use App\Observers\FlowObserver;
+use App\Policies\TaskPolicy;
+use App\Policies\FlowPolicy;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,11 +26,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-    \Log::info('🚀 AppServiceProvider::boot() ejecutándose');
-    
-    Task::observe(TaskObserver::class);
-    Flow::observe(FlowObserver::class);
-    
-    \Log::info('✅ TaskObserver registrado correctamente');
+        \Log::info('🚀 AppServiceProvider::boot() ejecutándose');
+
+        // Registrar Observers
+        Task::observe(TaskObserver::class);
+        Flow::observe(FlowObserver::class);
+
+        // Registrar Policies
+        Gate::policy(Task::class, TaskPolicy::class);
+        Gate::policy(Flow::class, FlowPolicy::class);
+
+        \Log::info('✅ Observers y Policies registrados correctamente');
     }
 }

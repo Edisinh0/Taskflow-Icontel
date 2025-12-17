@@ -36,13 +36,13 @@ const router = createRouter({
       path: '/templates',
       name: 'templates',
       component: () => import('../views/TemplatesView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, roles: ['admin', 'project_manager', 'pm'] }
     },
     {
       path: '/tasks',
       name: 'tasks',
       component: () => import('../views/TasksView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, roles: ['admin', 'project_manager', 'pm', 'user'] }
     },
     {
       path: '/notifications',
@@ -54,6 +54,19 @@ const router = createRouter({
       path: '/reports',
       name: 'reports',
       component: () => import('../views/ReportsView.vue'),
+      meta: { requiresAuth: true }
+    },
+    // === MÓDULOS DE NEGOCIO ===
+    {
+      path: '/flow-builder',
+      name: 'flow-builder',
+      component: () => import('@/modules/flow-builder/views/FlowBuilderView.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'project_manager', 'pm', 'user'] }
+    },
+    {
+      path: '/task-center',
+      name: 'task-center',
+      component: () => import('@/modules/task-center/views/TaskCenterView.vue'),
       meta: { requiresAuth: true }
     }
   ]
@@ -70,13 +83,28 @@ router.beforeEach((to, from, next) => {
 
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
   const requiresGuest = to.matched.some(record => record.meta.requiresGuest)
+  const requiredRoles = to.meta.roles
 
   if (requiresAuth && !authStore.isAuthenticated) {
     // Ruta protegida y no autenticado → ir a login
     next('/login')
   } else if (requiresGuest && authStore.isAuthenticated) {
-    // Ruta de invitado y autenticado → ir a dashboard
-    next('/dashboard')
+    // Ruta de invitado y autenticado → Redirigir según rol
+    const role = authStore.user?.role
+    if (['admin', 'project_manager', 'pm'].includes(role)) {
+      next('/dashboard')
+    } else {
+      next('/task-center')
+    }
+  } else if (requiredRoles && authStore.isAuthenticated) {
+    // Verificar roles
+    const userRole = authStore.user?.role
+    if (requiredRoles.includes(userRole)) {
+      next()
+    } else {
+      // Rol no autorizado -> Redirigir a Task Center (vista segura por defecto)
+      next('/task-center')
+    }
   } else {
     next()
   }

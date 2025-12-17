@@ -320,8 +320,16 @@ class TaskObserver
                 return;
             }
 
-            // Re-calcular progreso del padre usando helper del modelo o consulta directa
-            $newProgress = $parent->calculateProgress();
+            // Refrescar el padre para asegurar datos actualizados
+            $parent->refresh();
+
+            // Si no quedan subtareas, el progreso debería volver a 0 (o al estado base)
+            // Esto corrige el problema de hitos que quedan al 100% tras borrar su única tarea
+            if ($parent->subtasks()->count() === 0) {
+                $newProgress = 0;
+            } else {
+                $newProgress = $parent->calculateProgress();
+            }
              
             // Solo actualizar si hay cambios
             if ($parent->progress !== $newProgress) {
@@ -333,7 +341,9 @@ class TaskObserver
                 } elseif ($newProgress > 0 && $newProgress < 100 && $parent->status === 'pending') {
                     $parent->status = 'in_progress';
                 } elseif ($newProgress === 0 && $parent->status === 'completed') {
-                    $parent->status = 'in_progress';
+                    $parent->status = 'pending'; // Resetear a pending si se quedó vacío
+                } elseif ($newProgress === 0 && $parent->status === 'in_progress') {
+                     $parent->status = 'pending'; // Resetear a pending si bajó a 0
                 }
                 
                 $parent->saveQuietly();

@@ -12,6 +12,11 @@ use App\Http\Controllers\Api\NotificationController;
 |--------------------------------------------------------------------------
 | API Routes - TaskFlow v1
 |--------------------------------------------------------------------------
+|
+| Incluye módulos SRP:
+| - Flow Builder: Diseño de flujos (PM/Admin)
+| - Task Center: Ejecución de tareas (Users)
+|
 */
 
 // Ruta de bienvenida de la API
@@ -40,9 +45,19 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/register', [AuthController::class, 'register']);
 });
 
+// ===== NUEVOS MÓDULOS SRP =====
+// Requieren autenticación y verifican roles mediante Policies
+Route::prefix('v1')->group(function () {
+    // Flow Builder (PM/Admin)
+    require __DIR__.'/flow-builder.php';
+
+    // Task Center (Usuarios)
+    require __DIR__.'/task-center.php';
+});
+
 // Rutas protegidas (requieren autenticación)
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
-    
+
     // Auth
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);

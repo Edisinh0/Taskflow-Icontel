@@ -7,7 +7,7 @@
       :data-task-id="task.id"
     >
       <!-- Drag Handle -->
-      <div class="drag-handle flex-shrink-0 mr-2 mt-1 cursor-move opacity-0 group-hover:opacity-100 transition-opacity">
+      <div v-if="canEdit" class="drag-handle flex-shrink-0 mr-2 mt-1 cursor-move opacity-0 group-hover:opacity-100 transition-opacity">
         <GripVertical class="w-5 h-5 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-white" />
       </div>
 
@@ -41,7 +41,7 @@
                 🔒 BLOQUEADA
               </span>
               <span :class="getStatusBadgeClass(task.status)" class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border border-current/20 shadow-sm">
-                {{ getStatusText(task.status) }}
+                {{ getStatusText(task) }}
               </span>
               <span v-if="task.priority" :class="getPriorityClass(task.priority)" class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border border-current/20 shadow-sm">
                 {{ getPriorityText(task.priority) }}
@@ -84,6 +84,17 @@
           
 
            
+           <!-- Botón Notas (Nueva funcionalidad) -->
+           <button
+                v-if="canEdit || task.assignee_id === authStore.user?.id"
+                @click.stop.prevent="handleNotes"
+                class="flex items-center px-3 py-1.5 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/10 dark:hover:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 text-xs font-bold rounded-lg transition-all border border-yellow-200 dark:border-yellow-500/20 shadow-sm mr-2"
+                title="Agregar/Ver Notas"
+           >
+                <FileText class="w-3.5 h-3.5 mr-1.5" />
+                {{ task.notes ? 'Ver Notas' : 'Notas' }}
+           </button>
+
            <!-- Botón Adjuntos (Visible Siempre si permitido) -->
            <button
                 v-if="task.allow_attachments"
@@ -108,6 +119,7 @@
 
             <!-- Botones de acción (movidos abajo para mejor acceso) -->
             <div
+              v-if="canEdit"
               class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2"
             >
                <button
@@ -176,6 +188,7 @@
         @delete="(task) => emit('delete', task)"
         @dependencies="(task) => emit('dependencies', task)"
         @attachments="(task) => emit('attachments', task)"
+        @notes="(task) => emit('notes', task)"
         @complete="(task) => emit('complete', task)"
       />
     </div>
@@ -184,9 +197,10 @@
 
 <script setup>
 import { defineProps, defineEmits, computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { 
   GripVertical, User, ListTodo, Pencil, Link, Trash2, 
-  Lock, CheckCircle2, RotateCw, PauseCircle, ClipboardList, Target, Paperclip 
+  Lock, CheckCircle2, RotateCw, PauseCircle, ClipboardList, Target, Paperclip, FileText 
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -200,7 +214,13 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['edit', 'delete', 'dependencies', 'attachments', 'complete'])
+const emit = defineEmits(['edit', 'delete', 'dependencies', 'attachments', 'complete', 'notes'])
+const authStore = useAuthStore()
+
+const canEdit = computed(() => {
+  const role = authStore.user?.role
+  return ['admin', 'project_manager', 'pm'].includes(role)
+})
 
 // Funciones handler para evitar problemas de propagación
 const handleEdit = () => {
@@ -217,6 +237,10 @@ const handleDependencies = () => {
 
 const handleAttachments = () => {
   emit('attachments', props.task)
+}
+
+const handleNotes = () => {
+  emit('notes', props.task)
 }
 
 const handleComplete = () => {
@@ -273,7 +297,8 @@ const getStatusBadgeClass = (status) => {
   return classes[status] || 'bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400'
 }
 
-const getStatusText = (status) => {
+const getStatusText = (task) => {
+  const status = task.status
   const texts = {
     pending: 'Pendiente',
     blocked: 'Bloqueada',
@@ -282,7 +307,15 @@ const getStatusText = (status) => {
     completed: 'Completada',
     cancelled: 'Cancelada'
   }
-  return texts[status] || status
+  
+  let text = texts[status] || status
+  
+  // Agregar "Con notas" si está completada y tiene notas
+  if (status === 'completed' && task.notes && task.notes.trim().length > 0) {
+      text += ' - Con notas'
+  }
+  
+  return text
 }
 
 const getPriorityClass = (priority) => {

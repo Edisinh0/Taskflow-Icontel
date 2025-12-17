@@ -12,6 +12,7 @@
           <p class="text-slate-500 dark:text-slate-400 mt-1 text-lg">Gestiona tus proyectos y flujos de trabajo</p>
         </div>
         <button
+          v-if="canManageFlows"
           @click="openNewFlowModal"
           class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 font-bold flex items-center justify-center shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20 transition-all hover:-translate-y-0.5"
         >
@@ -124,6 +125,7 @@
               Ver Detalles
             </router-link>
             <button
+              v-if="canManageFlows"
               @click.prevent="openEditFlowModal(flow)"
               class="px-3 py-2.5 bg-slate-100 dark:bg-slate-700/30 text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors border border-slate-200 dark:border-white/5"
               title="Editar proyecto"
@@ -131,6 +133,7 @@
               <Edit2 class="w-5 h-5" />
             </button>
             <button
+              v-if="canManageFlows"
               @click.prevent="deleteFlow(flow)"
               class="px-3 py-2.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-500 hover:text-white transition-colors border border-rose-100 dark:border-rose-500/20"
               title="Eliminar proyecto"
@@ -151,7 +154,7 @@
                 <th class="px-6 py-4 font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs w-48">Estado</th>
                 <th class="px-6 py-4 font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs w-64">Progreso</th>
                 <th class="px-6 py-4 font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs w-32 text-center">Tareas</th>
-                <th class="px-6 py-4 font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs w-40 text-right">Acciones</th>
+                <th v-if="canManageFlows" class="px-6 py-4 font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs w-40 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-white/5">
@@ -193,7 +196,7 @@
                     {{ flow.tasks?.length || 0 }}
                   </div>
                 </td>
-                <td class="px-6 py-4 text-right">
+                <td v-if="canManageFlows" class="px-6 py-4 text-right">
                   <div class="flex items-center justify-end space-x-2" @click.stop>
                      <button
                       @click="openEditFlowModal(flow)"
@@ -230,7 +233,7 @@
           {{ flows.length === 0 ? 'Crea tu primer proyecto para comenzar a organizar tus tareas.' : 'Intenta ajustar tus filtros o términos de búsqueda.' }}
         </p>
         <button
-          v-if="flows.length === 0"
+          v-if="flows.length === 0 && canManageFlows"
           @click="openNewFlowModal"
           class="mt-8 px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold transition-all shadow-lg hover:shadow-blue-600/20 flex items-center"
         >
@@ -261,6 +264,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth' // Added import
 
 import { flowsAPI, templatesAPI } from '@/services/api'
 import FlowModal from '@/components/FlowModal.vue'
@@ -277,10 +281,17 @@ import {
 } from 'lucide-vue-next'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const flows = ref([])
 const templates = ref([])
 const showFlowModal = ref(false)
 const selectedFlow = ref(null)
+
+// Permisos
+const canManageFlows = computed(() => {
+  const role = authStore.user?.role
+  return ['admin', 'project_manager', 'pm'].includes(role)
+})
 
 // Filtros y Vistas
 const searchQuery = ref('')

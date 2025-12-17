@@ -26,6 +26,7 @@
             <p class="text-slate-500 dark:text-slate-400 text-lg max-w-2xl leading-relaxed">{{ flow.description }}</p>
           </div>
           <button
+            v-if="canEdit"
             @click="deleteFlow"
             class="mt-4 md:mt-0 p-2 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all duration-300 group"
             title="Eliminar flujo"
@@ -37,6 +38,7 @@
           
           <!-- Botón Guardar como Plantilla -->
           <button
+            v-if="canEdit"
             @click="saveAsTemplate"
             class="ml-2 mt-4 md:mt-0 p-2 text-slate-500 hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all duration-300 group"
             title="Guardar como Plantilla"
@@ -95,6 +97,7 @@
             Hitos del Proyecto
           </h3>
           <button
+            v-if="canEdit"
             @click="openNewMilestoneModal"
             class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold flex items-center shadow-lg shadow-blue-500/20 dark:shadow-blue-900/40 transition-all hover:scale-105 active:scale-95 border border-blue-500/20"
           >
@@ -165,6 +168,7 @@
 
             <!-- Boton Agregar -->
             <button
+              v-if="canEdit"
               @click="openNewTaskForMilestone(milestone)"
               class="w-full py-3.5 bg-slate-50 hover:bg-white dark:bg-slate-700/30 dark:hover:bg-slate-700/60 text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-white rounded-xl text-sm font-bold transition-all border border-dashed border-slate-300 hover:border-blue-400 dark:border-slate-600/50 dark:hover:border-slate-500 flex items-center justify-center mb-6 shadow-sm hover:shadow"
             >
@@ -187,11 +191,13 @@
                     <div 
                     v-for="subtask in milestone.subtasks" 
                     :key="subtask.id"
-                    class="flex items-center p-2.5 rounded-xl bg-slate-50 hover:bg-white dark:bg-slate-800/30 dark:hover:bg-slate-700/40 transition-all border border-slate-200 hover:border-blue-300 dark:border-white/5 dark:hover:border-white/10 shadow-sm hover:shadow group/task cursor-pointer mb-2"
-                    @click="openEditTaskModal(subtask)"
+                    class="flex items-center p-2.5 rounded-xl bg-slate-50 hover:bg-white dark:bg-slate-800/30 dark:hover:bg-slate-700/40 transition-all border border-slate-200 hover:border-blue-300 dark:border-white/5 dark:hover:border-white/10 shadow-sm hover:shadow group/task mb-2"
+                    :class="{ 'cursor-pointer': canEdit }"
+                    @click="canEdit ? openEditTaskModal(subtask) : null"
                     >
-                    <!-- Status Icon -->
-                    <div class="mr-3 flex-shrink-0">
+                    <div class="mr-3 flex-shrink-0 cursor-pointer hover:scale-110 transition-transform" 
+                         @click.stop="completeTask(subtask)"
+                         :title="canEdit || subtask.assignee_id === authStore.user?.id ? 'Marcar como completada' : 'No tienes permiso'">
                         <div v-if="subtask.status === 'completed'" class="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center">
                              <CheckCircle2 class="w-3.5 h-3.5" />
                         </div>
@@ -201,7 +207,7 @@
                         <div v-else-if="subtask.status === 'blocked'" class="w-6 h-6 rounded-full bg-rose-500/10 text-rose-600 border border-rose-500/20 flex items-center justify-center">
                             <Clock class="w-3.5 h-3.5" />
                         </div>
-                        <div v-else class="w-6 h-6 rounded-full border-2 border-slate-400 dark:border-slate-700/80 bg-white dark:bg-slate-800/50"></div>
+                        <div v-else class="w-6 h-6 rounded-full border-2 border-slate-400 dark:border-slate-700/80 bg-white dark:bg-slate-800/50 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"></div>
                     </div>
                     
                     <span class="flex-1 text-sm font-semibold transition-colors line-clamp-1 mr-2" :class="subtask.status === 'completed' ? 'text-slate-400 dark:text-slate-500 line-through decoration-slate-400 dark:decoration-slate-600' : 'text-slate-700 dark:text-slate-200 group-hover/task:text-blue-700 dark:group-hover/task:text-white'">
@@ -219,7 +225,7 @@
                     </button>
 
                      <!-- Edit Icon on Hover -->
-                     <div class="opacity-0 group-hover/task:opacity-100 transition-opacity flex items-center gap-2">
+                     <div v-if="canEdit" class="opacity-0 group-hover/task:opacity-100 transition-opacity flex items-center gap-2">
                          <div class="text-slate-500 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 p-1 cursor-pointer">
                             <Pencil class="w-4 h-4" />
                          </div>
@@ -260,6 +266,7 @@
                             @delete="deleteTask"
                             @dependencies="openDependencyModal"
                             @attachments="openAttachmentsModal"
+                            @notes="openNotesModal"
                             @complete="completeTask"
                         />
                     </div>
@@ -297,31 +304,51 @@
       @close="showAttachmentsModal = false"
       @updated="handleAttachmentsUpdated"
     />
+
+    <!-- Modal de Notas (Nuevo) -->
+    <TaskNotesModal
+      :is-open="showNotesModal"
+      :task="selectedTaskForNotes"
+      @close="showNotesModal = false"
+      @saved="handleNotesSaved"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { flowsAPI, tasksAPI, templatesAPI } from '@/services/api'
 import { useDragAndDrop } from '@/composables/useDragAndDrop'
 import TaskTreeItem from '@/components/TaskTreeItem.vue'
 import TaskModal from '@/components/TaskModal.vue'
 import DependencyManager from '@/components/DependencyManager.vue'
 import AttachmentsModal from '@/components/AttachmentsModal.vue'
+import TaskNotesModal from '@/components/TaskNotesModal.vue'
 import Navbar from '@/components/AppNavbar.vue'
 import { CheckCircle2, Zap, Clock, Paperclip, Pencil } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const flow = ref(null)
 const loading = ref(true)
+
+// Permissions
+const canEdit = computed(() => {
+  const role = authStore.user?.role
+  return ['admin', 'project_manager', 'pm'].includes(role)
+})
+
 const showTaskModal = ref(false)
 const showDependencyModal = ref(false)
 const showAttachmentsModal = ref(false)
+const showNotesModal = ref(false) // Nuevo estado
 const selectedTask = ref(null)
 const selectedTaskForAttachments = ref(null)
+const selectedTaskForNotes = ref(null) // Nueva referencia
 const initialTaskData = ref(null) // Para pasar datos pre-definidos al crear nueva tarea
 const taskListRef = ref(null)
 
@@ -412,6 +439,7 @@ const taskGroups = computed(() => {
 // Drag & Drop Setup
 useDragAndDrop(taskListRef, {
   onEnd: async (evt) => {
+    if (!canEdit.value) return // Prevent if readonly
     const movedTaskId = evt.item.dataset.taskId
     const newIndex = evt.newIndex
     
@@ -634,8 +662,38 @@ const handleAttachmentsUpdated = async () => {
     await loadFlow()
 }
 
+// Funciones para Notas
+const openNotesModal = (task) => {
+  selectedTaskForNotes.value = task
+  showNotesModal.value = true
+}
+
+const handleNotesSaved = async () => {
+  await loadFlow()
+}
+
 // Completar tarea
 const completeTask = async (task) => {
+  // Verificar permisos antes de llamar a la API
+  const currentUser = authStore.user
+  const isAssignee = task.assignee_id === currentUser?.id
+  
+  if (!canEdit.value && !isAssignee) {
+      if (task.assignee) {
+          alert(`⚠️ Acción no permitida\n\nEsta tarea está asignada a ${task.assignee.name}. Solo el responsable o un administrador puede completarla.`)
+      } else {
+          alert(`⚠️ Acción no permitida\n\nEsta tarea no te está asignada.`)
+      }
+      return
+  }
+
+  // Si es admin pero no es el asignado, preguntar confirmación (opcional, pero buena práctica)
+  if (canEdit.value && !isAssignee && task.assignee) {
+      if (!confirm(`Esta tarea está asignada a ${task.assignee.name}.\n¿Deseas completarla de todos modos?`)) {
+          return
+      }
+  }
+
   try {
     // Actualizar el estado de la tarea a 'completed'
     await tasksAPI.update(task.id, {
