@@ -352,12 +352,7 @@ const selectedTaskForNotes = ref(null) // Nueva referencia
 const initialTaskData = ref(null) // Para pasar datos pre-definidos al crear nueva tarea
 const taskListRef = ref(null)
 
-const users = ref([
-  { id: 1, name: 'Admin TaskFlow' },
-  { id: 2, name: 'Juan Pérez' },
-  { id: 3, name: 'María González' },
-  { id: 4, name: 'Carlos Rodríguez' }
-])
+const users = ref([])
 
 // Computed
 const milestones = computed(() => {
@@ -648,8 +643,27 @@ const loadFlow = async () => {
   }
 }
 
+const loadUsers = async () => {
+  try {
+    const token = authStore.token
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1'
+    const response = await fetch(`${apiUrl}/users`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+    const data = await response.json()
+    users.value = data.data || []
+  } catch (error) {
+    console.error('Error cargando usuarios:', error)
+    users.value = []
+  }
+}
+
 onMounted(() => {
   loadFlow()
+  loadUsers()
 })
 
 
