@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Task;
+use App\Events\TaskUpdated;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
@@ -264,8 +265,26 @@ class TaskController extends Controller
             $validated['assigned_at'] = now();
         }
 
+        // Guardar los cambios realizados
+        $originalAttributes = $task->getOriginal();
         $task->update($validated);
-        
+
+        // Calcular qué campos cambiaron
+        $changes = [];
+        foreach ($validated as $key => $value) {
+            if (isset($originalAttributes[$key]) && $originalAttributes[$key] != $value) {
+                $changes[$key] = [
+                    'old' => $originalAttributes[$key],
+                    'new' => $value,
+                ];
+            }
+        }
+
+        // Disparar evento en tiempo real
+        if (!empty($changes)) {
+            broadcast(new TaskUpdated($task, $changes))->toOthers();
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Tarea actualizada exitosamente',

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authAPI } from '@/services/api'
+import { initializeEcho, disconnectEcho } from '@/services/echo'
 
 export const useAuthStore = defineStore('auth', () => {
   // Estado
@@ -21,6 +22,8 @@ export const useAuthStore = defineStore('auth', () => {
     if (storedToken && storedUser) {
       token.value = storedToken
       user.value = JSON.parse(storedUser)
+      // Inicializar Echo si hay token
+      initializeEcho(storedToken)
     }
   }
 
@@ -41,6 +44,9 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('token', authToken)
       localStorage.setItem('user', JSON.stringify(userData))
 
+      // Inicializar Echo con el nuevo token
+      initializeEcho(authToken)
+
       return { success: true }
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al iniciar sesión'
@@ -57,6 +63,9 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (err) {
       console.error('Error al hacer logout:', err)
     } finally {
+      // Desconectar Echo
+      disconnectEcho()
+
       // Limpiar todo
       user.value = null
       token.value = null

@@ -105,6 +105,23 @@ services:
     networks:
       - taskflow_net
 
+  # ---------------------------------------------------------------------------
+  # WEBSOCKETS (Soketi)
+  # ---------------------------------------------------------------------------
+  soketi:
+    image: quay.io/soketi/soketi:latest-16-alpine
+    container_name: taskflow_soketi
+    restart: unless-stopped
+    ports:
+      - "6001:6001"
+    environment:
+      SOKETI_DEBUG: "1"
+      SOKETI_DEFAULT_APP_ID: "taskflow-app"
+      SOKETI_DEFAULT_APP_KEY: "taskflow-key"
+      SOKETI_DEFAULT_APP_SECRET: "taskflow-secret"
+    networks:
+      - taskflow_net
+
 networks:
   taskflow_net:
     driver: bridge

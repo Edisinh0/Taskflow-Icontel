@@ -22,7 +22,7 @@
             <!-- Nombre -->
             <div class="mb-5">
               <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                Nombre del Flujo <span class="text-rose-500">*</span>
+                Nombre del Proyecto <span class="text-rose-500">*</span>
               </label>
               <input
                 v-model="formData.name"

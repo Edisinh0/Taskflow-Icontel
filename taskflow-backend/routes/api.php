@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\FlowController;
@@ -44,6 +45,9 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::post('/auth/register', [AuthController::class, 'register']);
 });
+
+// Broadcasting authentication routes
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 // ===== NUEVOS MÓDULOS SRP =====
 // Requieren autenticación y verifican roles mediante Policies

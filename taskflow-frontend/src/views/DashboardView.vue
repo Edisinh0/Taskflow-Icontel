@@ -163,6 +163,63 @@
 
 
 
+      <!-- Tareas -->
+      <div class="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-sm dark:shadow-lg border border-slate-200 dark:border-white/5 mb-6">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
+          <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center">
+            <span class="w-2 h-6 bg-blue-500 rounded-sm mr-3"></span>
+            Tareas
+          </h3>
+          <span class="text-xs font-semibold bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-md border border-blue-100 dark:border-blue-500/20">
+            {{ allTasks.length }} tareas
+          </span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/5">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Tarea</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Proyecto</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Fecha Inicio</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Fecha Término</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Días Restantes</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-white/5">
+              <tr
+                v-for="task in allTasks"
+                :key="task.id"
+                @click="$router.push(`/flows/${task.flow_id}`)"
+                class="hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors"
+              >
+                <td class="px-6 py-4">
+                  <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ task.title }}</h4>
+                </td>
+                <td class="px-6 py-4">
+                  <p class="text-xs text-slate-500">{{ task.flow?.name }}</p>
+                </td>
+                <td class="px-6 py-4">
+                  <p class="text-xs text-slate-500">{{ formatDate(task.estimated_start_at) }}</p>
+                </td>
+                <td class="px-6 py-4">
+                  <p class="text-xs text-slate-500">{{ formatDate(task.estimated_end_at) }}</p>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="px-2.5 py-1 text-xs font-bold rounded-lg" :class="getDaysRemainingClass(task.estimated_end_at)">
+                    {{ getDaysRemaining(task.estimated_end_at) }}
+                  </span>
+                </td>
+              </tr>
+              <tr v-if="allTasks.length === 0">
+                <td colspan="5" class="px-6 py-8 text-center text-slate-400 dark:text-slate-500 text-sm">
+                  No hay tareas disponibles.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Tareas Urgentes y Flujos Recientes -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Tareas Urgentes -->
@@ -177,13 +234,13 @@
             </span>
           </div>
           <div class="divide-y divide-slate-100 dark:divide-white/5">
-            <router-link 
-              v-for="task in urgentTasks" 
-              :key="task.id" 
+            <router-link
+              v-for="task in urgentTasks"
+              :key="task.id"
               :to="`/flows/${task.flow_id}`"
               class="block px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors group"
             >
-              <div class="flex items-start justify-between">
+              <div class="flex items-start justify-between mb-2">
                 <div class="flex-1">
                   <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ task.title }}</h4>
                   <p class="text-xs text-slate-500 mt-1 flex items-center">
@@ -194,6 +251,11 @@
                 <span class="px-2.5 py-1 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-bold rounded-lg border border-rose-100 dark:border-rose-500/20 shadow-sm shrink-0 ml-3">
                   {{ getDaysRemaining(task.estimated_end_at) }}
                 </span>
+              </div>
+              <div class="flex items-center gap-4 text-[10px] text-slate-400">
+                <span>Inicio: {{ formatDate(task.estimated_start_at) }}</span>
+                <span>•</span>
+                <span>Término: {{ formatDate(task.estimated_end_at) }}</span>
               </div>
             </router-link>
             <div v-if="urgentTasks.length === 0" class="px-6 py-8 text-center text-slate-400 dark:text-slate-500 text-sm">
@@ -217,7 +279,7 @@
               :to="`/flows/${flow.id}`"
               class="block px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group"
             >
-              <div class="flex items-center justify-between">
+              <div class="flex items-center justify-between mb-2">
                 <div class="flex-1 min-w-0 mr-4">
                   <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">{{ flow.name }}</h4>
                   <p class="text-xs text-slate-500 mt-1">{{ flow.tasks?.length || 0 }} tareas</p>
@@ -226,7 +288,7 @@
                   <span :class="getStatusClass(flow.status)" class="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border border-current/20">
                     {{ getStatusText(flow.status) }}
                   </span>
-                  <div class="w-24"> 
+                  <div class="w-24">
                     <div class="w-full bg-slate-200 dark:bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
                       <div
                         class="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
@@ -235,6 +297,11 @@
                     </div>
                   </div>
                 </div>
+              </div>
+              <div class="flex items-center gap-4 text-[10px] text-slate-400">
+                <span>Inicio: {{ formatDate(flow.created_at) }}</span>
+                <span>•</span>
+                <span>Actualizado: {{ formatDate(flow.updated_at) }}</span>
               </div>
             </router-link>
             <div v-if="recentFlows.length === 0" class="px-6 py-8 text-center text-slate-400 dark:text-slate-500 text-sm">
@@ -284,6 +351,7 @@ const stats = ref({
 
 const urgentTasks = ref([])
 const recentFlows = ref([])
+const allTasks = ref([])
 
 const taskTrendData = ref({
   labels: [],
@@ -495,6 +563,24 @@ const getDaysRemaining = (date) => {
   return `${days}d restantes`
 }
 
+const getDaysRemainingClass = (date) => {
+  if (!date) return 'bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400'
+  const days = Math.ceil((new Date(date) - new Date()) / (1000 * 60 * 60 * 24))
+  if (days < 0) return 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20'
+  if (days === 0) return 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20'
+  if (days <= 3) return 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20'
+  return 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20'
+}
+
+const formatDate = (date) => {
+  if (!date) return 'Sin fecha'
+  const d = new Date(date)
+  const day = d.getDate().toString().padStart(2, '0')
+  const month = (d.getMonth() + 1).toString().padStart(2, '0')
+  const year = d.getFullYear()
+  return `${day}/${month}/${year}`
+}
+
 const getStatusClass = (status) => {
   const classes = {
     active: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400',
@@ -542,6 +628,11 @@ const loadData = async () => {
       .slice(0, 5)
 
     recentFlows.value = flows.slice(0, 5)
+
+    // Todas las tareas (limitado a 20 para no sobrecargar)
+    allTasks.value = tasks
+      .filter(t => t.status !== 'completed')
+      .slice(0, 20)
 
     // Calcular datos reales para los últimos 7 días
     const last7Days = []

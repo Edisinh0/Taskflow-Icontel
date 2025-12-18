@@ -40,6 +40,15 @@ class Task extends Model implements Auditable
         'blocked_reason',
         'notes', // <-- Nuevo campo para notas
         'last_updated_by', // Nuevo
+        // SLA fields
+        'sla_due_date',
+        'sla_breached',
+        'sla_breach_at',
+        'sla_days_overdue',
+        'sla_notified_assignee',
+        'sla_escalated',
+        'sla_notified_at',
+        'sla_escalated_at',
     ];
 
     protected $casts = [
@@ -57,6 +66,15 @@ class Task extends Model implements Auditable
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
         'is_blocked' => 'boolean',
+        // SLA casts
+        'sla_due_date' => 'datetime',
+        'sla_breached' => 'boolean',
+        'sla_breach_at' => 'datetime',
+        'sla_days_overdue' => 'integer',
+        'sla_notified_assignee' => 'boolean',
+        'sla_escalated' => 'boolean',
+        'sla_notified_at' => 'datetime',
+        'sla_escalated_at' => 'datetime',
     ];
 
     /**
@@ -197,5 +215,105 @@ class Task extends Model implements Auditable
     public function lastEditor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'last_updated_by');
+    }
+
+    /**
+     * Verificar y actualizar el estado del SLA
+     */
+    public function checkSlaStatus(): void
+    {
+        // Solo verificar si no está completada o cancelada
+        if (in_array($this->status, ['completed', 'cancelled'])) {
+            return;
+        }
+
+        // Si no hay fecha de SLA definida, usar estimated_end_at
+        if (!$this->sla_due_date && $this->estimated_end_at) {
+            $this->sla_due_date = $this->estimated_end_at;
+            $this->save();
+        }
+
+        // Si no hay fecha de SLA, no hacer nada
+        if (!$this->sla_due_date) {
+            return;
+        }
+
+        $now = now();
+        $dueDate = $this->sla_due_date;
+
+        // Verificar si se ha superado el SLA
+        if ($now->isAfter($dueDate)) {
+            // Calcular días de retraso (positivo)
+            $daysOverdue = (int) $dueDate->diffInDays($now);
+
+            if (!$this->sla_breached) {
+                $this->sla_breached = true;
+                $this->sla_breach_at = $now;
+            }
+
+            $this->sla_days_overdue = $daysOverdue;
+            $this->save();
+        }
+    }
+
+    /**
+     * Verificar si la tarea está retrasada
+     */
+    public function isOverdue(): bool
+    {
+        if (!$this->sla_due_date) {
+            return false;
+        }
+
+        return now()->isAfter($this->sla_due_date) &&
+               !in_array($this->status, ['completed', 'cancelled']);
+    }
+
+    /**
+     * Obtener el supervisor/PM del flujo para escalamiento
+     */
+    public function getSupervisor()
+    {
+        // Obtener el creador del flujo como supervisor
+        if ($this->flow && $this->flow->created_by) {
+            return User::find($this->flow->created_by);
+        }
+
+        // Alternativamente, buscar usuarios con rol de admin o project_manager
+        return User::whereHas('roles', function($query) {
+            $query->whereIn('name', ['admin', 'project_manager']);
+        })->first();
+    }
+
+    /**
+     * Scope para tareas con SLA vencido
+     */
+    public function scopeSlaBreach($query)
+    {
+        return $query->where('sla_breached', true)
+                    ->whereNotIn('status', ['completed', 'cancelled']);
+    }
+
+    /**
+     * Scope para tareas que necesitan notificación (+1 día)
+     */
+    public function scopeNeedsAssigneeNotification($query)
+    {
+        return $query->where('sla_breached', true)
+                    ->where('sla_days_overdue', '>=', 1)
+                    ->where('sla_notified_assignee', false)
+                    ->whereNotNull('assignee_id')
+                    ->whereNotIn('status', ['completed', 'cancelled']);
+    }
+
+    /**
+     * Scope para tareas que necesitan escalamiento (+2 días)
+     */
+    public function scopeNeedsEscalation($query)
+    {
+        return $query->where('sla_breached', true)
+                    ->where('sla_days_overdue', '>=', 2)
+                    ->where('sla_escalated', false)
+                    ->whereNotIn('status', ['completed', 'cancelled']);
     }
 }
