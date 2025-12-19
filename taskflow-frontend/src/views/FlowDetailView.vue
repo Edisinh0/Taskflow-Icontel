@@ -87,17 +87,33 @@
         </div>
       </div>
 
-      <!-- Milestones Section -->
-      <div class="mb-12">
-        <div class="flex justify-between items-center mb-6">
-          <h3 class="text-2xl font-bold text-slate-800 dark:text-white flex items-center">
-            <span class="bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 text-blue-600 dark:text-blue-400 p-2.5 rounded-xl mr-3 border border-slate-200 dark:border-white/5">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-            </span>
-            Hitos del Proyecto
-          </h3>
+      <!-- View Tabs (Lista / Diagrama) -->
+      <div class="mb-6">
+        <div class="flex items-center justify-between">
+          <div class="flex gap-2 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+            <button
+              @click="viewMode = 'list'"
+              :class="viewMode === 'list' ? 'bg-blue-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'"
+              class="px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              Vista Lista
+            </button>
+            <button
+              @click="viewMode = 'diagram'"
+              :class="viewMode === 'diagram' ? 'bg-blue-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'"
+              class="px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+              Vista Diagrama
+            </button>
+          </div>
           <button
-            v-if="canEdit"
+            v-if="canEdit && viewMode === 'list'"
             @click="openNewMilestoneModal"
             class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold flex items-center shadow-lg shadow-blue-500/20 dark:shadow-blue-900/40 transition-all hover:scale-105 active:scale-95 border border-blue-500/20"
           >
@@ -106,6 +122,25 @@
             </svg>
             Nuevo Hito
           </button>
+        </div>
+      </div>
+
+      <!-- Vista Diagrama -->
+      <div v-if="viewMode === 'diagram'" class="mb-12">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden" style="height: 800px;">
+          <FlowDiagram :flow="flow" @node-click="handleNodeClick" />
+        </div>
+      </div>
+
+      <!-- Vista Lista - Milestones Section -->
+      <div v-else class="mb-12">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-2xl font-bold text-slate-800 dark:text-white flex items-center">
+            <span class="bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 text-blue-600 dark:text-blue-400 p-2.5 rounded-xl mr-3 border border-slate-200 dark:border-white/5">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            </span>
+            Hitos del Proyecto
+          </h3>
         </div>
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -326,6 +361,7 @@ import TaskModal from '@/components/TaskModal.vue'
 import DependencyManager from '@/components/DependencyManager.vue'
 import AttachmentsModal from '@/components/AttachmentsModal.vue'
 import TaskNotesModal from '@/components/TaskNotesModal.vue'
+import FlowDiagram from '@/components/FlowDiagram.vue'
 import Navbar from '@/components/AppNavbar.vue'
 import { CheckCircle2, Zap, Clock, Paperclip, Pencil } from 'lucide-vue-next'
 
@@ -335,6 +371,7 @@ const authStore = useAuthStore()
 
 const flow = ref(null)
 const loading = ref(true)
+const viewMode = ref('list') // 'list' o 'diagram'
 
 // Permissions
 const canEdit = computed(() => {
@@ -674,6 +711,15 @@ const openAttachmentsModal = (task) => {
 
 const handleAttachmentsUpdated = async () => {
     await loadFlow()
+}
+
+// Función para manejar click en nodos del diagrama
+const handleNodeClick = (taskId) => {
+    const task = flow.value.tasks.find(t => t.id === taskId)
+    if (task) {
+        selectedTask.value = task
+        showTaskModal.value = true
+    }
 }
 
 // Funciones para Notas
