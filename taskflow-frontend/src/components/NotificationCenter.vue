@@ -4,7 +4,7 @@
     <button
       @click.stop="togglePanel"
       type="button"
-      class="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+      class="relative p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-full transition-colors"
       :class="{ 'animate-pulse': unreadCount > 0 }"
     >
       <Bell :size="24" />
@@ -21,17 +21,17 @@
       <div
         v-if="showPanel"
         v-click-outside="closePanel"
-        class="absolute right-0 top-12 w-96 max-h-[600px] bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden"
+        class="absolute right-0 top-12 w-96 max-h-[600px] bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-white/10 z-50 overflow-hidden"
       >
         <!-- Panel Header -->
         <div
-          class="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50"
+          class="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50"
         >
-          <h3 class="text-lg font-semibold text-gray-900">Notificaciones</h3>
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Notificaciones</h3>
           <button
             v-if="unreadCount > 0"
             @click="markAllAsRead"
-            class="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
           >
             Marcar todas como leídas
           </button>
@@ -40,10 +40,10 @@
         <!-- Notifications List -->
         <div class="overflow-y-auto max-h-[500px]">
           <div v-if="isLoading" class="flex items-center justify-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
           </div>
 
-          <div v-else-if="notifications.length === 0" class="text-center py-8 text-gray-500">
+          <div v-else-if="notifications.length === 0" class="text-center py-8 text-slate-500 dark:text-slate-400">
             <Bell :size="48" class="mx-auto mb-2 opacity-50" />
             <p>No tienes notificaciones</p>
           </div>
@@ -54,30 +54,30 @@
               :key="notification.id"
               @click="handleNotificationClick(notification)"
               :class="[
-                'px-4 py-3 border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50',
+                'px-4 py-3 border-b border-slate-100 dark:border-white/5 cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/30 group',
                 {
-                  'bg-blue-50': !notification.is_read,
-                  'border-l-4 border-red-500': notification.priority === 'urgent'
+                  'bg-blue-50 dark:bg-blue-500/10': !notification.is_read,
+                  'border-l-4 border-rose-500': notification.priority === 'urgent'
                 }
               ]"
             >
               <div class="flex items-start gap-3">
-                <div class="flex-shrink-0 mt-1">
+                <div class="flex-shrink-0 mt-1 text-slate-600 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   <component :is="getNotificationIcon(notification.type)" :size="20" />
                 </div>
                 <div class="flex-1 min-w-0">
-                  <h4 class="text-sm font-semibold text-gray-900 mb-1">
+                  <h4 class="text-sm font-semibold text-slate-900 dark:text-white mb-1">
                     {{ notification.title }}
                   </h4>
-                  <p class="text-sm text-gray-600 line-clamp-2">
+                  <p class="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
                     {{ notification.message }}
                   </p>
-                  <p class="text-xs text-gray-400 mt-1">
+                  <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
                     {{ formatDate(notification.created_at) }}
                   </p>
                 </div>
                 <div v-if="!notification.is_read" class="flex-shrink-0">
-                  <div class="w-2 h-2 bg-blue-600 rounded-full"></div>
+                  <div class="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse"></div>
                 </div>
               </div>
             </div>
@@ -87,26 +87,26 @@
     </transition>
 
     <!-- Toast Notifications -->
-    <transition-group name="toast" tag="div" class="fixed top-4 right-4 z-[9999] space-y-3">
+    <transition-group name="toast" tag="div" class="fixed inset-x-4 top-4 md:inset-x-auto md:right-4 z-[9999] space-y-3 pointer-events-none">
       <div
         v-for="toast in toasts"
         :key="toast.id"
         :class="[
-          'flex items-start gap-3 min-w-[320px] max-w-md p-4 bg-white rounded-lg shadow-lg border-l-4',
+          'flex items-start gap-3 min-w-[320px] max-w-md p-4 bg-white dark:bg-slate-800 rounded-xl shadow-lg border-l-4 pointer-events-auto',
           {
-            'border-red-500': toast.priority === 'urgent',
-            'border-yellow-500': toast.priority === 'high',
+            'border-rose-500': toast.priority === 'urgent',
+            'border-amber-500': toast.priority === 'high',
             'border-blue-500': toast.priority === 'medium',
-            'border-green-500': toast.priority === 'low'
+            'border-emerald-500': toast.priority === 'low'
           }
         ]"
       >
-        <component :is="getNotificationIcon(toast.type)" :size="24" class="flex-shrink-0 mt-0.5" />
+        <component :is="getNotificationIcon(toast.type)" :size="24" class="flex-shrink-0 mt-0.5 text-slate-600 dark:text-slate-400" />
         <div class="flex-1 min-w-0">
-          <h4 class="text-sm font-semibold text-gray-900 mb-1">{{ toast.title }}</h4>
-          <p class="text-sm text-gray-600">{{ toast.message }}</p>
+          <h4 class="text-sm font-semibold text-slate-900 dark:text-white mb-1">{{ toast.title }}</h4>
+          <p class="text-sm text-slate-600 dark:text-slate-300">{{ toast.message }}</p>
         </div>
-        <button @click="removeToast(toast.id)" class="flex-shrink-0 text-gray-400 hover:text-gray-600">
+        <button @click="removeToast(toast.id)" class="flex-shrink-0 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
           <X :size="20" />
         </button>
       </div>

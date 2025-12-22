@@ -122,21 +122,21 @@
           <div class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-white/5">
             <button
               @click="goToClientDetail(client.id)"
-              class="flex-1 mr-2 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center"
+              class="flex-1 mr-2 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/20 rounded-lg transition-all duration-200 flex items-center justify-center hover:scale-105 active:scale-95"
             >
               <Eye class="w-4 h-4 mr-2" />
               Ver
             </button>
             <button
               @click="openEditModal(client)"
-              class="px-3 py-2 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+              class="px-3 py-2 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
               title="Editar"
             >
               <Edit2 class="w-4 h-4" />
             </button>
             <button
               @click="confirmDelete(client)"
-              class="px-3 py-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
+              class="px-3 py-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
               title="Eliminar"
             >
               <Trash2 class="w-4 h-4" />

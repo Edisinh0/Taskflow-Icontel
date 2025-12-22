@@ -49,12 +49,12 @@
             <!-- Notas (Opcional) -->
             <div class="mb-5">
               <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-              Notas Adicionales
+              Notas Adicionales <span class="text-xs text-slate-500">(Opcional)</span>
             </label>
             <textarea
               v-model="formData.notes"
               rows="2"
-              class="w-full px-4 py-3 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-500/20 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500/50 focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all"
+              class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-500 focus:border-transparent transition-all"
               placeholder="Agrega notas, observaciones o comentarios..."
             ></textarea>
             </div>
@@ -477,13 +477,37 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.3s ease;
+.modal-enter-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.modal-enter-from,
+.modal-leave-active {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.modal-enter-from {
+  opacity: 0;
+}
+
 .modal-leave-to {
   opacity: 0;
+}
+
+.modal-enter-from > div {
+  transform: scale(0.95) translateY(-20px);
+  opacity: 0;
+}
+
+.modal-leave-to > div {
+  transform: scale(0.95) translateY(20px);
+  opacity: 0;
+}
+
+.modal-enter-active > div {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-leave-active > div {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.6, 1);
 }
 </style>

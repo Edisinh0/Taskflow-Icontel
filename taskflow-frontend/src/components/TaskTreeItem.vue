@@ -38,17 +38,17 @@
           <div class="flex flex-col items-end space-y-2 flex-shrink-0">
             <div class="flex flex-col space-y-1.5 items-end">
               <!-- Días Restantes (oculto si completada) -->
-              <span v-if="task.status !== 'completed'" class="px-2.5 py-1 text-xs font-bold rounded-lg" :class="getDaysRemainingClass(task.estimated_end_at)">
+              <span v-if="task.status !== 'completed'" class="px-2.5 py-1 text-xs font-bold rounded-lg transition-all duration-200 hover:scale-105" :class="getDaysRemainingClass(task.estimated_end_at)">
                 {{ getDaysRemaining(task.estimated_end_at) }}
               </span>
               <!-- Badge de bloqueada -->
-              <span v-if="task.is_blocked" class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 shadow-sm">
+              <span v-if="task.is_blocked" class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 shadow-sm transition-all duration-200 hover:scale-105 hover:shadow-md">
                 🔒 BLOQUEADA
               </span>
-              <span :class="getStatusBadgeClass(task.status)" class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border border-current/20 shadow-sm">
+              <span :class="getStatusBadgeClass(task.status)" class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border border-current/20 shadow-sm transition-all duration-200 hover:scale-105 hover:shadow-md">
                 {{ getStatusText(task) }}
               </span>
-              <span v-if="task.priority" :class="getPriorityClass(task.priority)" class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border border-current/20 shadow-sm">
+              <span v-if="task.priority" :class="getPriorityClass(task.priority)" class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border border-current/20 shadow-sm transition-all duration-200 hover:scale-105 hover:shadow-md">
                 {{ getPriorityText(task.priority) }}
               </span>
 

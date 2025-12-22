@@ -118,16 +118,16 @@
 
           <!-- Botones -->
           <div class="flex space-x-3 pt-5 border-t border-slate-100 dark:border-white/5 relative z-10">
-            <router-link 
+            <router-link
               :to="`/flows/${flow.id}`"
-              class="flex-1 text-center bg-blue-50 dark:bg-blue-600/10 text-blue-600 dark:text-blue-400 py-2.5 rounded-xl hover:bg-blue-600 hover:text-white transition-all font-bold text-sm border border-blue-100 dark:border-blue-600/20 uppercase tracking-wide flex items-center justify-center gap-2"
+              class="flex-1 text-center bg-blue-50 dark:bg-blue-600/10 text-blue-600 dark:text-blue-400 py-2.5 rounded-xl hover:bg-blue-600 hover:text-white hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-200 font-bold text-sm border border-blue-100 dark:border-blue-600/20 uppercase tracking-wide flex items-center justify-center gap-2 hover:scale-105 active:scale-95"
             >
               Ver Detalles
             </router-link>
             <button
               v-if="canManageFlows"
               @click.prevent="openEditFlowModal(flow)"
-              class="px-3 py-2.5 bg-slate-100 dark:bg-slate-700/30 text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors border border-slate-200 dark:border-white/5"
+              class="px-3 py-2.5 bg-slate-100 dark:bg-slate-700/30 text-slate-500 dark:text-slate-400 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-all duration-200 border border-slate-200 dark:border-white/5 hover:scale-110 active:scale-95"
               title="Editar proyecto"
             >
               <Edit2 class="w-5 h-5" />
@@ -135,7 +135,7 @@
             <button
               v-if="canManageFlows"
               @click.prevent="deleteFlow(flow)"
-              class="px-3 py-2.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-500 hover:text-white transition-colors border border-rose-100 dark:border-rose-500/20"
+              class="px-3 py-2.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-500 hover:text-white hover:shadow-lg hover:shadow-rose-500/20 transition-all duration-200 border border-rose-100 dark:border-rose-500/20 hover:scale-110 active:scale-95"
               title="Eliminar proyecto"
             >
               <Trash2 class="w-5 h-5" />
