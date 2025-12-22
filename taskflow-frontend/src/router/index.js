@@ -39,12 +39,6 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['admin', 'project_manager', 'pm'] }
     },
     {
-      path: '/tasks',
-      name: 'tasks',
-      component: () => import('../views/TasksView.vue'),
-      meta: { requiresAuth: true, roles: ['admin', 'project_manager', 'pm', 'user'] }
-    },
-    {
       path: '/notifications',
       name: 'notifications',
       component: () => import('../views/NotificationsView.vue'),
@@ -62,12 +56,6 @@ const router = createRouter({
       name: 'flow-builder',
       component: () => import('@/modules/flow-builder/views/FlowBuilderView.vue'),
       meta: { requiresAuth: true, roles: ['admin', 'project_manager', 'pm', 'user'] }
-    },
-    {
-      path: '/task-center',
-      name: 'task-center',
-      component: () => import('@/modules/task-center/views/TaskCenterView.vue'),
-      meta: { requiresAuth: true }
     }
   ]
 })
@@ -94,7 +82,7 @@ router.beforeEach((to, from, next) => {
     if (['admin', 'project_manager', 'pm'].includes(role)) {
       next('/dashboard')
     } else {
-      next('/task-center')
+      next('/flows')
     }
   } else if (requiredRoles && authStore.isAuthenticated) {
     // Verificar roles
@@ -102,8 +90,8 @@ router.beforeEach((to, from, next) => {
     if (requiredRoles.includes(userRole)) {
       next()
     } else {
-      // Rol no autorizado -> Redirigir a Task Center (vista segura por defecto)
-      next('/task-center')
+      // Rol no autorizado -> Redirigir a Flows (vista segura por defecto)
+      next('/flows')
     }
   } else {
     next()

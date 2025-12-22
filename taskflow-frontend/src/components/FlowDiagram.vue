@@ -25,10 +25,10 @@
         <div class="milestone-node" :class="{'milestone-completed': data.completed}">
           <div class="node-header milestone-header">
             <div class="flex items-center gap-2">
-              <span class="text-lg">⛔</span>
+              <Flag :size="16" class="text-purple-600" />
               <span class="font-bold text-sm">MILESTONE</span>
             </div>
-            <span v-if="data.completed" class="text-green-500 text-xl">✓</span>
+            <CheckCircle v-if="data.completed" :size="18" class="text-green-500" />
           </div>
           <div class="node-body">
             <p class="font-semibold text-sm mb-1">{{ data.label }}</p>
@@ -44,16 +44,21 @@
         <div class="task-node" :class="getTaskClass(data.status)">
           <div class="node-header">
             <span class="text-xs font-medium uppercase">{{ getStatusText(data.status) }}</span>
-            <span v-if="data.status === 'completed'" class="text-green-500">✓</span>
-            <span v-else-if="data.status === 'blocked'" class="text-red-500">🔒</span>
+            <CheckCircle v-if="data.status === 'completed'" :size="16" class="text-green-500" />
+            <Lock v-else-if="data.status === 'blocked'" :size="16" class="text-red-500" />
+            <AlertCircle v-else-if="data.status === 'in_progress'" :size="16" class="text-blue-500" />
           </div>
           <div class="node-body">
             <p class="font-medium text-sm mb-1">{{ data.label }}</p>
             <div class="flex items-center gap-2 text-xs text-slate-500">
-              <span v-if="data.assignee">👤 {{ data.assignee }}</span>
-              <span v-if="data.priority" :class="getPriorityClass(data.priority)">
-                {{ getPriorityText(data.priority) }}
-              </span>
+              <div v-if="data.assignee" class="flex items-center gap-1">
+                <User :size="12" />
+                <span>{{ data.assignee }}</span>
+              </div>
+              <div v-if="data.priority" class="flex items-center gap-1" :class="getPriorityClass(data.priority)">
+                <Circle :size="8" :fill="getPriorityColor(data.priority)" :stroke="getPriorityColor(data.priority)" />
+                <span>{{ getPriorityText(data.priority) }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -95,6 +100,8 @@ import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
+import { Flag, CheckCircle, Lock, User, AlertCircle, Circle } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
 import '@vue-flow/controls/dist/style.css'
@@ -108,9 +115,16 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['node-click'])
+const authStore = useAuthStore()
 
 const nodes = ref([])
 const edges = ref([])
+
+// Verificar si el usuario tiene permisos de edición
+const canEdit = computed(() => {
+  const role = authStore.user?.role
+  return ['admin', 'project_manager', 'pm'].includes(role)
+})
 
 // Generar nodos y conexiones desde el flujo
 const generateDiagram = () => {
@@ -257,16 +271,32 @@ const getPriorityClass = (priority) => {
 // Textos de prioridad
 const getPriorityText = (priority) => {
   const texts = {
-    'urgent': '🔴 Urgente',
-    'high': '🟠 Alta',
-    'medium': '🟡 Media',
-    'low': '⚪ Baja'
+    'urgent': 'Urgente',
+    'high': 'Alta',
+    'medium': 'Media',
+    'low': 'Baja'
   }
   return texts[priority] || priority
 }
 
+// Colores de prioridad
+const getPriorityColor = (priority) => {
+  const colors = {
+    'urgent': '#dc2626',
+    'high': '#ea580c',
+    'medium': '#ca8a04',
+    'low': '#64748b'
+  }
+  return colors[priority] || '#64748b'
+}
+
 // Manejar click en nodo
 const onNodeClick = ({ node }) => {
+  // Solo permitir edición si el usuario tiene permisos de administración
+  if (!canEdit.value) {
+    alert('⚠️ Acción no permitida\n\nSolo los administradores y project managers pueden editar tareas desde el diagrama.')
+    return
+  }
   emit('node-click', node.data.taskId)
 }
 

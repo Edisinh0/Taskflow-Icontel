@@ -28,7 +28,8 @@
               }"
             >
               <Target v-if="task.is_milestone" class="inline w-4 h-4 mr-1 text-yellow-500 dark:text-yellow-400" />
-              {{ task.title }}
+              {{ task.title }} 
+              
             </h4>
             <p class="text-sm text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 h-10">{{ task.description }}</p>
           </div>
@@ -36,6 +37,10 @@
           <!-- Badges de estado -->
           <div class="flex flex-col items-end space-y-2 flex-shrink-0">
             <div class="flex flex-col space-y-1.5 items-end">
+              <!-- Días Restantes (oculto si completada) -->
+              <span v-if="task.status !== 'completed'" class="px-2.5 py-1 text-xs font-bold rounded-lg" :class="getDaysRemainingClass(task.estimated_end_at)">
+                {{ getDaysRemaining(task.estimated_end_at) }}
+              </span>
               <!-- Badge de bloqueada -->
               <span v-if="task.is_blocked" class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 shadow-sm">
                 🔒 BLOQUEADA
@@ -46,6 +51,7 @@
               <span v-if="task.priority" :class="getPriorityClass(task.priority)" class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border border-current/20 shadow-sm">
                 {{ getPriorityText(task.priority) }}
               </span>
+
             </div>
           </div>
         </div>
@@ -67,13 +73,14 @@
           <!-- Progreso -->
           <div class="flex items-center flex-1 max-w-xs">
             <div class="flex-1 bg-slate-200 dark:bg-slate-900 rounded-full h-1.5 mr-3 overflow-hidden">
-              <div 
+              <div
                 class="h-1.5 rounded-full transition-all duration-500"
                 :class="task.progress === 100 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-blue-600 dark:bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.3)]'"
                 :style="`width: ${task.progress}%`"
               ></div>
             </div>
             <span class="text-slate-600 dark:text-slate-400 text-xs font-bold">{{ task.progress }}%</span>
+            
           </div>
 
           <!-- Subtareas -->
@@ -336,6 +343,46 @@ const getPriorityText = (priority) => {
     urgent: 'Urgente'
   }
   return texts[priority] || priority
+}
+
+// Calcular días restantes
+const getDaysRemaining = (estimatedEndAt) => {
+  if (!estimatedEndAt) return 'Sin fecha'
+
+  const today = new Date()
+  const endDate = new Date(estimatedEndAt)
+  const diffTime = endDate - today
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+  if (diffDays < 0) {
+    return `${Math.abs(diffDays)} días vencido`
+  } else if (diffDays === 0) {
+    return 'Vence hoy'
+  } else if (diffDays === 1) {
+    return '1 día restante'
+  } else {
+    return `${diffDays} días restantes`
+  }
+}
+
+// Clase CSS para días restantes
+const getDaysRemainingClass = (estimatedEndAt) => {
+  if (!estimatedEndAt) return 'bg-slate-100 text-slate-600'
+
+  const today = new Date()
+  const endDate = new Date(estimatedEndAt)
+  const diffTime = endDate - today
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+  if (diffDays < 0) {
+    return 'bg-red-100 text-red-700'
+  } else if (diffDays === 0) {
+    return 'bg-orange-100 text-orange-700'
+  } else if (diffDays <= 3) {
+    return 'bg-yellow-100 text-yellow-700'
+  } else {
+    return 'bg-green-100 text-green-700'
+  }
 }
 </script>
 

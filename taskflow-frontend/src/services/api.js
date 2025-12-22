@@ -92,11 +92,4 @@ export const flowBuilderAPI = {
   configureDependencies: (id, data) => api.put(`/flow-builder/tasks/${id}/dependencies`, data),
 }
 
-// ========== TASK CENTER MODULE (Users) ==========
-export const taskCenterAPI = {
-  getMyTasks: (params) => api.get('/task-center/my-tasks', { params }),
-  getTask: (id) => api.get(`/task-center/tasks/${id}`),
-  executeTask: (id, data) => api.put(`/task-center/tasks/${id}/execute`, data),
-}
-
 export default api

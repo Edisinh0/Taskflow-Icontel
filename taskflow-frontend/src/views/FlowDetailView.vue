@@ -25,28 +25,59 @@
             </div>
             <p class="text-slate-500 dark:text-slate-400 text-lg max-w-2xl leading-relaxed">{{ flow.description }}</p>
           </div>
-          <button
-            v-if="canEdit"
-            @click="deleteFlow"
-            class="mt-4 md:mt-0 p-2 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all duration-300 group"
-            title="Eliminar flujo"
-          >
-            <svg class="w-6 h-6 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
-          
-          <!-- Botón Guardar como Plantilla -->
-          <button
-            v-if="canEdit"
-            @click="saveAsTemplate"
-            class="ml-2 mt-4 md:mt-0 p-2 text-slate-500 hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all duration-300 group"
-            title="Guardar como Plantilla"
-          >
-            <svg class="w-6 h-6 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-            </svg>
-          </button>
+
+          <!-- Botones de Acción -->
+          <div class="flex items-center gap-2 mt-4 md:mt-0">
+            <!-- Toggle Vista Lista/Diagrama -->
+            <div class="flex gap-1 bg-slate-100 dark:bg-slate-900/50 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+              <button
+                @click="viewMode = 'list'"
+                :class="viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm' : 'hover:bg-slate-200 dark:hover:bg-slate-800'"
+                class="p-2 rounded-lg transition-all group"
+                title="Vista Lista"
+              >
+                <List
+                  :size="20"
+                  :class="viewMode === 'list' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'"
+                />
+              </button>
+              <button
+                @click="viewMode = 'diagram'"
+                :class="viewMode === 'diagram' ? 'bg-white dark:bg-slate-700 shadow-sm' : 'hover:bg-slate-200 dark:hover:bg-slate-800'"
+                class="p-2 rounded-lg transition-all group"
+                title="Vista Diagrama"
+              >
+                <GitBranch
+                  :size="20"
+                  :class="viewMode === 'diagram' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'"
+                />
+              </button>
+            </div>
+
+            <!-- Botón Guardar como Plantilla -->
+            <button
+              v-if="canEdit"
+              @click="saveAsTemplate"
+              class="p-2 text-slate-500 hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all duration-300 group"
+              title="Guardar como Plantilla"
+            >
+              <svg class="w-6 h-6 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+            </button>
+
+            <!-- Botón Eliminar -->
+            <button
+              v-if="canEdit"
+              @click="deleteFlow"
+              class="p-2 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all duration-300 group"
+              title="Eliminar flujo"
+            >
+              <svg class="w-6 h-6 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <!-- Info Grid -->
@@ -87,44 +118,6 @@
         </div>
       </div>
 
-      <!-- View Tabs (Lista / Diagrama) -->
-      <div class="mb-6">
-        <div class="flex items-center justify-between">
-          <div class="flex gap-2 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-            <button
-              @click="viewMode = 'list'"
-              :class="viewMode === 'list' ? 'bg-blue-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'"
-              class="px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-              </svg>
-              Vista Lista
-            </button>
-            <button
-              @click="viewMode = 'diagram'"
-              :class="viewMode === 'diagram' ? 'bg-blue-500 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'"
-              class="px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-              Vista Diagrama
-            </button>
-          </div>
-          <button
-            v-if="canEdit && viewMode === 'list'"
-            @click="openNewMilestoneModal"
-            class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold flex items-center shadow-lg shadow-blue-500/20 dark:shadow-blue-900/40 transition-all hover:scale-105 active:scale-95 border border-blue-500/20"
-          >
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Nuevo Hito
-          </button>
-        </div>
-      </div>
-
       <!-- Vista Diagrama -->
       <div v-if="viewMode === 'diagram'" class="mb-12">
         <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden" style="height: 800px;">
@@ -141,6 +134,16 @@
             </span>
             Hitos del Proyecto
           </h3>
+          <button
+            v-if="canEdit"
+            @click="openNewMilestoneModal"
+            class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold flex items-center shadow-lg shadow-blue-500/20 dark:shadow-blue-900/40 transition-all hover:scale-105 active:scale-95 border border-blue-500/20"
+          >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Nuevo Hito
+          </button>
         </div>
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -363,7 +366,7 @@ import AttachmentsModal from '@/components/AttachmentsModal.vue'
 import TaskNotesModal from '@/components/TaskNotesModal.vue'
 import FlowDiagram from '@/components/FlowDiagram.vue'
 import Navbar from '@/components/AppNavbar.vue'
-import { CheckCircle2, Zap, Clock, Paperclip, Pencil } from 'lucide-vue-next'
+import { CheckCircle2, Zap, Clock, Paperclip, Pencil, List, GitBranch } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -737,7 +740,7 @@ const completeTask = async (task) => {
   // Verificar permisos antes de llamar a la API
   const currentUser = authStore.user
   const isAssignee = task.assignee_id === currentUser?.id
-  
+
   if (!canEdit.value && !isAssignee) {
       if (task.assignee) {
           alert(`⚠️ Acción no permitida\n\nEsta tarea está asignada a ${task.assignee.name}. Solo el responsable o un administrador puede completarla.`)
