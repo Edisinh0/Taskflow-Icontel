@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\FlowController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TaskDependencyController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\ClientController;
 
 /*
 |--------------------------------------------------------------------------
@@ -72,6 +73,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     // Templates
     Route::post('/templates/from-flow/{flowId}', [TemplateController::class, 'createFromFlow']);
     Route::apiResource('templates', TemplateController::class);
+
+    // Clients
+    Route::apiResource('clients', ClientController::class);
 
     // Flows
     Route::apiResource('flows', FlowController::class);

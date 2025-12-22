@@ -18,6 +18,7 @@ class Flow extends Model implements Auditable
         'name',
         'description',
         'template_id',
+        'client_id',
         'created_by',
         'status',
         'progress',
@@ -40,6 +41,14 @@ class Flow extends Model implements Auditable
     public function template(): BelongsTo
     {
         return $this->belongsTo(Template::class);
+    }
+
+    /**
+     * Relación: Un flujo pertenece a un cliente
+     */
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
     }
 
     /**

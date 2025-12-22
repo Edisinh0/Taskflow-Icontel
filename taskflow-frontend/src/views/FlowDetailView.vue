@@ -52,6 +52,17 @@
                   :class="viewMode === 'diagram' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'"
                 />
               </button>
+              <button
+                @click="viewMode = 'gantt'"
+                :class="viewMode === 'gantt' ? 'bg-white dark:bg-slate-700 shadow-sm' : 'hover:bg-slate-200 dark:hover:bg-slate-800'"
+                class="p-2 rounded-lg transition-all group"
+                title="Vista Gantt"
+              >
+                <Calendar
+                  :size="20"
+                  :class="viewMode === 'gantt' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'"
+                />
+              </button>
             </div>
 
             <!-- Botón Guardar como Plantilla -->
@@ -122,6 +133,13 @@
       <div v-if="viewMode === 'diagram'" class="mb-12">
         <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden" style="height: 800px;">
           <FlowDiagram :flow="flow" @node-click="handleNodeClick" />
+        </div>
+      </div>
+
+      <!-- Vista Gantt -->
+      <div v-else-if="viewMode === 'gantt'" class="mb-12">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 shadow-xl" style="min-height: 600px;">
+           <TaskGantt :tasks="flow.tasks" />
         </div>
       </div>
 
@@ -365,8 +383,9 @@ import DependencyManager from '@/components/DependencyManager.vue'
 import AttachmentsModal from '@/components/AttachmentsModal.vue'
 import TaskNotesModal from '@/components/TaskNotesModal.vue'
 import FlowDiagram from '@/components/FlowDiagram.vue'
+import TaskGantt from '@/components/TaskGantt.vue'
 import Navbar from '@/components/AppNavbar.vue'
-import { CheckCircle2, Zap, Clock, Paperclip, Pencil, List, GitBranch } from 'lucide-vue-next'
+import { CheckCircle2, Zap, Clock, Paperclip, Pencil, List, GitBranch, Calendar } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()

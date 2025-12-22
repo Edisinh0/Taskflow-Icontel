@@ -32,6 +32,7 @@ const router = createRouter({
       component: () => import('../views/FlowDetailView.vue'),
       meta: { requiresAuth: true }
     },
+
     {
       path: '/templates',
       name: 'templates',
@@ -42,6 +43,18 @@ const router = createRouter({
       path: '/notifications',
       name: 'notifications',
       component: () => import('../views/NotificationsView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/clients',
+      name: 'clients',
+      component: () => import('../views/ClientsView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/clients/:id',
+      name: 'client-detail',
+      component: () => import('../views/ClientDetailView.vue'),
       meta: { requiresAuth: true }
     },
     {

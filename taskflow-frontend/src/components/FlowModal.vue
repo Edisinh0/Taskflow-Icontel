@@ -33,6 +33,22 @@
               />
             </div>
 
+            <!-- Cliente -->
+            <div class="mb-5">
+              <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                Cliente Asociado
+              </label>
+              <select
+                v-model="formData.client_id"
+                class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              >
+                <option :value="null">Seleccionar Cliente...</option>
+                <option v-for="client in clients" :key="client.id" :value="client.id">
+                  {{ client.name }}
+                </option>
+              </select>
+            </div>
+
             <!-- Descripción -->
             <div class="mb-5">
               <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
@@ -112,8 +128,9 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import { flowsAPI } from '@/services/api'
+import ClientService from '@/services/ClientService'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -135,7 +152,19 @@ const formData = ref({
   name: '',
   description: '',
   template_id: null,
+  client_id: null,
   status: 'active'
+})
+
+const clients = ref([])
+
+onMounted(async () => {
+  try {
+    const response = await ClientService.getAll()
+    clients.value = response.data
+  } catch (err) {
+    console.error('Error fetching clients:', err)
+  }
 })
 
 const selectedTemplate = computed(() => {
@@ -149,6 +178,7 @@ watch(() => props.flow, (newFlow) => {
       name: newFlow.name || '',
       description: newFlow.description || '',
       template_id: newFlow.template_id,
+      client_id: newFlow.client_id,
       status: newFlow.status || 'active'
     }
   } else {
@@ -156,6 +186,7 @@ watch(() => props.flow, (newFlow) => {
       name: '',
       description: '',
       template_id: null,
+      client_id: null,
       status: 'active'
     }
   }
