@@ -220,6 +220,82 @@
         </div>
       </div>
 
+      <!-- Casos CRM -->
+      <div class="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-sm dark:shadow-lg border border-slate-200 dark:border-white/5 mb-8">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
+          <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center">
+            <span class="w-2 h-6 bg-amber-500 rounded-sm mr-3"></span>
+            Mis Casos Abiertos (CRM)
+          </h3>
+          <span class="text-xs font-semibold bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-md border border-amber-100 dark:border-amber-500/20">
+            {{ myCases.length }} casos
+          </span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/5">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Número</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Asunto</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Cliente</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Estado</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Prioridad</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-white/5">
+              <tr
+                v-for="crmCase in myCases"
+                :key="crmCase.id"
+                @click="$router.push('/cases')"
+                class="hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors"
+              >
+                <td class="px-6 py-4">
+                  <span class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">#{{ crmCase.case_number }}</span>
+                </td>
+                <td class="px-6 py-4">
+                  <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate max-w-xs">{{ crmCase.subject }}</h4>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="text-xs text-slate-500 flex items-center gap-1">
+                    <Briefcase :size="12" /> {{ crmCase.client?.name || 'Sin cliente' }}
+                  </span>
+                </td>
+                <td class="px-6 py-4">
+                  <span 
+                    class="px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-full border shadow-sm"
+                    :class="crmCase.status === 'Nuevo' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-slate-50 text-slate-600 border-slate-100'"
+                  >
+                    {{ crmCase.status }}
+                  </span>
+                </td>
+                <td class="px-6 py-4">
+                  <span 
+                    class="px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-full border shadow-sm"
+                    :class="{
+                      'bg-rose-50 text-rose-600 border-rose-100': crmCase.priority === 'Alta',
+                      'bg-amber-50 text-amber-600 border-amber-100': crmCase.priority === 'Media',
+                      'bg-emerald-50 text-emerald-600 border-emerald-100': crmCase.priority === 'Baja'
+                    }"
+                  >
+                    {{ crmCase.priority }}
+                  </span>
+                </td>
+              </tr>
+              <tr v-if="myCases.length === 0">
+                <td colspan="5" class="px-6 py-8 text-center text-slate-400 dark:text-slate-500 text-sm italic">
+                  No tienes casos asignados abiertos en este momento.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="px-6 py-3 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-white/5 text-right">
+          <router-link to="/cases" class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 uppercase tracking-widest">
+            Ver todos los casos →
+          </router-link>
+        </div>
+      </div>
+
       <!-- Tareas Urgentes y Flujos Recientes -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Tareas Urgentes -->
@@ -317,7 +393,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { flowsAPI, tasksAPI } from '@/services/api'
+import { flowsAPI, tasksAPI, casesAPI } from '@/services/api'
 import { Line, Doughnut } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -331,7 +407,7 @@ import {
   Title
 } from 'chart.js'
 import Navbar from '@/components/AppNavbar.vue'
-import { Rocket, Folder } from 'lucide-vue-next'
+import { Rocket, Folder, Briefcase } from 'lucide-vue-next'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title)
 
@@ -352,6 +428,7 @@ const stats = ref({
 const urgentTasks = ref([])
 const recentFlows = ref([])
 const allTasks = ref([])
+const myCases = ref([])
 
 const taskTrendData = ref({
   labels: [],
@@ -603,13 +680,15 @@ const calculateProgress = (flow) => {
 
 const loadData = async () => {
   try {
-    const [flowsRes, tasksRes] = await Promise.all([
-      flowsAPI.getAll(),
-      tasksAPI.getAll()
+    const [flowsRes, tasksRes, casesRes] = await Promise.all([
+      flowsAPI.getAll(), // Los flujos por ahora los dejamos todos o según permisos de backend
+      tasksAPI.getAll({ assignee_id: authStore.currentUser?.id }),
+      casesAPI.getAll({ assigned_to_me: 1, per_page: 100 })
     ])
 
     const flows = flowsRes.data.data
     const tasks = tasksRes.data.data
+    const cases = casesRes.data.data // Casos paginados de la API Laravel
 
     stats.value = {
       activeFlows: flows.filter(f => f.status === 'active').length,
@@ -633,6 +712,11 @@ const loadData = async () => {
     allTasks.value = tasks
       .filter(t => t.status !== 'completed')
       .slice(0, 20)
+
+    // Casos asignados abiertos (no cerrados)
+    myCases.value = (cases || [])
+      .filter(c => c.status !== 'Cerrado')
+      .slice(0, 10)
 
     // Calcular datos reales para los últimos 7 días
     const last7Days = []

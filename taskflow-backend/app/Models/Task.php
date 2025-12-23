@@ -40,6 +40,9 @@ class Task extends Model implements Auditable
         'blocked_reason',
         'notes', // <-- Nuevo campo para notas
         'last_updated_by', // Nuevo
+        'case_id',
+        'sweetcrm_id',
+        'sweetcrm_synced_at',
         // SLA fields
         'sla_due_date',
         'sla_breached',
@@ -75,6 +78,7 @@ class Task extends Model implements Auditable
         'sla_escalated' => 'boolean',
         'sla_notified_at' => 'datetime',
         'sla_escalated_at' => 'datetime',
+        'sweetcrm_synced_at' => 'datetime',
     ];
 
     /**
@@ -215,6 +219,14 @@ class Task extends Model implements Auditable
     public function lastEditor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'last_updated_by');
+    }
+
+    /**
+     * Relación: Una tarea puede pertenecer a un caso de CRM
+     */
+    public function crmCase(): BelongsTo
+    {
+        return $this->belongsTo(CrmCase::class, 'case_id');
     }
 
     /**

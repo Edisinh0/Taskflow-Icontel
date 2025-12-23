@@ -6,7 +6,6 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 use App\Models\Task;
 use App\Models\Flow;
-use App\Observers\TaskObserver;
 use App\Observers\FlowObserver;
 use App\Policies\TaskPolicy;
 use App\Policies\FlowPolicy;
@@ -29,7 +28,11 @@ class AppServiceProvider extends ServiceProvider
         \Log::info('🚀 AppServiceProvider::boot() ejecutándose');
 
         // Registrar Observers
-        Task::observe(TaskObserver::class);
+        Task::observe([
+            \App\Observers\TaskLifecycleObserver::class,
+            \App\Observers\TaskNotificationObserver::class,
+            \App\Observers\TaskProgressObserver::class,
+        ]);
         Flow::observe(FlowObserver::class);
 
         // Registrar Policies

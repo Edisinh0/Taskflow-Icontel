@@ -142,7 +142,8 @@ class TaskController extends Controller
                 'subtasks.assignee',
                 'dependencies.dependsOnTask',
                 'dependents.task',
-                'attachments.uploader' // Cargar adjuntos
+                'attachments.uploader', // Cargar adjuntos
+                'crmCase'
             ])->findOrFail($id);
 
             // Verificar si está bloqueada

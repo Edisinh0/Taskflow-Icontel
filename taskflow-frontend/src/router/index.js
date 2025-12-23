@@ -32,19 +32,6 @@ const router = createRouter({
       component: () => import('../views/FlowDetailView.vue'),
       meta: { requiresAuth: true }
     },
-
-    {
-      path: '/templates',
-      name: 'templates',
-      component: () => import('../views/TemplatesView.vue'),
-      meta: { requiresAuth: true, roles: ['admin', 'project_manager', 'pm'] }
-    },
-    {
-      path: '/notifications',
-      name: 'notifications',
-      component: () => import('../views/NotificationsView.vue'),
-      meta: { requiresAuth: true }
-    },
     {
       path: '/clients',
       name: 'clients',
@@ -55,6 +42,24 @@ const router = createRouter({
       path: '/clients/:id',
       name: 'client-detail',
       component: () => import('../views/ClientDetailView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/cases',
+      name: 'cases',
+      component: () => import('../views/CasesView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/templates',
+      name: 'templates',
+      component: () => import('../views/TemplatesView.vue'),
+      meta: { requiresAuth: true, roles: ['admin', 'project_manager', 'pm'] }
+    },
+    {
+      path: '/notifications',
+      name: 'notifications',
+      component: () => import('../views/NotificationsView.vue'),
       meta: { requiresAuth: true }
     },
     {

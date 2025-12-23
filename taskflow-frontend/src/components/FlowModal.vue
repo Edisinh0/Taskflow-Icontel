@@ -64,15 +64,33 @@
 
             <!-- Plantilla Base -->
             <div class="mb-5">
-              <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                Plantilla Base
-              </label>
+              <div class="flex items-center justify-between mb-2">
+                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                  Plantilla Base
+                </label>
+                <button
+                  v-if="showingFiltered"
+                  type="button"
+                  @click="showAllTemplates"
+                  class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium underline transition-colors"
+                >
+                  Ver todas las plantillas →
+                </button>
+              </div>
+
+              <!-- Banner de templates recomendadas -->
+              <div v-if="showingFiltered" class="mb-3 p-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg">
+                <p class="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                  ✨ {{ filteredTemplates.length }} plantilla(s) recomendada(s) para <strong>{{ selectedIndustryName }}</strong>
+                </p>
+              </div>
+
               <select
                 v-model="formData.template_id"
                 class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               >
                 <option :value="null">Sin plantilla</option>
-                <option v-for="template in templates" :key="template.id" :value="template.id">
+                <option v-for="template in filteredTemplates" :key="template.id" :value="template.id">
                   {{ template.name }} (v{{ template.version }})
                 </option>
               </select>
@@ -129,7 +147,7 @@
 
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue'
-import { flowsAPI } from '@/services/api'
+import { flowsAPI, templatesAPI } from '@/services/api'
 import ClientService from '@/services/ClientService'
 
 const props = defineProps({
@@ -157,6 +175,9 @@ const formData = ref({
 })
 
 const clients = ref([])
+const showingFiltered = ref(false)
+const selectedIndustryName = ref('')
+const filteredTemplates = ref([])
 
 onMounted(async () => {
   try {
@@ -169,7 +190,69 @@ onMounted(async () => {
 
 const selectedTemplate = computed(() => {
   if (!formData.value.template_id) return null
-  return props.templates.find(t => t.id === formData.value.template_id)
+  return filteredTemplates.value.find(t => t.id === formData.value.template_id) ||
+         props.templates.find(t => t.id === formData.value.template_id)
+})
+
+/**
+ * Load recommended templates for a client based on industry
+ */
+const loadRecommendedTemplates = async (industryId) => {
+  try {
+    const client = await ClientService.get(formData.value.client_id)
+    if (client.data.industry) {
+      selectedIndustryName.value = client.data.industry.name
+      const response = await templatesAPI.getAll({ industry_id: industryId })
+      filteredTemplates.value = response.data.data || response.data
+      showingFiltered.value = true
+      console.log('✨ Plantillas filtradas por industria:', filteredTemplates.value)
+    }
+  } catch (err) {
+    console.error('Error loading recommended templates:', err)
+    await loadAllTemplates()
+  }
+}
+
+/**
+ * Load all templates without filtering
+ */
+const loadAllTemplates = async () => {
+  try {
+    const response = await templatesAPI.getAll()
+    filteredTemplates.value = response.data.data || response.data
+    showingFiltered.value = false
+  } catch (err) {
+    console.error('Error loading all templates:', err)
+    filteredTemplates.value = props.templates
+  }
+}
+
+/**
+ * Show all templates (called by "Ver todas las plantillas" button)
+ */
+const showAllTemplates = async () => {
+  await loadAllTemplates()
+}
+
+/**
+ * Watch for client selection changes - filter templates when client changes
+ */
+watch(() => formData.value.client_id, async (newClientId) => {
+  if (newClientId) {
+    try {
+      const client = await ClientService.get(newClientId)
+      if (client.data.industry_id) {
+        await loadRecommendedTemplates(client.data.industry_id)
+      } else {
+        await loadAllTemplates()
+      }
+    } catch (err) {
+      console.error('Error fetching client:', err)
+      await loadAllTemplates()
+    }
+  } else {
+    await loadAllTemplates()
+  }
 })
 
 watch(() => props.flow, (newFlow) => {
@@ -190,10 +273,13 @@ watch(() => props.flow, (newFlow) => {
       status: 'active'
     }
   }
+  // Load templates when modal opens
+  loadAllTemplates()
 }, { immediate: true })
 
 const closeModal = () => {
   error.value = null
+  showingFiltered.value = false
   emit('close')
 }
 

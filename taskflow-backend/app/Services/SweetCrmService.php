@@ -1,0 +1,617 @@
+<?php
+
+namespace App\Services;
+
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+
+class SweetCrmService
+{
+    private string $baseUrl;
+    private string $apiToken;
+    private int $timeout = 30;
+
+    public function __construct()
+    {
+        $this->baseUrl = rtrim(config('services.sweetcrm.url'), '/');
+        $this->apiToken = config('services.sweetcrm.api_token');
+    }
+
+    /**
+     * Autenticar usuario con SugarCRM usando API REST v4_1
+     *
+     * IMPORTANTE: Esta instalación usa la API REST v4_1 de SugarCRM
+     * Endpoint: POST /service/v4_1/rest.php
+     */
+    public function authenticate(string $username, string $password): array
+    {
+        try {
+            // SugarCRM v4_1 REST API authentication
+            $response = Http::timeout($this->timeout)
+                ->asForm()
+                ->post("{$this->baseUrl}/service/v4_1/rest.php", [
+                    'method' => 'login',
+                    'input_type' => 'JSON',
+                    'response_type' => 'JSON',
+                    'rest_data' => json_encode([
+                        'user_auth' => [
+                            'user_name' => $username,
+                            'password' => md5($password), // v4_1 requiere MD5
+                        ],
+                        'application_name' => 'Taskflow',
+                    ]),
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                // Verificar si hubo error en la respuesta
+                if (isset($data['name']) && $data['name'] === 'Invalid Login') {
+                    Log::warning('SugarCRM v4_1 authentication failed', [
+                        'username' => $username,
+                        'error' => $data['description'] ?? 'Invalid Login',
+                    ]);
+
+                    return [
+                        'success' => false,
+                        'error' => 'Credenciales inválidas',
+                    ];
+                }
+
+                // Login exitoso - obtener información del usuario
+                $sessionId = $data['id'] ?? null;
+
+                if (!$sessionId) {
+                    return [
+                        'success' => false,
+                        'error' => 'No se recibió session ID',
+                    ];
+                }
+
+                // Obtener información del usuario
+                $userData = $this->getCurrentUserV4_1($sessionId);
+
+                return [
+                    'success' => true,
+                    'data' => [
+                        'user' => $userData,
+                        'session_id' => $sessionId,
+                    ],
+                ];
+            }
+
+            Log::warning('SugarCRM v4_1 authentication request failed', [
+                'username' => $username,
+                'status' => $response->status(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Error de conexión con SugarCRM',
+            ];
+        } catch (\Exception $e) {
+            Log::error('SugarCRM authentication error', [
+                'username' => $username,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'No se pudo conectar con SugarCRM: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Obtener información del usuario actual usando session ID (API v4_1)
+     */
+    private function getCurrentUserV4_1(string $sessionId): ?array
+    {
+        try {
+            $response = Http::timeout($this->timeout)
+                ->asForm()
+                ->post("{$this->baseUrl}/service/v4_1/rest.php", [
+                    'method' => 'get_user_id',
+                    'input_type' => 'JSON',
+                    'response_type' => 'JSON',
+                    'rest_data' => json_encode([
+                        'session' => $sessionId,
+                    ]),
+                ]);
+
+            if ($response->successful()) {
+                $userId = $response->json();
+
+                // Obtener detalles completos del usuario
+                $userDetailsResponse = Http::timeout($this->timeout)
+                    ->asForm()
+                    ->post("{$this->baseUrl}/service/v4_1/rest.php", [
+                        'method' => 'get_user_team_id',
+                        'input_type' => 'JSON',
+                        'response_type' => 'JSON',
+                        'rest_data' => json_encode([
+                            'session' => $sessionId,
+                        ]),
+                    ]);
+
+                return [
+                    'id' => $userId,
+                    'username' => null, // v4_1 no retorna username fácilmente
+                    'name' => null, // Necesitaríamos otro llamado para esto
+                    'email' => null,
+                    'role' => 'user',
+                    'user_type' => 'Regular',
+                ];
+            }
+
+            return [
+                'id' => $sessionId, // Usar session como ID temporal
+                'username' => null,
+                'name' => null,
+                'email' => null,
+                'role' => 'user',
+                'user_type' => 'Regular',
+            ];
+        } catch (\Exception $e) {
+            Log::error('Failed to get current user from SugarCRM v4_1', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'id' => $sessionId,
+                'username' => null,
+                'name' => null,
+                'email' => null,
+                'role' => 'user',
+                'user_type' => 'Regular',
+            ];
+        }
+    }
+
+    /**
+     * Mapear tipos de usuario de SugarCRM a roles
+     */
+    private function mapSugarRole(string $sugarType): string
+    {
+        $roleMap = [
+            'admin' => 'admin',
+            'administrator' => 'admin',
+            'regular' => 'user',
+            'user' => 'user',
+        ];
+
+        return $roleMap[strtolower($sugarType)] ?? 'user';
+    }
+
+    /**
+     * Verificar qué endpoints de SugarCRM están disponibles (para diagnóstico)
+     */
+    public function testEndpoints(): array
+    {
+        $results = [];
+        $endpoints = [
+            'GET /rest/v11_24/ping',
+            'POST /rest/v11_24/oauth2/token',
+            'GET /rest/v11_24/me',
+            'GET /rest/v11_24/Accounts',
+            'GET /rest/v11_24/Users',
+        ];
+
+        foreach ($endpoints as $endpoint) {
+            [$method, $path] = explode(' ', $endpoint);
+
+            try {
+                if ($method === 'GET') {
+                    // Ping no requiere autenticación
+                    if (str_contains($path, 'ping')) {
+                        $response = Http::timeout(5)->get("{$this->baseUrl}{$path}");
+                    } else {
+                        // Otros GET requieren token
+                        $response = Http::timeout(5)
+                            ->withToken($this->apiToken)
+                            ->get("{$this->baseUrl}{$path}");
+                    }
+                } else {
+                    // POST para OAuth2 (test con datos vacíos solo para verificar endpoint)
+                    $response = Http::timeout(5)
+                        ->asJson()
+                        ->post("{$this->baseUrl}{$path}", [
+                            'grant_type' => 'password',
+                            'client_id' => 'sugar',
+                            'client_secret' => '',
+                            'username' => 'test',
+                            'password' => 'test',
+                            'platform' => 'taskflow',
+                        ]);
+                }
+
+                $results[$endpoint] = [
+                    'status' => $response->status(),
+                    'accessible' => $response->successful() || $response->status() === 401,
+                    'error' => !$response->successful() && $response->status() !== 401 ? substr($response->body(), 0, 200) : null,
+                ];
+            } catch (\Exception $e) {
+                $results[$endpoint] = [
+                    'status' => null,
+                    'accessible' => false,
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Obtener datos de usuario desde SugarCRM
+     */
+    public function getUser(string $sweetcrmId): ?array
+    {
+        $cacheKey = "sweetcrm_user_{$sweetcrmId}";
+
+        return Cache::remember($cacheKey, 3600, function () use ($sweetcrmId) {
+            try {
+                $response = Http::timeout($this->timeout)
+                    ->withToken($this->apiToken)
+                    ->get("{$this->baseUrl}/rest/v11_24/Users/{$sweetcrmId}");
+
+                if ($response->successful()) {
+                    return $response->json();
+                }
+
+                Log::warning('SugarCRM user fetch failed', [
+                    'sweetcrm_id' => $sweetcrmId,
+                    'status' => $response->status(),
+                ]);
+
+                return null;
+            } catch (\Exception $e) {
+                Log::error('SugarCRM user fetch error', [
+                    'sweetcrm_id' => $sweetcrmId,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return null;
+            }
+        });
+    }
+
+    /**
+     * Obtener listado de clientes (Accounts) desde SugarCRM v4_1
+     *
+     * Requiere autenticarse primero para obtener un session ID
+     */
+    public function getClients(string $sessionId, array $filters = []): array
+    {
+        try {
+            // Usar get_entry_list para obtener Accounts
+            $response = Http::timeout($this->timeout)
+                ->asForm()
+                ->post("{$this->baseUrl}/service/v4_1/rest.php", [
+                    'method' => 'get_entry_list',
+                    'input_type' => 'JSON',
+                    'response_type' => 'JSON',
+                    'rest_data' => json_encode([
+                        'session' => $sessionId,
+                        'module_name' => 'Accounts',
+                        'query' => $filters['query'] ?? '', // Filtro SQL opcional
+                        'order_by' => $filters['order_by'] ?? '',
+                        'offset' => $filters['offset'] ?? 0,
+                        'select_fields' => [
+                            'id',
+                            'name',
+                            'billing_address_street',
+                            'billing_address_city',
+                            'billing_address_country',
+                            'phone_office',
+                            'email1',
+                            'industry',
+                            'description',
+                            'date_entered',
+                            'date_modified',
+                            'assigned_user_id',
+                            'account_type',
+                            'estatusfinanciero_c',
+                        ],
+                        'link_name_to_fields_array' => [],
+                        'max_results' => $filters['max_results'] ?? 100,
+                        'deleted' => 0,
+                    ]),
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                // Verificar si hay error
+                if (isset($data['name']) && $data['name'] === 'Invalid Session ID') {
+                    Log::warning('SugarCRM session expired', [
+                        'method' => 'getClients',
+                    ]);
+                    return [];
+                }
+
+                // Retornar la lista de accounts
+                return $data['entry_list'] ?? [];
+            }
+
+            Log::warning('SugarCRM v4_1 clients (Accounts) fetch failed', [
+                'status' => $response->status(),
+            ]);
+
+            return [];
+        } catch (\Exception $e) {
+            Log::error('SugarCRM v4_1 clients fetch error', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
+    }
+
+    /**
+     * Autenticar y obtener session ID para operaciones de sincronización
+     */
+    public function getSessionId(string $username, string $password): ?string
+    {
+        $result = $this->authenticate($username, $password);
+
+        if ($result['success']) {
+            return $result['data']['session_id'] ?? null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Obtener un cliente (Account) específico desde SugarCRM v4_1
+     */
+    public function getClient(string $sessionId, string $sweetcrmId): ?array
+    {
+        try {
+            $response = Http::timeout($this->timeout)
+                ->asForm()
+                ->post("{$this->baseUrl}/service/v4_1/rest.php", [
+                    'method' => 'get_entry',
+                    'input_type' => 'JSON',
+                    'response_type' => 'JSON',
+                    'rest_data' => json_encode([
+                        'session' => $sessionId,
+                        'module_name' => 'Accounts',
+                        'id' => $sweetcrmId,
+                        'select_fields' => [
+                            'id',
+                            'name',
+                            'billing_address_street',
+                            'billing_address_city',
+                            'billing_address_country',
+                            'phone_office',
+                            'email1',
+                            'industry',
+                            'description',
+                            'date_entered',
+                            'date_modified',
+                            'assigned_user_id',
+                            'account_type',
+                            'estatusfinanciero_c',
+                        ],
+                    ]),
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                if (isset($data['entry_list'][0])) {
+                    return $data['entry_list'][0];
+                }
+            }
+
+            Log::warning('SugarCRM v4_1 client (Account) fetch failed', [
+                'sweetcrm_id' => $sweetcrmId,
+                'status' => $response->status(),
+            ]);
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('SugarCRM v4_1 client fetch error', [
+                'sweetcrm_id' => $sweetcrmId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Sincronizar cliente desde SweetCRM a Taskflow
+     */
+    public function syncClient(string $sweetcrmId): ?array
+    {
+        $clientData = $this->getClient($sweetcrmId);
+
+        if (!$clientData) {
+            return null;
+        }
+
+        // Invalidar cache
+        Cache::forget("sweetcrm_client_{$sweetcrmId}");
+
+        return $clientData;
+    }
+
+    /**
+     * Verificar conexión con SugarCRM
+     */
+    public function ping(): bool
+    {
+        try {
+            // SugarCRM usa /rest/v11_24/ping
+            $response = Http::timeout(5)
+                ->get("{$this->baseUrl}/rest/v11_24/ping");
+
+            return $response->successful();
+        } catch (\Exception $e) {
+            Log::error('SugarCRM ping failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Obtener todos los usuarios de SweetCRM v4_1
+     */
+    public function getUsers(string $sessionId): array
+    {
+        try {
+            $response = Http::timeout($this->timeout)
+                ->asForm()
+                ->post("{$this->baseUrl}/service/v4_1/rest.php", [
+                    'method' => 'get_entry_list',
+                    'input_type' => 'JSON',
+                    'response_type' => 'JSON',
+                    'rest_data' => json_encode([
+                        'session' => $sessionId,
+                        'module_name' => 'Users',
+                        'query' => '',
+                        'order_by' => 'user_name',
+                        'offset' => 0,
+                        'select_fields' => [
+                            'id',
+                            'user_name',
+                            'first_name',
+                            'last_name',
+                            'email1',
+                            'is_admin',
+                            'status',
+                            'department',
+                        ],
+                        'link_name_to_fields_array' => [],
+                        'max_results' => 1000, // Alto límite para usuarios
+                        'deleted' => 0,
+                    ]),
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['entry_list'] ?? [];
+            }
+
+            return [];
+        } catch (\Exception $e) {
+            Log::error('SugarCRM v4_1 users fetch error', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
+     * Invalidar cache de un recurso
+     */
+    public function invalidateCache(string $resource, string $id): void
+    {
+        $cacheKey = "sweetcrm_{$resource}_{$id}";
+        Cache::forget($cacheKey);
+    }
+
+    /**
+     * Obtener casos (Cases) desde SugarCRM v4_1
+     */
+    public function getCases(string $sessionId, array $filters = []): array
+    {
+        try {
+            $response = Http::timeout($this->timeout)
+                ->asForm()
+                ->post("{$this->baseUrl}/service/v4_1/rest.php", [
+                    'method' => 'get_entry_list',
+                    'input_type' => 'JSON',
+                    'response_type' => 'JSON',
+                    'rest_data' => json_encode([
+                        'session' => $sessionId,
+                        'module_name' => 'Cases',
+                        'query' => $filters['query'] ?? '',
+                        'order_by' => $filters['order_by'] ?? 'case_number DESC',
+                        'offset' => $filters['offset'] ?? 0,
+                        'select_fields' => [
+                            'id',
+                            'case_number',
+                            'name',
+                            'account_id',
+                            'description',
+                            'status',
+                            'priority',
+                            'type',
+                            'area_c', // Campo personalizado de área en SweetCRM
+                            'assigned_user_id',
+                            'date_entered',
+                            'date_modified',
+                        ],
+                        'link_name_to_fields_array' => [],
+                        'max_results' => $filters['max_results'] ?? 100,
+                        'deleted' => 0,
+                    ]),
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['entry_list'] ?? [];
+            }
+
+            return [];
+        } catch (\Exception $e) {
+            Log::error('SugarCRM v4_1 cases fetch error', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
+     * Obtener tareas (Tasks) desde SugarCRM v4_1
+     */
+    public function getTasks(string $sessionId, array $filters = []): array
+    {
+        try {
+            $response = Http::timeout($this->timeout)
+                ->asForm()
+                ->post("{$this->baseUrl}/service/v4_1/rest.php", [
+                    'method' => 'get_entry_list',
+                    'input_type' => 'JSON',
+                    'response_type' => 'JSON',
+                    'rest_data' => json_encode([
+                        'session' => $sessionId,
+                        'module_name' => 'Tasks',
+                        'query' => $filters['query'] ?? '',
+                        'order_by' => $filters['order_by'] ?? 'date_entered DESC',
+                        'offset' => $filters['offset'] ?? 0,
+                        'select_fields' => [
+                            'id',
+                            'name',
+                            'description',
+                            'status',
+                            'priority',
+                            'parent_type',
+                            'parent_id',
+                            'contact_id',
+                            'date_start',
+                            'date_due',
+                            'assigned_user_id',
+                            'date_entered',
+                            'date_modified',
+                        ],
+                        'link_name_to_fields_array' => [],
+                        'max_results' => $filters['max_results'] ?? 100,
+                        'deleted' => 0,
+                    ]),
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['entry_list'] ?? [];
+            }
+
+            return [];
+        } catch (\Exception $e) {
+            Log::error('SugarCRM v4_1 tasks fetch error', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+}

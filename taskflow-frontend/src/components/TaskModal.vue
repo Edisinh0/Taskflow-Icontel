@@ -59,6 +59,22 @@
             ></textarea>
             </div>
 
+            <!-- Información de CRM (Solo lectura) -->
+            <div v-if="task?.crmCase" class="mb-5 p-4 bg-purple-50 dark:bg-purple-900/10 rounded-xl border border-purple-200 dark:border-purple-500/20 shadow-sm">
+                <label class="block text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest mb-2">
+                    Vinculado a Caso CRM
+                </label>
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-white dark:bg-purple-900/30 rounded-lg shadow-sm border border-purple-100 dark:border-purple-500/20">
+                        <Briefcase :size="16" class="text-purple-500" />
+                    </div>
+                    <div>
+                        <p class="text-sm font-black text-slate-800 dark:text-white">#{{ task.crmCase.case_number }}</p>
+                        <p class="text-xs font-bold text-slate-500 dark:text-slate-400 line-clamp-1">{{ task.crmCase.subject }}</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Grid de 2 columnas -->
             <div class="grid grid-cols-2 gap-5 mb-5">
               <!-- Responsable -->
@@ -301,7 +317,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { tasksAPI } from '@/services/api'
-import { Zap, Clock, X, Target, Paperclip, Link2, AlertCircle } from 'lucide-vue-next'
+import { Briefcase, Zap, Clock, X, Target, Paperclip, Link2, AlertCircle } from 'lucide-vue-next'
 
 const props = defineProps({
   isOpen: Boolean,

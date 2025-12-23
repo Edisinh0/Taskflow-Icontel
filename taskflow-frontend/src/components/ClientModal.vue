@@ -92,13 +92,16 @@
                 <div>
                   <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Industria</label>
                   <div class="relative">
-                    <Briefcase class="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                    <input
-                      v-model="form.industry"
-                      type="text"
-                      class="pl-10 w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-slate-900/50 dark:text-white focus:border-blue-500 focus:ring-blue-500 transition-colors"
-                      placeholder="Tecnología, Minería, Retail..."
-                    />
+                    <Briefcase class="absolute left-3 top-3 w-4 h-4 text-slate-400 z-10 pointer-events-none" />
+                    <select
+                      v-model.number="form.industry_id"
+                      class="pl-10 w-full rounded-xl border border-slate-300 dark:border-white/10 dark:bg-slate-900/50 dark:text-white focus:border-blue-500 focus:ring-blue-500 transition-colors cursor-pointer py-3"
+                    >
+                      <option :value="null">Seleccionar industria...</option>
+                      <option v-for="industry in industries" :key="industry.id" :value="industry.id">
+                        {{ industry.name }}
+                      </option>
+                    </select>
                   </div>
                 </div>
 
@@ -161,7 +164,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import {
   TransitionRoot,
   TransitionChild,
@@ -170,6 +173,7 @@ import {
   DialogTitle,
 } from '@headlessui/vue'
 import { User, Mail, Phone, MapPin, Briefcase, Database, Edit2, Loader2 } from 'lucide-vue-next'
+import { industriesAPI } from '@/services/api'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -180,21 +184,37 @@ const props = defineProps({
 const emit = defineEmits(['close', 'save'])
 
 const isEditing = ref(false)
+const industries = ref([])
 const form = ref({
   name: '',
   email: '',
   phone: '',
   address: '',
-  industry: '',
+  industry_id: null,
+  industry: '', // Mantener por compatibilidad
   sweetcrm_id: '',
   status: 'active'
+})
+
+// Load industries on component mount
+onMounted(async () => {
+  try {
+    const response = await industriesAPI.getAll()
+    industries.value = response.data
+  } catch (err) {
+    console.error('Error loading industries:', err)
+  }
 })
 
 // Resetear o cargar formulario cuando cambia el cliente o se abre el modal
 watch(() => props.client, (newClient) => {
   if (newClient) {
     isEditing.value = true
-    form.value = { ...newClient }
+    form.value = {
+      ...newClient,
+      industry_id: newClient.industry_id || null,
+      industry: newClient.industry || '' // Mantener compatibilidad
+    }
   } else {
     isEditing.value = false
     form.value = {
@@ -202,6 +222,7 @@ watch(() => props.client, (newClient) => {
       email: '',
       phone: '',
       address: '',
+      industry_id: null,
       industry: '',
       sweetcrm_id: '',
       status: 'active'

@@ -34,6 +34,36 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = null
 
       const response = await authAPI.login(credentials)
+      const { user: userData, token: authToken, auth_source } = response.data
+
+      // Guardar en el estado
+      user.value = userData
+      token.value = authToken
+
+      // Guardar en localStorage
+      localStorage.setItem('token', authToken)
+      localStorage.setItem('user', JSON.stringify(userData))
+      localStorage.setItem('auth_source', auth_source || 'local')
+
+      // Inicializar Echo con el nuevo token
+      initializeEcho(authToken)
+
+      return { success: true, auth_source }
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Error al iniciar sesión'
+      return { success: false, error: error.value }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // Login con SweetCRM
+  const sweetCrmLogin = async (credentials) => {
+    try {
+      isLoading.value = true
+      error.value = null
+
+      const response = await authAPI.sweetCrmLogin(credentials)
       const { user: userData, token: authToken } = response.data
 
       // Guardar en el estado
@@ -43,13 +73,14 @@ export const useAuthStore = defineStore('auth', () => {
       // Guardar en localStorage
       localStorage.setItem('token', authToken)
       localStorage.setItem('user', JSON.stringify(userData))
+      localStorage.setItem('auth_source', 'sweetcrm')
 
       // Inicializar Echo con el nuevo token
       initializeEcho(authToken)
 
-      return { success: true }
+      return { success: true, auth_source: 'sweetcrm' }
     } catch (err) {
-      error.value = err.response?.data?.message || 'Error al iniciar sesión'
+      error.value = err.response?.data?.message || 'Error al iniciar sesión con SweetCRM'
       return { success: false, error: error.value }
     } finally {
       isLoading.value = false
@@ -97,6 +128,7 @@ export const useAuthStore = defineStore('auth', () => {
     currentUser,
     // Acciones
     login,
+    sweetCrmLogin,
     logout,
     fetchCurrentUser,
     loadFromStorage,

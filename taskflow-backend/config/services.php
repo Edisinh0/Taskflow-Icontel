@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'sweetcrm' => [
+        'url' => env('SWEETCRM_URL'),
+        'username' => env('SWEETCRM_USERNAME'),
+        'password' => env('SWEETCRM_PASSWORD'),
+        'api_token' => env('SWEETCRM_API_TOKEN'),
+        'enabled' => env('SWEETCRM_ENABLED', false),
+        'sync_interval' => env('SWEETCRM_SYNC_INTERVAL', 3600), // segundos
+    ],
+
 ];

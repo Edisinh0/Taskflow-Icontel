@@ -51,9 +51,25 @@
           </div>
 
           <!-- Descripción -->
-          <p class="text-slate-500 dark:text-slate-400 text-sm mb-6 line-clamp-3 h-15">
+          <p class="text-slate-500 dark:text-slate-400 text-sm mb-4 line-clamp-3 h-15">
             {{ template.description || 'Sin descripción disponible.' }}
           </p>
+
+          <!-- Industrias Aplicables -->
+          <div v-if="template.industries && template.industries.length > 0" class="mb-6">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
+              Industrias
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <span
+                v-for="industry in template.industries"
+                :key="industry.id"
+                class="px-3 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full border border-blue-200 dark:border-blue-500/30"
+              >
+                {{ industry.name }}
+              </span>
+            </div>
+          </div>
 
           <!-- Información adicional -->
           <div v-if="template.config" class="space-y-3 mb-6 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-white/5">

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Models\Template;
 use Illuminate\Http\Request;
 
 class ClientController extends Controller
@@ -17,6 +18,10 @@ class ClientController extends Controller
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
+        }
+
+        if ($request->has('account_type')) {
+            $query->where('account_type', $request->account_type);
         }
 
         if ($request->has('search')) {
@@ -42,6 +47,7 @@ class ClientController extends Controller
             'phone' => 'nullable|string|max:50',
             'address' => 'nullable|string|max:255',
             'industry' => 'nullable|string|max:100',
+            'industry_id' => 'nullable|exists:industries,id',
             'sweetcrm_id' => 'nullable|string|max:100',
             'status' => 'required|in:active,inactive',
         ]);
@@ -56,11 +62,18 @@ class ClientController extends Controller
      */
     public function show(Client $client)
     {
-        // Cargar flujos con sus tareas y estadísticas
-        $client->load(['flows' => function($query) {
-            $query->with(['tasks', 'creator:id,name'])
-                  ->orderBy('created_at', 'desc');
-        }]);
+        // Cargar flujos con sus tareas, estadísticas, contactos y adjuntos
+        $client->load([
+            'flows' => function($query) {
+                $query->with(['tasks', 'creator:id,name'])
+                      ->orderBy('created_at', 'desc');
+            },
+            'contacts' => function($query) {
+                $query->orderBy('is_primary', 'desc')->orderBy('name');
+            },
+            'attachments.uploader:id,name',
+            'industry'
+        ]);
 
         // Calcular estadísticas
         $totalFlows = $client->flows->count();
@@ -98,6 +111,7 @@ class ClientController extends Controller
             'phone' => 'nullable|string|max:50',
             'address' => 'nullable|string|max:255',
             'industry' => 'nullable|string|max:100',
+            'industry_id' => 'nullable|exists:industries,id',
             'sweetcrm_id' => 'nullable|string|max:100',
             'status' => 'sometimes|required|in:active,inactive',
         ]);
@@ -114,5 +128,43 @@ class ClientController extends Controller
     {
         $client->delete();
         return response()->json(null, 204);
+    }
+
+    /**
+     * Get recommended templates for a client based on industry
+     * GET /api/v1/clients/{client}/recommended-templates
+     */
+    public function recommendedTemplates(Client $client)
+    {
+        // Load the client's industry relationship
+        $client->load('industry');
+
+        $templates = [];
+
+        // If client has an industry, get templates for that industry
+        if ($client->industry_id) {
+            $templates = Template::with(['creator', 'industries'])
+                ->where('is_active', true)
+                ->forIndustry($client->industry_id)
+                ->orderBy('name')
+                ->get();
+        }
+
+        // Fallback: if no industry-specific templates, return all active templates
+        if (empty($templates) || $templates->isEmpty()) {
+            $templates = Template::with(['creator', 'industries'])
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get();
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $templates,
+            'industry' => $client->industry,
+            'message' => $client->industry_id ?
+                "Plantillas recomendadas para {$client->industry->name}" :
+                'Todas las plantillas disponibles'
+        ]);
     }
 }

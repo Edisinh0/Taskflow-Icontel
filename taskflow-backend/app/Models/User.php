@@ -49,6 +49,10 @@ class User extends Authenticatable implements Auditable
         'email',
         'password',
         'role',
+        'department',
+        'sweetcrm_id',
+        'sweetcrm_user_type',
+        'sweetcrm_synced_at',
     ];
 
     /**
@@ -71,6 +75,30 @@ class User extends Authenticatable implements Auditable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'sweetcrm_synced_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Verificar si el usuario está sincronizado con SweetCRM
+     */
+    public function isSyncedWithSweetCrm(): bool
+    {
+        return !is_null($this->sweetcrm_id);
+    }
+
+    /**
+     * Verificar si la sincronización está desactualizada
+     */
+    public function needsSweetCrmSync(): bool
+    {
+        if (!$this->isSyncedWithSweetCrm()) {
+            return false;
+        }
+
+        $syncInterval = config('services.sweetcrm.sync_interval', 3600);
+
+        return is_null($this->sweetcrm_synced_at) ||
+               $this->sweetcrm_synced_at->addSeconds($syncInterval)->isPast();
     }
 }

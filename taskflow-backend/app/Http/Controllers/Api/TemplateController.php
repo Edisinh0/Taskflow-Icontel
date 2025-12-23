@@ -11,14 +11,20 @@ class TemplateController extends Controller
 {
     /**
      * Listar todas las plantillas
-     * GET /api/v1/templates
+     * GET /api/v1/templates?industry_id={id}
      */
-    public function index()
+    public function index(Request $request)
     {
-        $templates = Template::with('creator')
+        $query = Template::with(['creator', 'industries'])
             ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
+            ->orderBy('name');
+
+        // Filtrar por industria si se proporciona
+        if ($request->has('industry_id')) {
+            $query->forIndustry($request->industry_id);
+        }
+
+        $templates = $query->get();
 
         return response()->json([
             'success' => true,
@@ -37,17 +43,27 @@ class TemplateController extends Controller
             'description' => 'nullable|string',
             'version' => 'nullable|string|max:50',
             'config' => 'nullable|array',
+            'industry_ids' => 'nullable|array',
+            'industry_ids.*' => 'exists:industries,id',
         ]);
 
         $template = Template::create([
-            ...$validated,
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'version' => $validated['version'] ?? '1.0',
+            'config' => $validated['config'] ?? null,
             'created_by' => $request->user()->id,
         ]);
+
+        // Attach industries if provided
+        if (!empty($validated['industry_ids'])) {
+            $template->industries()->sync($validated['industry_ids']);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Plantilla creada exitosamente',
-            'data' => $template->load('creator'),
+            'data' => $template->load(['creator', 'industries']),
         ], 201);
     }
 
@@ -80,14 +96,26 @@ class TemplateController extends Controller
             'version' => 'nullable|string|max:50',
             'is_active' => 'sometimes|boolean',
             'config' => 'nullable|array',
+            'industry_ids' => 'nullable|array',
+            'industry_ids.*' => 'exists:industries,id',
         ]);
 
-        $template->update($validated);
+        // Update template fields
+        $updateData = collect($validated)
+            ->except('industry_ids')
+            ->toArray();
+
+        $template->update($updateData);
+
+        // Sync industries if provided
+        if (isset($validated['industry_ids'])) {
+            $template->industries()->sync($validated['industry_ids']);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Plantilla actualizada exitosamente',
-            'data' => $template->load('creator'),
+            'data' => $template->load(['creator', 'industries']),
         ], 200);
     }
 

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use OwenIt\Auditing\Contracts\Auditable;
 
 class Template extends Model implements Auditable
@@ -51,5 +52,23 @@ class Template extends Model implements Auditable
     public function flows(): HasMany
     {
         return $this->hasMany(Flow::class);
+    }
+
+    /**
+     * Relación: Una plantilla puede servir a múltiples industrias
+     */
+    public function industries(): BelongsToMany
+    {
+        return $this->belongsToMany(Industry::class, 'template_industries');
+    }
+
+    /**
+     * Scope para filtrar plantillas por industria
+     */
+    public function scopeForIndustry($query, $industryId)
+    {
+        return $query->whereHas('industries', function ($q) use ($industryId) {
+            $q->where('industry_id', $industryId);
+        });
     }
 }

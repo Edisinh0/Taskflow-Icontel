@@ -41,19 +41,39 @@ api.interceptors.response.use(
 // ========== AUTH ==========
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
+  sweetCrmLogin: (credentials) => api.post('/auth/sweetcrm-login', credentials),
   logout: () => api.post('/auth/logout'),
   me: () => api.get('/auth/me'),
   register: (userData) => api.post('/auth/register', userData),
 }
 
+// ========== SWEETCRM ==========
+export const sweetCrmAPI = {
+  ping: () => api.get('/sweetcrm/ping'),
+  syncClients: (filters) => api.post('/sweetcrm/sync-clients', { filters }),
+  syncClient: (sweetcrmId) => api.post(`/sweetcrm/sync-client/${sweetcrmId}`),
+  getUser: (sweetcrmId) => api.get(`/sweetcrm/user/${sweetcrmId}`),
+  syncMe: () => api.post('/sweetcrm/sync-me'),
+}
+
+// ========== INDUSTRIES ==========
+export const industriesAPI = {
+  getAll: () => api.get('/industries'),
+  getOne: (id) => api.get(`/industries/${id}`),
+  create: (data) => api.post('/industries', data),
+  update: (id, data) => api.put(`/industries/${id}`, data),
+  delete: (id) => api.delete(`/industries/${id}`),
+}
+
 // ========== TEMPLATES ==========
 export const templatesAPI = {
-  getAll: () => api.get('/templates'),
+  getAll: (params) => api.get('/templates', { params }),
   getOne: (id) => api.get(`/templates/${id}`),
   create: (data) => api.post('/templates', data),
   createFromFlow: (flowId, data) => api.post(`/templates/from-flow/${flowId}`, data),
   update: (id, data) => api.put(`/templates/${id}`, data),
   delete: (id) => api.delete(`/templates/${id}`),
+  getRecommendedForClient: (clientId) => api.get(`/clients/${clientId}/recommended-templates`),
 }
 
 // ========== FLOWS ==========
@@ -77,7 +97,13 @@ export const tasksAPI = {
     onUploadProgress
   }),
   deleteAttachment: (fileId) => api.delete(`/attachments/${fileId}`),
-  deleteAttachment: (fileId) => api.delete(`/attachments/${fileId}`),
+}
+
+// ========== CASES ==========
+export const casesAPI = {
+  getAll: (params) => api.get('/cases', { params }),
+  getOne: (id) => api.get(`/cases/${id}`),
+  getStats: () => api.get('/cases/stats'),
 }
 
 // ========== FLOW BUILDER MODULE (PM/Admin) ==========

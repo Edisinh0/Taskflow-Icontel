@@ -47,6 +47,7 @@ class FlowController extends Controller
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'template_id' => 'nullable|exists:templates,id',
+                'client_id' => 'nullable|exists:clients,id',
                 'status' => 'nullable|in:active,paused,completed,cancelled',
             ]);
 
@@ -68,79 +69,19 @@ class FlowController extends Controller
                 'started_at' => now(),
             ]);
 
-        // Instanciar tareas desde la plantilla si existe
-        if ($request->template_id) {
-            $template = Template::find($request->template_id);
-            if ($template && isset($template->config['tasks']) && is_array($template->config['tasks'])) {
-                $idMap = [];
-                $pendingDependencies = [];
-
-                $this->createTasksFromTemplate($flow->id, $template->config['tasks'], null, $idMap, $pendingDependencies);
-
-                \Illuminate\Support\Facades\Log::info("Flow ID {$flow->id}: Tareas creadas. ID Map: " . json_encode($idMap));
-                \Illuminate\Support\Facades\Log::info("Flow ID {$flow->id}: Dependencias pendientes: " . json_encode($pendingDependencies));
-
-                // Procesar dependencias pendientes
-                foreach ($pendingDependencies as $pending) {
-                    $taskModified = false;
-                    $task = null;
-
-                    // 1. Sistema complejo (TaskDependency M:N)
-                    if (isset($pending['dependency_refs']) && is_array($pending['dependency_refs'])) {
-                        foreach ($pending['dependency_refs'] as $refId) {
-                            if (isset($idMap[$refId])) {
-                                \Illuminate\Support\Facades\Log::info("Creando dependencia Pivot: Tarea {$pending['new_task_id']} depende de {$idMap[$refId]}");
-                                \App\Models\TaskDependency::create([
-                                    'task_id' => $pending['new_task_id'],
-                                    'depends_on_task_id' => $idMap[$refId],
-                                    'dependency_type' => 'finish_to_start'
-                                ]);
-                            }
-                        }
-                    }
-
-                    // 2. Sistema simple (Columna depends_on_task_id 1:N)
-                    if (isset($pending['depends_on_task_ref'])) {
-                        $refId = $pending['depends_on_task_ref'];
-                        if (isset($idMap[$refId])) {
-                            if (!$task) $task = Task::find($pending['new_task_id']);
-                            
-                            if ($task) {
-                                \Illuminate\Support\Facades\Log::info("Asignando depends_on_task_id: Tarea {$task->id} depende de {$idMap[$refId]}");
-                                $task->depends_on_task_id = $idMap[$refId];
-                                $taskModified = true;
-                            }
-                        } else {
-                            \Illuminate\Support\Facades\Log::warning("No se encontró ref en mapa para depends_on_task_ref: $refId");
-                        }
-                    }
-
-                    if ($taskModified && $task) {
-                        $task->save(); // Dispara Observer updating -> recalcula bloqueo
-                    }
-                }
-                
-                // Recalcular estado de bloqueo final para asegurar consistencia
-                foreach ($idMap as $newTaskId) {
-                    $task = Task::find($newTaskId);
-                    if ($task) {
-                        // Forzar refresco por si el observer no corrió o si usamos sistema pivot
-                        $task->is_blocked = $task->isBlocked(); 
-                        if ($task->is_blocked && $task->status !== 'completed' && $task->status !== 'blocked') {
-                            $task->status = 'blocked';
-                            $task->blocked_reason = 'Esperando tareas precedentes';
-                            $task->saveQuietly();
-                        }
-                    }
+            // Instanciar tareas desde la plantilla si existe
+            if ($request->template_id) {
+                $template = Template::find($request->template_id);
+                if ($template && isset($template->config['tasks']) && is_array($template->config['tasks'])) {
+                    app(\App\Services\TemplateProcessingService::class)->createTasksFromTemplate($flow, $template->config['tasks']);
                 }
             }
-        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Flujo creado exitosamente',
-            'data' => $flow->load(['template', 'creator']),
-        ], 201);
+            return response()->json([
+                'success' => true,
+                'message' => 'Flujo creado exitosamente',
+                'data' => $flow->load(['template', 'creator']),
+            ], 201);
         
         } catch (\Illuminate\Validation\ValidationException $e) {
             \Illuminate\Support\Facades\Log::error('Flow creation validation failed: ' . json_encode($e->errors()));
@@ -156,79 +97,6 @@ class FlowController extends Controller
         }
     }
 
-    /**
-     * Recursively create tasks from template configuration
-     */
-    private function createTasksFromTemplate($flowId, $tasks, $parentId = null, &$idMap = [], &$pendingDependencies = [])
-    {
-        $previousSubtaskId = null;
-        $isFirstSubtask = true;
-
-        foreach ($tasks as $taskData) {
-            // Determinar el estado inicial de la tarea
-            $initialStatus = 'pending';
-
-            // Si es una subtarea (tiene parent_task_id) y es la primera, debe estar "in_progress"
-            if ($parentId !== null && $isFirstSubtask) {
-                $initialStatus = 'in_progress';
-                $isFirstSubtask = false;
-            }
-
-            $task = Task::create([
-                'flow_id' => $flowId,
-                'parent_task_id' => $parentId,
-                'title' => $taskData['title'],
-                'description' => $taskData['description'] ?? null,
-                'is_milestone' => $taskData['is_milestone'] ?? false,
-                'priority' => $taskData['priority'] ?? 'medium',
-                'status' => $initialStatus,
-                'estimated_start_at' => isset($taskData['start_day_offset']) ? now()->addDays($taskData['start_day_offset']) : null,
-                'estimated_end_at' => isset($taskData['duration_days']) ? now()->addDays(($taskData['start_day_offset'] ?? 0) + $taskData['duration_days']) : null,
-            ]);
-
-            // Guardar mapeo si existe referencia
-            if (isset($taskData['temp_ref_id'])) {
-                $idMap[$taskData['temp_ref_id']] = $task->id;
-            }
-
-            // Guardar dependencias para procesar después
-            $pendingData = [
-                'new_task_id' => $task->id
-            ];
-            $hasPending = false;
-
-            if (isset($taskData['dependencies']) && is_array($taskData['dependencies']) && !empty($taskData['dependencies'])) {
-                $pendingData['dependency_refs'] = $taskData['dependencies'];
-                $hasPending = true;
-            }
-
-            if (isset($taskData['depends_on_task_ref']) && $taskData['depends_on_task_ref']) {
-                $pendingData['depends_on_task_ref'] = $taskData['depends_on_task_ref'];
-                $hasPending = true;
-            }
-
-            // Si es una subtarea (no la primera) y hay una subtarea anterior, debe depender de ella
-            if ($parentId !== null && $previousSubtaskId !== null) {
-                $pendingData['depends_on_task_ref'] = 'prev_subtask_' . $previousSubtaskId;
-                $idMap['prev_subtask_' . $previousSubtaskId] = $previousSubtaskId;
-                $hasPending = true;
-            }
-
-            if ($hasPending) {
-                $pendingDependencies[] = $pendingData;
-            }
-
-            // Actualizar el ID de la subtarea anterior para la próxima iteración
-            if ($parentId !== null) {
-                $previousSubtaskId = $task->id;
-            }
-
-            // Si tiene subtareas, crearlas recursivamente
-            if (isset($taskData['subtasks']) && is_array($taskData['subtasks'])) {
-                $this->createTasksFromTemplate($flowId, $taskData['subtasks'], $task->id, $idMap, $pendingDependencies);
-            }
-        }
-    }
 
     /**
      * Ver un flujo específico con todas sus tareas

@@ -59,6 +59,30 @@
               />
             </div>
 
+            <!-- Industrias Aplicables -->
+            <div class="mb-6">
+              <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">
+                Industrias Aplicables
+              </label>
+              <div class="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-300 dark:border-slate-700">
+                <div v-if="industries.length === 0" class="col-span-2 text-xs text-slate-500 dark:text-slate-400 py-2">
+                  Cargando industrias...
+                </div>
+                <label v-for="industry in industries" :key="industry.id" class="flex items-center">
+                  <input
+                    :checked="formData.industry_ids.includes(industry.id)"
+                    @change="toggleIndustry(industry.id)"
+                    type="checkbox"
+                    class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span class="ml-2 text-sm text-slate-700 dark:text-slate-300">{{ industry.name }}</span>
+                </label>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                Selecciona las industrias para las que aplica esta plantilla
+              </p>
+            </div>
+
             <!-- Basic JSON Config Editor -->
             <div class="mb-6">
               <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
@@ -114,8 +138,8 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import { templatesAPI } from '@/services/api'
+import { ref, watch, onMounted } from 'vue'
+import { templatesAPI, industriesAPI } from '@/services/api'
 
 defineProps({
   isOpen: Boolean
@@ -125,6 +149,7 @@ const emit = defineEmits(['close', 'saved'])
 
 const loading = ref(false)
 const error = ref(null)
+const industries = ref([])
 const jsonConfigString = ref('{\n  "tasks": [\n    {\n      "title": "Hito Inicial",\n      "is_milestone": true,\n      "subtasks": [\n        {"title": "Tarea 1"}\n      ]\n    }\n  ]\n}')
 const jsonError = ref(false)
 
@@ -132,7 +157,18 @@ const formData = ref({
   name: '',
   description: '',
   version: '1.0.0',
-  config: {}
+  config: {},
+  industry_ids: []
+})
+
+// Load industries on mount
+onMounted(async () => {
+  try {
+    const response = await industriesAPI.getAll()
+    industries.value = response.data
+  } catch (err) {
+    console.error('Error loading industries:', err)
+  }
 })
 
 watch(jsonConfigString, (newVal) => {
@@ -144,8 +180,29 @@ watch(jsonConfigString, (newVal) => {
   }
 })
 
+/**
+ * Toggle industry selection in checkbox group
+ */
+const toggleIndustry = (industryId) => {
+  const index = formData.value.industry_ids.indexOf(industryId)
+  if (index > -1) {
+    formData.value.industry_ids.splice(index, 1)
+  } else {
+    formData.value.industry_ids.push(industryId)
+  }
+}
+
 const closeModal = () => {
   error.value = null
+  // Reset form
+  formData.value = {
+    name: '',
+    description: '',
+    version: '1.0.0',
+    config: {},
+    industry_ids: []
+  }
+  jsonConfigString.value = '{\n  "tasks": [\n    {\n      "title": "Hito Inicial",\n      "is_milestone": true,\n      "subtasks": [\n        {"title": "Tarea 1"}\n      ]\n    }\n  ]\n}'
   emit('close')
 }
 
