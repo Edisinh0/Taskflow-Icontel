@@ -115,10 +115,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useUserNotifications } from '@/composables/useRealtime'
 import { useAuthStore } from '@/stores/auth'
+import { getEcho } from '@/services/echo'
 import {
   Bell,
   AlertTriangle,
@@ -132,6 +133,7 @@ const notificationsStore = useNotificationsStore()
 const authStore = useAuthStore()
 
 const showPanel = ref(false)
+let realtimeConnection = null
 
 // Computed
 const notifications = computed(() => notificationsStore.notifications)
@@ -139,15 +141,28 @@ const toasts = computed(() => notificationsStore.toasts)
 const unreadCount = computed(() => notificationsStore.unreadCount)
 const isLoading = computed(() => notificationsStore.isLoading)
 
-// Setup realtime notifications (must be called during setup, not in onMounted)
-const userId = authStore.user?.id
-if (userId) {
-  useUserNotifications(userId, (event) => {
-    console.log('📬 Nueva notificación:', event.notification)
-    notificationsStore.addNotification(event.notification)
-    notificationsStore.showToast(event.notification)
-  })
+// Setup realtime notifications when user is authenticated and Echo is ready
+const setupRealtime = () => {
+  const userId = authStore.user?.id
+  const echo = getEcho()
+
+  if (userId && authStore.isAuthenticated && echo && !realtimeConnection) {
+    console.log('🔔 Setting up realtime notifications for user:', userId)
+    realtimeConnection = useUserNotifications(userId, (event) => {
+      console.log('📬 Nueva notificación:', event.notification)
+      notificationsStore.addNotification(event.notification)
+      notificationsStore.showToast(event.notification)
+    })
+  }
 }
+
+// Watch for authentication changes
+watch(() => authStore.isAuthenticated, (isAuth) => {
+  if (isAuth) {
+    // Give Echo a moment to initialize
+    setTimeout(setupRealtime, 100)
+  }
+}, { immediate: true })
 
 // Methods
 function togglePanel() {

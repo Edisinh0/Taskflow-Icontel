@@ -97,15 +97,32 @@ class SyncSugarCrmUsers extends Command
                     // Si lo encontramos por email y estamos vinculando el ID por primera vez
                     $user->update(['sweetcrm_id' => $sweetId]);
                 }
-                
-                unset($userData['email']); 
+
+                unset($userData['email']);
                 $user->update($userData);
                 $updated++;
             } else {
-                // Crear nuevo
+                // Crear nuevo - usar updateOrCreate para evitar duplicados
                 $userData['password'] = Hash::make(Str::random(16));
-                User::create($userData);
-                $created++;
+
+                try {
+                    User::create($userData);
+                    $created++;
+                } catch (\Illuminate\Database\QueryException $e) {
+                    // Si hay error de duplicado, intentar actualizar
+                    if ($e->getCode() === '23000') {
+                        $this->warn("⚠️  Usuario {$sweetId} ya existe (posible duplicado). Intentando actualizar...");
+                        $existingUser = User::where('sweetcrm_id', $sweetId)->first();
+                        if ($existingUser) {
+                            unset($userData['email']);
+                            unset($userData['password']);
+                            $existingUser->update($userData);
+                            $updated++;
+                        }
+                    } else {
+                        throw $e;
+                    }
+                }
             }
 
             $bar->advance();

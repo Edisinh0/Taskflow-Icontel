@@ -81,20 +81,42 @@ class AuthController extends Controller
     {
         $sweetCrmUser = $sweetCrmData['user'] ?? $sweetCrmData;
 
-        // Buscar o crear usuario basado en SweetCRM ID o email
-        $user = User::where('sweetcrm_id', $sweetCrmUser['id'] ?? null)
-            ->orWhere('email', $sweetCrmUser['email'] ?? null)
-            ->first();
+        // Validar que tengamos al menos ID o email para buscar
+        $sweetcrmId = $sweetCrmUser['id'] ?? null;
+        $sweetcrmEmail = $sweetCrmUser['email'] ?? null;
+
+        if (!$sweetcrmId && !$sweetcrmEmail) {
+            Log::error('SweetCRM login failed: no ID or email provided', [
+                'data' => $sweetCrmUser,
+            ]);
+
+            return response()->json([
+                'message' => 'Error: datos incompletos de SweetCRM',
+            ], 422);
+        }
+
+        // Buscar usuario - solo buscar por los campos que existen
+        $query = User::query();
+
+        if ($sweetcrmId) {
+            $query->where('sweetcrm_id', $sweetcrmId);
+        }
+
+        if ($sweetcrmEmail && !$sweetcrmId) {
+            $query->orWhere('email', $sweetcrmEmail);
+        }
+
+        $user = $query->first();
 
         $userData = [
             'name' => $sweetCrmUser['name'] ?? $sweetCrmUser['username'] ?? $username,
-            'sweetcrm_id' => $sweetCrmUser['id'],
+            'sweetcrm_id' => $sweetcrmId,
             'sweetcrm_user_type' => $sweetCrmUser['user_type'] ?? null,
             'sweetcrm_synced_at' => now(),
         ];
 
-        // Si el usuario de SweetCRM tiene email, lo usamos, si no generamos uno temporal
-        $email = $sweetCrmUser['email'] ?? $username . '@sweetcrm.local';
+        // Si el usuario de SweetCRM tiene email, lo usamos, si no generamos uno temporal único
+        $email = $sweetcrmEmail ?? ($sweetcrmId ? "{$sweetcrmId}@sweetcrm.local" : $username . '@sweetcrm.local');
 
         if (!$user) {
             // Crear nuevo usuario desde datos de SweetCRM

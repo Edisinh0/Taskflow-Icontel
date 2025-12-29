@@ -205,6 +205,15 @@ class SyncSugarCrmCases extends Command
                     // Asignado
                     $assignee = User::where('sweetcrm_id', $nvl['assigned_user_id']['value'] ?? '')->first();
 
+                    $dateStart = $this->parseCrmDate($nvl['date_start']['value'] ?? null);
+                    $dateDue = $this->parseCrmDate($nvl['date_due']['value'] ?? null);
+
+                    // Si no hay fecha de inicio pero sí de vencimiento, usar la fecha de creación del caso
+                    if (!$dateStart && $dateDue) {
+                        $dateCreated = $this->parseCrmDate($nvl['date_entered']['value'] ?? null);
+                        $dateStart = $dateCreated ?: $crmCase->created_at;
+                    }
+
                     Task::updateOrCreate(
                         ['sweetcrm_id' => $sweetId],
                         [
@@ -215,8 +224,8 @@ class SyncSugarCrmCases extends Command
                             'priority' => $priority,
                             'status' => $status,
                             'sweetcrm_synced_at' => now(),
-                            'estimated_end_at' => $this->parseCrmDate($nvl['date_due']['value'] ?? null),
-                            'actual_start_at' => $this->parseCrmDate($nvl['date_start']['value'] ?? null),
+                            'estimated_start_at' => $dateStart,
+                            'estimated_end_at' => $dateDue,
                         ]
                     );
 

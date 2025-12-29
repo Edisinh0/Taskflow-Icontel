@@ -17,7 +17,8 @@ export function useRealtime(channelName, events = {}) {
       const echo = getEcho()
 
       if (!echo) {
-        console.warn('Echo no está inicializado. Esperando autenticación...')
+        console.warn('⚠️ Echo not initialized. Skipping realtime connection to:', channelName)
+        error.value = 'Echo not initialized'
         return
       }
 
@@ -31,7 +32,7 @@ export function useRealtime(channelName, events = {}) {
       })
 
       isConnected.value = true
-      console.log(`🔗 Connected to channel: ${channelName}`)
+      console.log(`✅ Connected to realtime channel: ${channelName}`)
     } catch (err) {
       error.value = err.message
       console.error(`❌ Error connecting to channel ${channelName}:`, err)

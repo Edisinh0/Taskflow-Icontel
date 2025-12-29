@@ -244,37 +244,79 @@ class SweetCrmService
     }
 
     /**
-     * Obtener datos de usuario desde SugarCRM
+     * Obtener datos de usuario desde SugarCRM v4_1
      */
-    public function getUser(string $sweetcrmId): ?array
+    public function getUser(string $sessionId, string $sweetcrmId): ?array
     {
-        $cacheKey = "sweetcrm_user_{$sweetcrmId}";
+        try {
+            $response = Http::timeout($this->timeout)
+                ->asForm()
+                ->post("{$this->baseUrl}/service/v4_1/rest.php", [
+                    'method' => 'get_entry',
+                    'input_type' => 'JSON',
+                    'response_type' => 'JSON',
+                    'rest_data' => json_encode([
+                        'session' => $sessionId,
+                        'module_name' => 'Users',
+                        'id' => $sweetcrmId,
+                        'select_fields' => [
+                            'id',
+                            'user_name',
+                            'first_name',
+                            'last_name',
+                            'full_name',
+                            'email1',
+                            'phone_work',
+                            'title',
+                            'department',
+                            'status',
+                        ],
+                    ]),
+                ]);
 
-        return Cache::remember($cacheKey, 3600, function () use ($sweetcrmId) {
-            try {
-                $response = Http::timeout($this->timeout)
-                    ->withToken($this->apiToken)
-                    ->get("{$this->baseUrl}/rest/v11_24/Users/{$sweetcrmId}");
-
-                if ($response->successful()) {
-                    return $response->json();
-                }
-
-                Log::warning('SugarCRM user fetch failed', [
+            if (!$response->successful()) {
+                Log::warning('SugarCRM v4_1 user fetch failed', [
                     'sweetcrm_id' => $sweetcrmId,
                     'status' => $response->status(),
                 ]);
-
-                return null;
-            } catch (\Exception $e) {
-                Log::error('SugarCRM user fetch error', [
-                    'sweetcrm_id' => $sweetcrmId,
-                    'error' => $e->getMessage(),
-                ]);
-
                 return null;
             }
-        });
+
+            $data = $response->json();
+
+            // Verificar si hay error de sesión
+            if (isset($data['name']) && $data['name'] === 'Invalid Session ID') {
+                Log::warning('SugarCRM session expired when fetching user');
+                return null;
+            }
+
+            // Parsear respuesta v4_1 (formato name_value_list)
+            if (isset($data['entry_list'][0])) {
+                $nvl = $data['entry_list'][0]['name_value_list'] ?? [];
+
+                return [
+                    'id' => $data['entry_list'][0]['id'] ?? $sweetcrmId,
+                    'user_name' => $nvl['user_name']['value'] ?? null,
+                    'first_name' => $nvl['first_name']['value'] ?? null,
+                    'last_name' => $nvl['last_name']['value'] ?? null,
+                    'full_name' => $nvl['full_name']['value'] ?? null,
+                    'email' => $nvl['email1']['value'] ?? null,
+                    'phone' => $nvl['phone_work']['value'] ?? null,
+                    'title' => $nvl['title']['value'] ?? null,
+                    'department' => $nvl['department']['value'] ?? null,
+                    'status' => $nvl['status']['value'] ?? null,
+                ];
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('SugarCRM v4_1 user fetch error', [
+                'sweetcrm_id' => $sweetcrmId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 
     /**
@@ -425,9 +467,9 @@ class SweetCrmService
     /**
      * Sincronizar cliente desde SweetCRM a Taskflow
      */
-    public function syncClient(string $sweetcrmId): ?array
+    public function syncClient(string $sessionId, string $sweetcrmId): ?array
     {
-        $clientData = $this->getClient($sweetcrmId);
+        $clientData = $this->getClient($sessionId, $sweetcrmId);
 
         if (!$clientData) {
             return null;

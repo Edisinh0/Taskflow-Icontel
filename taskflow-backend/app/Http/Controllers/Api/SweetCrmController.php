@@ -167,10 +167,27 @@ class SweetCrmController extends Controller
      * Sincronizar un cliente específico
      * POST /api/v1/sweetcrm/sync-client/{sweetcrmId}
      */
-    public function syncClient(string $sweetcrmId)
+    public function syncClient(Request $request, string $sweetcrmId)
     {
         try {
-            $sweetCrmClient = $this->sweetCrmService->syncClient($sweetcrmId);
+            // Validar credenciales para obtener sessionId
+            $request->validate([
+                'username' => 'required|string',
+                'password' => 'required|string',
+            ]);
+
+            $sessionId = $this->sweetCrmService->getSessionId(
+                $request->input('username'),
+                $request->input('password')
+            );
+
+            if (!$sessionId) {
+                return response()->json([
+                    'message' => 'Error de autenticación con SugarCRM',
+                ], 401);
+            }
+
+            $sweetCrmClient = $this->sweetCrmService->syncClient($sessionId, $sweetcrmId);
 
             if (!$sweetCrmClient) {
                 return response()->json([

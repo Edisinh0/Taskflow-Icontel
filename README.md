@@ -1,14 +1,16 @@
-# 📋 Taskflow - Sistema de Gestión de Flujos de Trabajo
+  # 📋 Taskflow - Sistema de Gestión de Flujos de Trabajo
 
 <div align="center">
 
 ![Taskflow Banner](https://img.shields.io/badge/Taskflow-Sistema_de_Gestión-blue?style=for-the-badge)
-[![Laravel](https://img.shields.io/badge/Laravel-11.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
+[![Laravel](https://img.shields.io/badge/Laravel-12.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
 [![Vue.js](https://img.shields.io/badge/Vue.js-3.x-4FC08D?style=for-the-badge&logo=vue.js&logoColor=white)](https://vuejs.org)
+[![SugarCRM](https://img.shields.io/badge/SugarCRM-Integrated-E61C23?style=for-the-badge)](https://www.sugarcrm.com/)
+[![Tests](https://img.shields.io/badge/Tests-80%25%20Coverage-success?style=for-the-badge)](./tests)
 
-**Sistema completo de gestión de flujos de trabajo y tareas para empresas**
+**Sistema completo de gestión de flujos de trabajo y tareas para empresas con integración SugarCRM**
 
-[Características](#-características-principales) • [Instalación](#-instalación) • [Uso](#-uso) • [Tecnologías](#-tecnologías) • [Contribuir](#-contribuir)
+[Características](#-características-principales) • [Instalación](#-instalación) • [Arquitectura](#-arquitectura) • [Tecnologías](#-tecnologías) • [Tests](#-tests)
 
 </div>
 
@@ -17,6 +19,13 @@
 ## 📖 Descripción
 
 **Taskflow** es una aplicación web moderna diseñada para optimizar y automatizar el flujo de actividades y tareas empresariales. Desarrollada principalmente para **TNA Group**, esta plataforma permite gestionar proyectos, asignar tareas, establecer dependencias y monitorear el progreso en tiempo real.
+
+### 🆕 Nueva Arquitectura (v2.0)
+- **Desacoplamiento completo** de SugarCRM mediante Adapter Pattern
+- **DTOs inmutables** para transformación de datos
+- **Servicios especializados** siguiendo principios SOLID
+- **Tests unitarios y de integración** con >80% cobertura
+- **Stores de Pinia** para gestión de estado optimizada
 
 ### 🎯 Propósito
 

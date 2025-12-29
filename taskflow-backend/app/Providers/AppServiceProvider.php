@@ -6,9 +6,11 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 use App\Models\Task;
 use App\Models\Flow;
+use App\Models\Client;
 use App\Observers\FlowObserver;
 use App\Policies\TaskPolicy;
 use App\Policies\FlowPolicy;
+use App\Policies\ClientPolicy;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -38,6 +40,7 @@ class AppServiceProvider extends ServiceProvider
         // Registrar Policies
         Gate::policy(Task::class, TaskPolicy::class);
         Gate::policy(Flow::class, FlowPolicy::class);
+        Gate::policy(Client::class, ClientPolicy::class);
 
         \Log::info('✅ Observers y Policies registrados correctamente');
     }

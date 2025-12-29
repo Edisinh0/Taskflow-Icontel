@@ -179,7 +179,8 @@
             <thead class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/5">
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Tarea</th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Proyecto</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Caso/Proyecto</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Cliente</th>
                 <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Fecha Inicio</th>
                 <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Fecha Término</th>
                 <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Días Restantes</th>
@@ -189,14 +190,21 @@
               <tr
                 v-for="task in allTasks"
                 :key="task.id"
-                @click="$router.push(`/flows/${task.flow_id}`)"
+                @click="handleTaskClick(task)"
                 class="hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors"
               >
                 <td class="px-6 py-4">
                   <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ task.title }}</h4>
+                  <p v-if="task.crm_case" class="text-[10px] text-blue-600 dark:text-blue-400 font-mono mt-0.5">#{{ task.crm_case.case_number }}</p>
                 </td>
                 <td class="px-6 py-4">
-                  <p class="text-xs text-slate-500">{{ task.flow?.name }}</p>
+                  <p class="text-xs text-slate-700 dark:text-slate-300 font-medium">
+                    {{ task.crm_case ? task.crm_case.subject : task.flow?.name }}
+                  </p>
+                  <p v-if="task.crm_case" class="text-[10px] text-slate-400 mt-0.5">Caso CRM</p>
+                </td>
+                <td class="px-6 py-4">
+                  <p class="text-xs text-slate-500">{{ task.crm_case?.client?.name || '-' }}</p>
                 </td>
                 <td class="px-6 py-4">
                   <p class="text-xs text-slate-500">{{ formatDate(task.estimated_start_at) }}</p>
@@ -211,7 +219,7 @@
                 </td>
               </tr>
               <tr v-if="allTasks.length === 0">
-                <td colspan="5" class="px-6 py-8 text-center text-slate-400 dark:text-slate-500 text-sm">
+                <td colspan="6" class="px-6 py-8 text-center text-slate-400 dark:text-slate-500 text-sm">
                   No hay tareas disponibles.
                 </td>
               </tr>
@@ -392,6 +400,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { flowsAPI, tasksAPI, casesAPI } from '@/services/api'
 import { Line, Doughnut } from 'vue-chartjs'
@@ -412,6 +421,7 @@ import { Rocket, Folder, Briefcase } from 'lucide-vue-next'
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title)
 
 const authStore = useAuthStore()
+const router = useRouter()
 
 const stats = ref({
   activeFlows: 0,
@@ -676,6 +686,16 @@ const calculateProgress = (flow) => {
   if (!flow.tasks?.length) return 0
   const completed = flow.tasks.filter(t => t.status === 'completed').length
   return Math.round((completed / flow.tasks.length) * 100)
+}
+
+const handleTaskClick = (task) => {
+  if (task.crm_case) {
+    // Si la tarea pertenece a un caso CRM, ir a la vista de casos
+    router.push('/cases')
+  } else if (task.flow_id) {
+    // Si la tarea pertenece a un flujo, ir al detalle del flujo
+    router.push(`/flows/${task.flow_id}`)
+  }
 }
 
 const loadData = async () => {
