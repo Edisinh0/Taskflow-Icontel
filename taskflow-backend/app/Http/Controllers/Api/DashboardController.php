@@ -266,7 +266,7 @@ class DashboardController extends Controller
 
             // Formatear tareas para el frontend
             $tasksData = $tasks->map(function ($task) {
-                return [
+                $taskData = [
                     'id' => $task->sweetcrm_id ?? $task->id,
                     'type' => 'task',
                     'title' => $task->title,
@@ -275,7 +275,19 @@ class DashboardController extends Controller
                     'assigned_user_name' => $task->assignee->name ?? 'Sin asignar',
                     'date_due' => $task->estimated_end_at,
                     'date_entered' => $task->created_at,
+                    'case_id' => $task->case_id, // ID local del caso
                 ];
+
+                // Si la tarea tiene un caso asociado, incluir información del caso
+                if ($task->case_id && $task->crmCase) {
+                    $taskData['crm_case'] = [
+                        'id' => $task->crmCase->sweetcrm_id ?? $task->crmCase->id,
+                        'case_number' => $task->crmCase->case_number,
+                        'subject' => $task->crmCase->subject,
+                    ];
+                }
+
+                return $taskData;
             })->toArray();
 
             Log::info('✅ Operations team content loaded from LOCAL DB:', [

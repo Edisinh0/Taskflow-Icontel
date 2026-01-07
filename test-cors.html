@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS Test</title>
+</head>
+<body>
+    <h1>Testing CORS Connection</h1>
+    <button onclick="testCors()">Test API Connection</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testCors() {
+            const resultEl = document.getElementById('result');
+            resultEl.textContent = 'Testing...';
+
+            try {
+                console.log('Fetching from: http://localhost:8080/api/v1/dashboard/stats');
+
+                const response = await fetch('http://localhost:8080/api/v1/dashboard/stats', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+
+                const text = await response.text();
+                resultEl.textContent = `Status: ${response.status}\n\nResponse:\n${text}`;
+
+            } catch (error) {
+                console.error('Error:', error);
+                resultEl.textContent = `Error: ${error.message}\n\nDetails: ${error.stack}`;
+            }
+        }
+    </script>
+</body>
+</html>

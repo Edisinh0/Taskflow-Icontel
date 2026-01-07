@@ -370,9 +370,9 @@
            <div v-else-if="dashboardStore.viewMode === 'cases'" class="divide-y divide-slate-100 dark:divide-white/5">
               <div v-for="crmCase in dashboardStore.cases" :key="crmCase.id" class="group">
                  <!-- Case Row -->
-                 <div class="px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors flex items-start justify-between cursor-pointer" @click="dashboardStore.toggleCase(crmCase.id)">
+                 <div class="px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors flex items-start justify-between cursor-pointer" @click="handleCaseClick(crmCase, $event)">
                     <div class="flex items-start gap-3">
-                       <button class="mt-0.5 text-slate-400 hover:text-indigo-500 transition-colors">
+                       <button class="mt-0.5 text-slate-400 hover:text-indigo-500 transition-colors" @click.stop="dashboardStore.toggleCase(crmCase.id)">
                           <chevron-right :class="{'rotate-90': crmCase.expanded}" class="w-4 h-4 transition-transform duration-200" />
                        </button>
                        <div>
@@ -1074,6 +1074,17 @@ const handleTaskClick = (task) => {
   } else if (task.flow_id) {
     // Si la tarea pertenece a un flujo, ir al detalle del flujo
     router.push(`/flows/${task.flow_id}`)
+  }
+}
+
+const handleCaseClick = (crmCase, event) => {
+  // Si el click fue en el botón de expand, no navegar
+  if (event.target.closest('button')) {
+    return
+  }
+  // Navegar al detalle del caso
+  if (crmCase.id) {
+    router.push({ path: '/cases', query: { caseId: crmCase.id } })
   }
 }
 
