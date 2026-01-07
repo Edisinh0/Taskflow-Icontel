@@ -251,6 +251,9 @@ class SyncSugarCrmCases extends Command
                     // Asignado
                     $assignee = User::where('sweetcrm_id', $nvl['assigned_user_id']['value'] ?? '')->first();
 
+                    // Creador de la tarea
+                    $creator = User::where('sweetcrm_id', $nvl['created_by']['value'] ?? '')->first();
+
                     $dateStart = $this->parseCrmDate($nvl['date_start']['value'] ?? null);
                     $dateDue = $this->parseCrmDate($nvl['date_due']['value'] ?? null);
 
@@ -270,6 +273,7 @@ class SyncSugarCrmCases extends Command
                             'description' => $nvl['description']['value'] ?? null,
                             'case_id' => $crmCase->id,
                             'assignee_id' => $assignee?->id,
+                            'created_by' => $creator?->id,
                             'priority' => $priority,
                             'status' => $status,
                             'sweetcrm_synced_at' => now(),
