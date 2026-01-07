@@ -156,4 +156,123 @@ class DashboardController extends Controller
             'view_mode' => $viewMode
         ]);
     }
+
+    /**
+     * Obtener casos y tareas delegados (creados por el usuario y asignados a otros)
+     * GET /api/v1/dashboard/delegated
+     */
+    public function getDelegated(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            if (!$user || !$user->sweetcrm_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado o sin ID de SweetCRM'
+                ], 401);
+            }
+
+            $username = config('services.sweetcrm.username');
+            $password = config('services.sweetcrm.password');
+
+            if (!$username || !$password) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Credenciales de SweetCRM no configuradas'
+                ], 500);
+            }
+
+            // Obtener sesión de SweetCRM
+            $sessionResult = $this->sweetCrmService->getCachedSession($username, $password);
+
+            if (!$sessionResult['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de autenticación con SweetCRM'
+                ], 500);
+            }
+
+            $sessionId = $sessionResult['session_id'];
+            $userSweetCrmId = $user->sweetcrm_id;
+
+            $delegatedData = [
+                'cases' => [],
+                'tasks' => [],
+                'total' => 0,
+                'pending' => 0
+            ];
+
+            // Casos creados por el usuario y asignados a otros
+            $casesFilters = [
+                'query' => "cases.created_by = '{$userSweetCrmId}' AND cases.assigned_user_id IS NOT NULL AND cases.assigned_user_id != '{$userSweetCrmId}'",
+                'max_results' => 100,
+            ];
+
+            $casesFromCrm = $this->sweetCrmService->getCases($sessionId, $casesFilters);
+
+            foreach ($casesFromCrm as $crmCase) {
+                $nvl = $crmCase['name_value_list'];
+                $delegatedData['cases'][] = [
+                    'id' => $crmCase['id'],
+                    'type' => 'case',
+                    'title' => $nvl['name']['value'] ?? 'Sin nombre',
+                    'case_number' => $nvl['case_number']['value'] ?? null,
+                    'status' => $nvl['status']['value'] ?? 'New',
+                    'priority' => $nvl['priority']['value'] ?? 'Normal',
+                    'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? 'Sin asignar',
+                    'created_by_name' => $nvl['created_by_name']['value'] ?? null,
+                    'date_entered' => $nvl['date_entered']['value'] ?? null,
+                ];
+
+                $delegatedData['total']++;
+
+                if (!in_array($nvl['status']['value'] ?? '', ['Closed', 'Completed', 'Rejected'])) {
+                    $delegatedData['pending']++;
+                }
+            }
+
+            // Tareas creadas por el usuario y asignadas a otros
+            $tasksFilters = [
+                'query' => "tasks.created_by = '{$userSweetCrmId}' AND tasks.assigned_user_id IS NOT NULL AND tasks.assigned_user_id != '{$userSweetCrmId}' AND tasks.parent_type = 'Cases'",
+                'max_results' => 100,
+            ];
+
+            $tasksFromCrm = $this->sweetCrmService->getTasks($sessionId, $tasksFilters);
+
+            foreach ($tasksFromCrm as $task) {
+                $nvl = $task['name_value_list'];
+                $delegatedData['tasks'][] = [
+                    'id' => $task['id'],
+                    'type' => 'task',
+                    'title' => $nvl['name']['value'] ?? 'Sin nombre',
+                    'status' => $nvl['status']['value'] ?? 'Not Started',
+                    'priority' => $nvl['priority']['value'] ?? 'Medium',
+                    'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? 'Sin asignar',
+                    'created_by_name' => $nvl['created_by_name']['value'] ?? null,
+                    'date_due' => $nvl['date_due']['value'] ?? null,
+                    'date_entered' => $nvl['date_entered']['value'] ?? null,
+                ];
+
+                $delegatedData['total']++;
+
+                if (!in_array($nvl['status']['value'] ?? '', ['Completed', 'Deferred'])) {
+                    $delegatedData['pending']++;
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $delegatedData
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en getDelegated: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener tareas delegadas',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

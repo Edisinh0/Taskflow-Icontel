@@ -159,6 +159,21 @@
               </router-link>
 
               <router-link
+                to="/opportunities"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
+                :class="isActive('/opportunities')
+                  ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
+              >
+                <span class="flex items-center space-x-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                  <span>Oportunidades</span>
+                </span>
+              </router-link>
+
+              <router-link
                 to="/cases"
                 class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
                 :class="isActive('/cases')
@@ -417,6 +432,20 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
                 <span>Clientes</span>
+              </router-link>
+
+              <router-link
+                to="/opportunities"
+                @click="mobileMenuOpen = false"
+                class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
+                :class="isActive('/opportunities')
+                  ? 'bg-blue-500/10 text-blue-400'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                <span>Oportunidades</span>
               </router-link>
 
               <router-link

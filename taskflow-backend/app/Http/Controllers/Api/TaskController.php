@@ -26,7 +26,7 @@ class TaskController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Task::with(['flow', 'assignee', 'parentTask', 'subtasks', 'crmCase', 'crmCase.client']);
+        $query = Task::with(['flow', 'assignee', 'creator', 'parentTask', 'subtasks', 'crmCase', 'crmCase.client', 'opportunity']);
 
         // Filtrar por flujo
         if ($request->has('flow_id')) {

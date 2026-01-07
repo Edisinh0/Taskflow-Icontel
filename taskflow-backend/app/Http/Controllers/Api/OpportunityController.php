@@ -11,17 +11,127 @@ use Illuminate\Support\Facades\DB;
 class OpportunityController extends Controller
 {
     /**
-     * Listar oportunidades
+     * Listar todas las oportunidades con filtros y paginación optimizada
+     * Usa Eager Loading para evitar N+1
      */
     public function index(Request $request)
     {
-        $query = CrmOpportunity::with('client:id,name');
+        $perPage = min(50, max(10, (int) $request->get('per_page', 20)));
         
-        if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+        // Eager loading con campos específicos
+        $query = CrmOpportunity::with([
+            'client:id,name',
+            'quotes:id,opportunity_id,status'
+        ])
+        ->withCount('tasks'); // Conteo eficiente
+
+        // Búsqueda
+        if ($request->has('search') && $request->search) {
+            $search = trim($request->input('search'));
+            if (!empty($search)) {
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', '%' . addslashes($search) . '%')
+                      ->orWhere('description', 'like', '%' . addslashes($search) . '%')
+                      ->orWhereHas('client', function($cq) use ($search) {
+                          $cq->where('name', 'like', '%' . addslashes($search) . '%');
+                      });
+                });
+            }
         }
-        
-        return response()->json($query->latest()->paginate(20));
+
+        // Filtro de etapa
+        if ($request->has('sales_stage') && $request->sales_stage !== 'all') {
+            $query->where('sales_stage', $request->sales_stage);
+        }
+
+        // Filtro de cliente
+        if ($request->has('client_id')) {
+            $query->where('client_id', $request->client_id);
+        }
+
+        // Ordenamiento
+        $orderBy = $request->get('order_by', 'latest'); // latest, oldest, amount_high, amount_low
+        switch ($orderBy) {
+            case 'oldest':
+                $query->oldest();
+                break;
+            case 'amount_high':
+                $query->orderBy('amount', 'desc');
+                break;
+            case 'amount_low':
+                $query->orderBy('amount', 'asc');
+                break;
+            default: // latest
+                $query->latest();
+        }
+
+        $opportunities = $query->paginate($perPage);
+
+        return response()->json([
+            'data' => $opportunities->items(),
+            'pagination' => [
+                'total' => $opportunities->total(),
+                'per_page' => $opportunities->perPage(),
+                'current_page' => $opportunities->currentPage(),
+                'last_page' => $opportunities->lastPage(),
+                'from' => $opportunities->firstItem(),
+                'to' => $opportunities->lastItem(),
+            ]
+        ]);
+    }
+
+    /**
+     * Ver detalles de una oportunidad
+     */
+    public function show($id)
+    {
+        $opportunity = CrmOpportunity::with([
+            'client',
+            'quotes:id,opportunity_id,status,total_amount,currency',
+            'tasks:id,opportunity_id,title,status,priority,assignee_id,description,progress,created_at',
+        ])->findOrFail($id);
+
+        // Cargar actualizaciones de la oportunidad
+        $opportunity->updates = \App\Models\CaseUpdate::where('opportunity_id', $id)
+            ->with(['user:id,name', 'attachments'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Cargar actualizaciones de las tareas
+        if ($opportunity->tasks) {
+            foreach ($opportunity->tasks as $task) {
+                $task->updates = \App\Models\CaseUpdate::where('task_id', $task->id)
+                    ->with(['user:id,name', 'attachments'])
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+            }
+        }
+
+        return response()->json([
+            'data' => $opportunity
+        ]);
+    }
+
+    /**
+     * Obtener estadísticas de oportunidades
+     */
+    public function stats()
+    {
+        $stats = [
+            'total_opportunities' => CrmOpportunity::count(),
+            'total_pipeline' => CrmOpportunity::sum('amount'),
+            'by_stage' => CrmOpportunity::groupBy('sales_stage')
+                ->selectRaw('sales_stage, COUNT(*) as count, SUM(amount) as total')
+                ->get(),
+            'open_opportunities' => CrmOpportunity::whereNotIn('sales_stage', ['Closed Won', 'Closed Lost'])
+                ->count(),
+            'closed_won' => CrmOpportunity::where('sales_stage', 'Closed Won')
+                ->count(),
+            'closed_lost' => CrmOpportunity::where('sales_stage', 'Closed Lost')
+                ->count(),
+        ];
+
+        return response()->json(['data' => $stats]);
     }
 
     /**
@@ -54,7 +164,35 @@ class OpportunityController extends Controller
 
         return response()->json([
             'message' => "Flujo enviado a Operaciones como: {$taskType}",
-            'task' => $task
+            'task' => $task,
+            'opportunity' => $opportunity
         ]);
+    }
+
+    /**
+     * Agregar actualización/avance a una oportunidad
+     */
+    public function addUpdate(Request $request, $id)
+    {
+        $opportunity = CrmOpportunity::findOrFail($id);
+        $user = auth()->user();
+
+        $validated = $request->validate([
+            'content' => 'required|string|min:3',
+        ]);
+
+        $update = \App\Models\CaseUpdate::create([
+            'opportunity_id' => $id,
+            'user_id' => $user->id,
+            'content' => $validated['content'],
+            'type' => 'update',
+        ]);
+
+        $update->load(['user:id,name']);
+
+        return response()->json([
+            'data' => $update,
+            'message' => 'Avance registrado exitosamente'
+        ], 201);
     }
 }

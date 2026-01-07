@@ -1,13 +1,21 @@
 import { defineStore } from 'pinia';
 import api from '@/services/api';
+import { dashboardAPI } from '@/services/api';
 
 export const useDashboardStore = defineStore('dashboard', {
     state: () => ({
         cases: [], // Hierarchical cases (with tasks)
         orphanTasks: [], // Tasks without case
+        delegated: { // Tareas y casos delegados
+            cases: [],
+            tasks: [],
+            total: 0,
+            pending: 0
+        },
         scope: 'my', // 'my' | 'area'
         viewMode: 'cases', // 'cases' (hierarchy) | 'tasks' (flat list)
         loading: false,
+        delegatedLoading: false,
         error: null,
     }),
 
@@ -88,6 +96,28 @@ export const useDashboardStore = defineStore('dashboard', {
             const c = this.cases.find(c => c.id === caseId);
             if (c) {
                 c.expanded = !c.expanded;
+            }
+        },
+
+        async fetchDelegated() {
+            this.delegatedLoading = true;
+            try {
+                const response = await dashboardAPI.getDelegated();
+                if (response.data.success) {
+                    this.delegated = response.data.data;
+                    console.log('✅ Delegated tasks/cases loaded:', {
+                        cases: this.delegated.cases.length,
+                        tasks: this.delegated.tasks.length,
+                        total: this.delegated.total,
+                        pending: this.delegated.pending
+                    });
+                } else {
+                    console.error('Error fetching delegated tasks:', response.data.message);
+                }
+            } catch (error) {
+                console.error('Error en fetchDelegated:', error);
+            } finally {
+                this.delegatedLoading = false;
             }
         }
     },

@@ -20,6 +20,7 @@ class Task extends Model implements Auditable
         'flow_id',
         'parent_task_id',
         'assignee_id',
+        'created_by',
         'priority',
         'status',
         'is_milestone',
@@ -111,6 +112,14 @@ class Task extends Model implements Auditable
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assignee_id');
+    }
+
+    /**
+     * Relación: Usuario que creó la tarea
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /**

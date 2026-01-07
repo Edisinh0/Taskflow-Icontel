@@ -15,7 +15,7 @@ class CaseUpdateAttachment extends Model
         'file_size'
     ];
 
-    public function update(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function caseUpdate(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(CaseUpdate::class, 'case_update_id');
     }

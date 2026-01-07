@@ -74,6 +74,22 @@
             </div>
           </div>
         </div>
+
+        <!-- Tareas Delegadas -->
+        <div class="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-sm dark:shadow-lg p-6 border border-slate-200 dark:border-white/5 hover:border-purple-500/20 transition-all group cursor-pointer" @click="scrollToDelegated">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-slate-500 dark:text-slate-400 text-sm font-medium uppercase tracking-wider">Delegadas</p>
+              <p class="text-3xl font-extrabold text-slate-800 dark:text-white mt-1 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors">{{ stats.delegatedTasks }}</p>
+              <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 font-medium">{{ stats.delegatedPending }} pendientes</p>
+            </div>
+            <div class="bg-purple-50 dark:bg-purple-500/10 p-3 rounded-xl border border-purple-100 dark:border-purple-500/20 group-hover:bg-purple-100 dark:group-hover:bg-purple-500/20 transition-colors">
+              <svg class="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8m0 8l-6-2m6 2l6-2" />
+              </svg>
+            </div>
+          </div>
+        </div>
       </div>
 
 
@@ -292,7 +308,7 @@
         <div class="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center">
             <span class="w-2 h-6 bg-indigo-500 rounded-sm mr-3"></span>
-            Proyectos SweetCRM
+            Casos SweetCRM
             <span v-if="dashboardStore.loading" class="ml-3 text-xs font-normal text-slate-400 animate-pulse">Sincronizando...</span>
           </h3>
           
@@ -429,6 +445,8 @@
                             <p class="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
                                 <span v-if="task.crm_case?.case_number">En Caso #{{ task.crm_case.case_number }}</span>
                                 <span v-else-if="task.case_id">En Caso #{{ task.case_id }}</span>
+                                <span v-else-if="task.opportunity?.name">En Oportunidad: {{ task.opportunity.name }}</span>
+                                <span v-else-if="task.opportunity_id">En Oportunidad #{{ task.opportunity_id }}</span>
                                 <span v-else-if="task.flow?.name">En Flujo: {{ task.flow.name }}</span>
                                 <span v-else>Tarea Independiente</span>
                             </p>
@@ -443,7 +461,7 @@
 
 
       <!-- Tareas Urgentes y Flujos Recientes -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <!-- Tareas Urgentes -->
         <div class="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-sm dark:shadow-lg border border-slate-200 dark:border-white/5 flex flex-col">
           <div class="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
@@ -452,7 +470,7 @@
                 Tareas Urgentes
             </h3>
             <span class="text-xs font-semibold bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2 py-1 rounded-md border border-rose-100 dark:border-rose-500/20">
-                {{ urgentTasks.length }} pendientes
+                {{ urgentTasks.length }}
             </span>
           </div>
           <div class="divide-y divide-slate-100 dark:divide-white/5">
@@ -491,7 +509,7 @@
           <div class="px-6 py-4 border-b border-slate-200 dark:border-white/5">
             <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center">
               <Folder class="w-5 h-5 mr-2 text-blue-500" />
-              Flujos Recientes
+              Casos Recientes
             </h3>
           </div>
           <div class="divide-y divide-slate-100 dark:divide-white/5">
@@ -532,6 +550,126 @@
           </div>
         </div>
       </div>
+
+      <!-- Tareas Delegadas a Otros - Sección Completa -->
+      <div class="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-sm dark:shadow-lg border border-slate-200 dark:border-white/5 mb-8" ref="delegatedSection">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
+          <h3 class="text-xl font-bold text-slate-800 dark:text-white flex items-center">
+            <span class="w-2 h-6 bg-purple-500 rounded-sm mr-3 shadow-[0_0_10px_rgba(168,85,247,0.5)]"></span>
+            Tareas y Casos Delegados
+          </h3>
+          <span class="text-sm font-semibold bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 px-3 py-1.5 rounded-lg border border-purple-100 dark:border-purple-500/20">
+            {{ delegatedTasks.length }} total • {{ stats.delegatedPending }} pendientes
+          </span>
+        </div>
+
+        <!-- Content -->
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-white/5">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">Asunto / Nombre</th>
+                <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">Tipo</th>
+                <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">Asignado a</th>
+                <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">Prioridad</th>
+                <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">Estado</th>
+                <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">Creado</th>
+                <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">Finaliza</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-white/5">
+              <tr 
+                v-for="task in delegatedTasks" 
+                :key="task.id"
+                @click="handleTaskClick(task)"
+                class="hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors group"
+              >
+                <!-- Asunto / Nombre -->
+                <td class="px-6 py-4">
+                  <div class="space-y-1">
+                    <p class="text-sm font-semibold text-slate-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      {{ task.title }}
+                    </p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                      <span v-if="task.crm_case?.case_number">#{{ task.crm_case.case_number }}</span>
+                      <span v-else-if="task.opportunity_id">#OPP-{{ task.opportunity_id }}</span>
+                      <span v-else>#TAREA-{{ task.id }}</span>
+                    </p>
+                  </div>
+                </td>
+
+                <!-- Tipo (Caso, Oportunidad, Tarea) -->
+                <td class="px-6 py-4">
+                  <span v-if="task.crm_case" class="inline-block px-2 py-1 text-xs font-bold rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
+                    Caso
+                  </span>
+                  <span v-else-if="task.opportunity" class="inline-block px-2 py-1 text-xs font-bold rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20">
+                    Oportunidad
+                  </span>
+                  <span v-else class="inline-block px-2 py-1 text-xs font-bold rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-600">
+                    Tarea
+                  </span>
+                </td>
+
+                <!-- Asignado a -->
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
+                      {{ task.assignee?.name?.charAt(0) || 'U' }}
+                    </div>
+                    <span class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                      {{ task.assignee?.name || 'Sin asignar' }}
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Prioridad -->
+                <td class="px-6 py-4">
+                  <span :class="getPriorityBadgeClass(task.priority)" class="inline-block px-2 py-1 text-xs font-bold rounded-lg border">
+                    {{ formatPriority(task.priority) }}
+                  </span>
+                </td>
+
+                <!-- Estado -->
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full" :class="getStatusColor(task.status)"></span>
+                    <span :class="getStatusBadgeClass(task.status)" class="text-xs font-bold rounded px-2 py-1 border">
+                      {{ formatTaskStatus(task.status) }}
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Creado -->
+                <td class="px-6 py-4">
+                  <span class="text-xs font-medium text-slate-600 dark:text-slate-300">
+                    {{ formatDateShort(task.created_at) }}
+                  </span>
+                </td>
+
+                <!-- Finaliza -->
+                <td class="px-6 py-4">
+                  <span 
+                    v-if="task.estimated_end_at || task.due_date"
+                    :class="isOverdue(task.estimated_end_at || task.due_date) ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-600 dark:text-slate-300'"
+                    class="text-xs font-medium"
+                  >
+                    {{ formatDateShort(task.estimated_end_at || task.due_date) }}
+                  </span>
+                  <span v-else class="text-xs text-slate-400">-</span>
+                </td>
+              </tr>
+
+              <tr v-if="delegatedTasks.length === 0">
+                <td colspan="7" class="px-6 py-8 text-center">
+                  <p class="text-slate-400 dark:text-slate-500 text-sm">No hay tareas delegadas a otros.</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </main>
   </div>
 </template>
@@ -563,6 +701,8 @@ const authStore = useAuthStore()
 const dashboardStore = useDashboardStore()
 const router = useRouter()
 
+const delegatedSection = ref(null)
+
 const stats = computed(() => {
     // CRM Data
     const crmCasesCount = dashboardStore.cases.length
@@ -581,6 +721,8 @@ const stats = computed(() => {
              return new Date(t.date_due) < new Date() && t.status !== 'Completed';
         }).length,
         urgentTasks: crmTasks.filter(t => t.priority === 'High' || t.priority === 'Urgent').length,
+        delegatedTasks: dashboardStore.delegated.total,
+        delegatedPending: dashboardStore.delegated.pending,
         
         // Placeholders o Cálculos para métricas semanales
         flowsThisWeek: 0, 
@@ -595,6 +737,36 @@ const urgentTasks = computed(() => {
     return dashboardStore.allTasksFlat
         .filter(t => (t.priority === 'High' || t.priority === 'Urgent') && t.status !== 'Completed' && t.status !== 'Deferred')
         .slice(0, 5)
+})
+
+const delegatedTasks = computed(() => {
+    // Combinar casos y tareas delegadas desde el store
+    const combined = [
+        ...dashboardStore.delegated.cases.map(c => ({
+            ...c,
+            type: 'case',
+            subject: c.title,
+            assigned_user: { name: c.assigned_user_name }
+        })),
+        ...dashboardStore.delegated.tasks.map(t => ({
+            ...t,
+            type: 'task',
+            subject: t.title,
+            assigned_user: { name: t.assigned_user_name }
+        }))
+    ];
+
+    return combined.sort((a, b) => {
+        // Ordenar por estado: primero pendientes, luego en progreso, luego completadas
+        const statusOrder = {
+            'New': 0, 'Not Started': 0,
+            'in_progress': 1, 'In Progress': 1,
+            'completed': 2, 'Completed': 2,
+            'Closed': 2,
+            'cancelled': 3, 'Rejected': 3
+        }
+        return (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99)
+    })
 })
 
 const recentFlows = ref([])
@@ -872,9 +1044,81 @@ const handleTaskClick = (task) => {
   }
 }
 
+const getStatusColor = (status) => {
+  const colors = {
+    'pending': 'bg-slate-400',
+    'in_progress': 'bg-blue-500',
+    'completed': 'bg-emerald-500',
+    'cancelled': 'bg-rose-500'
+  }
+  return colors[status] || 'bg-slate-400'
+}
+
+const getStatusBadgeClass = (status) => {
+  const classes = {
+    'pending': 'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600',
+    'in_progress': 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20',
+    'completed': 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20',
+    'cancelled': 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20'
+  }
+  return classes[status] || 'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
+}
+
+const formatTaskStatus = (status) => {
+  const map = {
+    'pending': 'Pendiente',
+    'in_progress': 'En Progreso',
+    'completed': 'Completada',
+    'cancelled': 'Cancelada'
+  }
+  return map[status] || status
+}
+
+const formatPriority = (priority) => {
+  const map = {
+    'low': 'Baja',
+    'medium': 'Media',
+    'high': 'Alta',
+    'urgent': 'Urgente'
+  }
+  return map[priority] || priority
+}
+
+const getPriorityBadgeClass = (priority) => {
+  const classes = {
+    'low': 'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600',
+    'medium': 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-100 dark:border-yellow-500/20',
+    'high': 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-500/20',
+    'urgent': 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20'
+  }
+  return classes[priority] || 'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
+}
+
+const formatDateShort = (date) => {
+  if (!date) return '-'
+  const d = new Date(date)
+  return d.toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: '2-digit' })
+}
+
+const isOverdue = (endDate) => {
+  if (!endDate) return false
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const end = new Date(endDate)
+  end.setHours(0, 0, 0, 0)
+  return end < today
+}
+
+const scrollToDelegated = () => {
+  if (delegatedSection.value) {
+    delegatedSection.value.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+
 const loadData = async () => {
   // Trigger SweetCRM Sync
   dashboardStore.fetchContent();
+  dashboardStore.fetchDelegated(); // Obtener tareas delegadas
 
   try {
     const [flowsRes, tasksRes] = await Promise.all([

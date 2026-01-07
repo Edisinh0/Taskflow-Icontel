@@ -34,6 +34,7 @@ Route::prefix('v1')->group(function () {
         // Dashboard
         Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
         Route::get('/dashboard/my-content', [DashboardController::class, 'getMyContent']);
+        Route::get('/dashboard/delegated', [DashboardController::class, 'getDelegated']);
 
         // Clientes y CRM
         Route::apiResource('clients', ClientController::class);
@@ -47,6 +48,9 @@ Route::prefix('v1')->group(function () {
         Route::post('tasks/{id}/updates', [TaskController::class, 'addUpdate']);
         Route::apiResource('task-dependencies', TaskDependencyController::class);
         Route::apiResource('templates', TemplateController::class);
+        // Notificaciones
+        Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+        Route::put('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
         Route::apiResource('notifications', NotificationController::class);
 
         // Proyectos (CrmCase)
@@ -61,8 +65,10 @@ Route::prefix('v1')->group(function () {
         Route::post('cases/{id}/reject-closure', [CaseController::class, 'rejectClosure']);
 
         // Oportunidades y Flujo de Ventas a Operaciones
-        Route::get('opportunities', [OpportunityController::class, 'index']);
+        Route::get('opportunities/stats', [OpportunityController::class, 'stats']);
+        Route::apiResource('opportunities', OpportunityController::class);
         Route::post('opportunities/{id}/send-to-operations', [OpportunityController::class, 'sendToOperations']);
+        Route::post('opportunities/{id}/updates', [OpportunityController::class, 'addUpdate']);
 
         // Usuarios
         Route::get('/users', [UserController::class, 'index']);

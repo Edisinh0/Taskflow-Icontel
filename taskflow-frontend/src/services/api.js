@@ -117,6 +117,13 @@ export const flowBuilderAPI = {
   configureDependencies: (id, data) => api.put(`flow-builder/tasks/${id}/dependencies`, data),
 }
 
+// ========== DASHBOARD ==========
+export const dashboardAPI = {
+  getStats: () => api.get('dashboard/stats'),
+  getMyContent: (params) => api.get('dashboard/my-content', { params }),
+  getDelegated: () => api.get('dashboard/delegated'),
+}
+
 // ========== OPPORTUNITIES & SALES ==========
 export const opportunitiesAPI = {
   getAll: (params) => api.get('opportunities', { params }),
