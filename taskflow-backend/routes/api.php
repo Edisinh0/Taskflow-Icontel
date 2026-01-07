@@ -34,7 +34,9 @@ Route::prefix('v1')->group(function () {
         // Dashboard
         Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
         Route::get('/dashboard/my-content', [DashboardController::class, 'getMyContent']);
+        Route::get('/dashboard/area-content', [DashboardController::class, 'getAreaBasedContent']);
         Route::get('/dashboard/delegated', [DashboardController::class, 'getDelegated']);
+        Route::get('/dashboard/delegated-sales', [DashboardController::class, 'getDelegatedSales']);
 
         // Clientes y CRM
         Route::apiResource('clients', ClientController::class);

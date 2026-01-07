@@ -158,6 +158,275 @@ class DashboardController extends Controller
     }
 
     /**
+     * Obtener contenido del dashboard basado en el área del usuario
+     * Para Ventas/Comercial: Oportunidades + Tareas
+     * Para otros: Casos + Tareas
+     * GET /api/v1/dashboard/area-content
+     */
+    public function getAreaBasedContent(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            if (!$user || !$user->sweetcrm_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado o sin ID de SweetCRM'
+                ], 401);
+            }
+
+            // Determinar el área/departamento del usuario
+            $department = strtolower($user->department ?? '');
+            $isSalesTeam = in_array($department, ['ventas', 'comercial', 'sales', 'commercial']);
+
+            if ($isSalesTeam) {
+                // Para ventas: traer Oportunidades + Tareas
+                return $this->getSalesTeamContent($request, $user);
+            } else {
+                // Para otros: traer Casos + Tareas (comportamiento actual)
+                return $this->getMyContent($request);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error en getAreaBasedContent: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener contenido del dashboard',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener Oportunidades + Tareas para equipo de Ventas
+     * GET /api/v1/dashboard/sales-content
+     */
+    protected function getSalesTeamContent(Request $request, $user)
+    {
+        try {
+            $username = config('services.sweetcrm.username');
+            $password = config('services.sweetcrm.password');
+
+            if (!$username || !$password) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Credenciales de SweetCRM no configuradas'
+                ], 500);
+            }
+
+            // Obtener sesión de SweetCRM
+            $sessionResult = $this->sweetCrmService->getCachedSession($username, $password);
+
+            if (!$sessionResult['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de autenticación con SweetCRM'
+                ], 500);
+            }
+
+            $sessionId = $sessionResult['session_id'];
+            $userSweetCrmId = $user->sweetcrm_id;
+
+            // Oportunidades asignadas al usuario
+            $opportunitiesData = [];
+            $activeOpportunityStatuses = ['Prospecting', 'Qualification', 'Needs Analysis', 'Value Proposition', 'Id. Decision Makers', 'Perception Analysis', 'Proposal/Price Quote', 'Negotiation/Review', 'Verbal Agreement', 'Closed Won'];
+
+            $opportunitiesFilters = [
+                'query' => "opportunities.assigned_user_id = '{$userSweetCrmId}'",
+                'max_results' => 100,
+            ];
+
+            $opportunitiesFromCrm = $this->sweetCrmService->getOpportunities($sessionId, $opportunitiesFilters);
+
+            foreach ($opportunitiesFromCrm as $opp) {
+                $nvl = $opp['name_value_list'];
+                $opportunitiesData[] = [
+                    'id' => $opp['id'],
+                    'type' => 'opportunity',
+                    'title' => $nvl['name']['value'] ?? 'Sin nombre',
+                    'sales_stage' => $nvl['sales_stage']['value'] ?? 'Prospecting',
+                    'amount' => $nvl['amount']['value'] ?? 0,
+                    'currency' => $nvl['currency_id']['value'] ?? 'CLP',
+                    'probability' => $nvl['probability']['value'] ?? 0,
+                    'date_closed' => $nvl['date_closed']['value'] ?? null,
+                    'assigned_user_id' => $userSweetCrmId,
+                    'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? 'Sin asignar',
+                ];
+            }
+
+            // Tareas asignadas al usuario (de cualquier tipo)
+            $tasksData = [];
+            $activeTaskStatuses = ['Open', 'Reassigned', 'In Progress', 'Not Started'];
+
+            $tasksFilters = [
+                'query' => "tasks.assigned_user_id = '{$userSweetCrmId}' AND tasks.status IN ('" . implode("','", $activeTaskStatuses) . "')",
+                'max_results' => 100,
+            ];
+
+            $tasksFromCrm = $this->sweetCrmService->getTasks($sessionId, $tasksFilters);
+
+            foreach ($tasksFromCrm as $task) {
+                $nvl = $task['name_value_list'];
+                $taskStatus = $nvl['status']['value'] ?? 'Not Started';
+
+                if (in_array($taskStatus, $activeTaskStatuses)) {
+                    $tasksData[] = [
+                        'id' => $task['id'],
+                        'type' => 'task',
+                        'title' => $nvl['name']['value'] ?? 'Sin nombre',
+                        'status' => $taskStatus,
+                        'priority' => $nvl['priority']['value'] ?? 'Medium',
+                        'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? 'Sin asignar',
+                        'date_due' => $nvl['date_due']['value'] ?? null,
+                        'date_entered' => $nvl['date_entered']['value'] ?? null,
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'user_area' => 'sales',
+                'data' => [
+                    'opportunities' => $opportunitiesData,
+                    'tasks' => $tasksData,
+                    'total' => count($opportunitiesData) + count($tasksData),
+                    'total_opportunities' => count($opportunitiesData),
+                    'total_tasks' => count($tasksData),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en getSalesTeamContent: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener contenido de ventas',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener oportunidades y tareas delegadas para equipo de Ventas
+     * (creadas por el usuario y asignadas a otros)
+     * GET /api/v1/dashboard/delegated-sales
+     */
+    public function getDelegatedSales(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            if (!$user || !$user->sweetcrm_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado o sin ID de SweetCRM'
+                ], 401);
+            }
+
+            $username = config('services.sweetcrm.username');
+            $password = config('services.sweetcrm.password');
+
+            if (!$username || !$password) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Credenciales de SweetCRM no configuradas'
+                ], 500);
+            }
+
+            // Obtener sesión de SweetCRM
+            $sessionResult = $this->sweetCrmService->getCachedSession($username, $password);
+
+            if (!$sessionResult['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de autenticación con SweetCRM'
+                ], 500);
+            }
+
+            $sessionId = $sessionResult['session_id'];
+            $userSweetCrmId = $user->sweetcrm_id;
+
+            $delegatedData = [
+                'opportunities' => [],
+                'tasks' => [],
+                'total' => 0,
+                'pending' => 0
+            ];
+
+            // Tareas creadas por el usuario y asignadas a otros
+            $activeTaskStatuses = ['Open', 'Reassigned', 'In Progress', 'Not Started'];
+
+            $tasksFilters = [
+                'query' => "tasks.created_by = '{$userSweetCrmId}' AND tasks.assigned_user_id IS NOT NULL AND tasks.assigned_user_id != '{$userSweetCrmId}' AND tasks.status IN ('" . implode("','", $activeTaskStatuses) . "')",
+                'max_results' => 100,
+            ];
+
+            $tasksFromCrm = $this->sweetCrmService->getTasks($sessionId, $tasksFilters);
+
+            foreach ($tasksFromCrm as $task) {
+                $nvl = $task['name_value_list'];
+                $taskStatus = $nvl['status']['value'] ?? 'Not Started';
+
+                if (in_array($taskStatus, $activeTaskStatuses)) {
+                    $delegatedData['tasks'][] = [
+                        'id' => $task['id'],
+                        'type' => 'task',
+                        'title' => $nvl['name']['value'] ?? 'Sin nombre',
+                        'status' => $taskStatus,
+                        'priority' => $nvl['priority']['value'] ?? 'Medium',
+                        'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? 'Sin asignar',
+                        'created_by_name' => $nvl['created_by_name']['value'] ?? null,
+                        'date_due' => $nvl['date_due']['value'] ?? null,
+                        'date_entered' => $nvl['date_entered']['value'] ?? null,
+                    ];
+
+                    $delegatedData['total']++;
+                    $delegatedData['pending']++;
+                }
+            }
+
+            // Oportunidades creadas por el usuario y asignadas a otros
+            $opportunitiesFilters = [
+                'query' => "opportunities.created_by = '{$userSweetCrmId}' AND opportunities.assigned_user_id IS NOT NULL AND opportunities.assigned_user_id != '{$userSweetCrmId}'",
+                'max_results' => 100,
+            ];
+
+            $opportunitiesFromCrm = $this->sweetCrmService->getOpportunities($sessionId, $opportunitiesFilters);
+
+            foreach ($opportunitiesFromCrm as $opp) {
+                $nvl = $opp['name_value_list'];
+
+                $delegatedData['opportunities'][] = [
+                    'id' => $opp['id'],
+                    'type' => 'opportunity',
+                    'title' => $nvl['name']['value'] ?? 'Sin nombre',
+                    'sales_stage' => $nvl['sales_stage']['value'] ?? 'Prospecting',
+                    'amount' => $nvl['amount']['value'] ?? 0,
+                    'currency' => $nvl['currency_id']['value'] ?? 'CLP',
+                    'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? 'Sin asignar',
+                    'created_by_name' => $nvl['created_by_name']['value'] ?? null,
+                    'date_closed' => $nvl['date_closed']['value'] ?? null,
+                ];
+
+                $delegatedData['total']++;
+                $delegatedData['pending']++;
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $delegatedData
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en getDelegatedSales: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener oportunidades y tareas delegadas',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Obtener casos y tareas delegados (creados por el usuario y asignados a otros)
      * GET /api/v1/dashboard/delegated
      */

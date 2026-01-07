@@ -6,8 +6,15 @@ export const useDashboardStore = defineStore('dashboard', {
     state: () => ({
         cases: [], // Hierarchical cases (with tasks)
         orphanTasks: [], // Tasks without case
+        opportunities: [], // Oportunidades para equipo de ventas
         delegated: { // Tareas y casos delegados
             cases: [],
+            tasks: [],
+            total: 0,
+            pending: 0
+        },
+        delegatedSales: { // Oportunidades y tareas delegadas para ventas
+            opportunities: [],
             tasks: [],
             total: 0,
             pending: 0
@@ -16,6 +23,8 @@ export const useDashboardStore = defineStore('dashboard', {
         viewMode: 'cases', // 'cases' (hierarchy) | 'tasks' (flat list)
         loading: false,
         delegatedLoading: false,
+        delegatedSalesLoading: false,
+        userArea: null, // 'sales' | 'operations' | null
         error: null,
     }),
 
@@ -118,6 +127,67 @@ export const useDashboardStore = defineStore('dashboard', {
                 console.error('Error en fetchDelegated:', error);
             } finally {
                 this.delegatedLoading = false;
+            }
+        },
+
+        async fetchAreaBasedContent() {
+            this.loading = true;
+            this.error = null;
+            try {
+                const response = await dashboardAPI.getAreaBasedContent();
+                if (response.data.success) {
+                    this.userArea = response.data.user_area;
+                    const data = response.data.data;
+
+                    if (this.userArea === 'sales') {
+                        // Para equipo de ventas: Oportunidades + Tareas
+                        this.opportunities = data.opportunities || [];
+                        this.orphanTasks = data.tasks || [];
+                        console.log('✅ Sales team content loaded:', {
+                            opportunities: this.opportunities.length,
+                            tasks: this.orphanTasks.length,
+                            total: data.total
+                        });
+                    } else {
+                        // Para otros: Casos + Tareas
+                        this.cases = data.cases || [];
+                        this.orphanTasks = data.tasks || [];
+                        console.log('✅ Standard content loaded:', {
+                            cases: this.cases.length,
+                            tasks: this.orphanTasks.length
+                        });
+                    }
+                } else {
+                    console.error('Error fetching area-based content:', response.data.message);
+                    this.error = response.data.message;
+                }
+            } catch (error) {
+                console.error('Error en fetchAreaBasedContent:', error);
+                this.error = error.message || 'Error al cargar contenido';
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async fetchDelegatedSales() {
+            this.delegatedSalesLoading = true;
+            try {
+                const response = await dashboardAPI.getDelegatedSales();
+                if (response.data.success) {
+                    this.delegatedSales = response.data.data;
+                    console.log('✅ Delegated sales opportunities/tasks loaded:', {
+                        opportunities: this.delegatedSales.opportunities.length,
+                        tasks: this.delegatedSales.tasks.length,
+                        total: this.delegatedSales.total,
+                        pending: this.delegatedSales.pending
+                    });
+                } else {
+                    console.error('Error fetching delegated sales:', response.data.message);
+                }
+            } catch (error) {
+                console.error('Error en fetchDelegatedSales:', error);
+            } finally {
+                this.delegatedSalesLoading = false;
             }
         }
     },

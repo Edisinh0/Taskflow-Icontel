@@ -704,29 +704,42 @@ const router = useRouter()
 const delegatedSection = ref(null)
 
 const stats = computed(() => {
-    // CRM Data
-    const crmCasesCount = dashboardStore.cases.length
+    // Determine what data to use based on user area
+    let activeItemsCount = 0;
+
+    if (dashboardStore.userArea === 'sales') {
+        // Para equipo de ventas
+        activeItemsCount = dashboardStore.opportunities.length;
+    } else {
+        // Para otros
+        activeItemsCount = dashboardStore.cases.length;
+    }
+
     const crmTasks = dashboardStore.allTasksFlat
-    
-    // Calcular completadas hoy (de CRM o de tasks locales si se mezclan)
-    // Por ahora solo usamos CRM Tasks para métricas de "Actividad" si el usuario pidió que dependan de la vista
-    // Pero para ser robustos, usemos datos seguros.
-    
+
+    // Determinar delegadas
+    const delegatedTotal = dashboardStore.userArea === 'sales'
+        ? dashboardStore.delegatedSales.total
+        : dashboardStore.delegated.total;
+    const delegatedPending = dashboardStore.userArea === 'sales'
+        ? dashboardStore.delegatedSales.pending
+        : dashboardStore.delegated.pending;
+
     return {
-        activeFlows: dashboardStore.totalActiveCases, // Getter del store
+        activeFlows: activeItemsCount, // Casos para ops, Oportunidades para sales
         pendingTasks: crmTasks.filter(t => t.status !== 'Completed' && t.status !== 'Deferred').length,
-        completedToday: crmTasks.filter(t => t.status === 'Completed').length, // Simplificado
+        completedToday: crmTasks.filter(t => t.status === 'Completed').length,
         overdueTasks: crmTasks.filter(t => {
              if (!t.date_due) return false;
              return new Date(t.date_due) < new Date() && t.status !== 'Completed';
         }).length,
         urgentTasks: crmTasks.filter(t => t.priority === 'High' || t.priority === 'Urgent').length,
-        delegatedTasks: dashboardStore.delegated.total,
-        delegatedPending: dashboardStore.delegated.pending,
-        
+        delegatedTasks: delegatedTotal,
+        delegatedPending: delegatedPending,
+
         // Placeholders o Cálculos para métricas semanales
-        flowsThisWeek: 0, 
-        completedThisWeek: crmTasks.filter(t => t.status === 'Completed').length, // Simplificado, idealmente filtrar por fecha de modificación
+        flowsThisWeek: 0,
+        completedThisWeek: crmTasks.filter(t => t.status === 'Completed').length,
         totalThisWeek: crmTasks.length,
         completionRate: crmTasks.length ? Math.round((crmTasks.filter(t=>t.status==='Completed').length / crmTasks.length) * 100) : 0
     }
@@ -740,29 +753,49 @@ const urgentTasks = computed(() => {
 })
 
 const delegatedTasks = computed(() => {
-    // Combinar casos y tareas delegadas desde el store
-    const combined = [
-        ...dashboardStore.delegated.cases.map(c => ({
-            ...c,
-            type: 'case',
-            subject: c.title,
-            assigned_user: { name: c.assigned_user_name }
-        })),
-        ...dashboardStore.delegated.tasks.map(t => ({
-            ...t,
-            type: 'task',
-            subject: t.title,
-            assigned_user: { name: t.assigned_user_name }
-        }))
-    ];
+    // Combinar casos/oportunidades y tareas delegadas desde el store
+    let combined = [];
+
+    if (dashboardStore.userArea === 'sales') {
+        // Para equipo de ventas: oportunidades delegadas + tareas delegadas
+        combined = [
+            ...dashboardStore.delegatedSales.opportunities.map(o => ({
+                ...o,
+                type: 'opportunity',
+                subject: o.title,
+                assigned_user: { name: o.assigned_user_name }
+            })),
+            ...dashboardStore.delegatedSales.tasks.map(t => ({
+                ...t,
+                type: 'task',
+                subject: t.title,
+                assigned_user: { name: t.assigned_user_name }
+            }))
+        ];
+    } else {
+        // Para otros: casos delegados + tareas delegadas
+        combined = [
+            ...dashboardStore.delegated.cases.map(c => ({
+                ...c,
+                type: 'case',
+                subject: c.title,
+                assigned_user: { name: c.assigned_user_name }
+            })),
+            ...dashboardStore.delegated.tasks.map(t => ({
+                ...t,
+                type: 'task',
+                subject: t.title,
+                assigned_user: { name: t.assigned_user_name }
+            }))
+        ];
+    }
 
     return combined.sort((a, b) => {
         // Ordenar por estado: primero pendientes, luego en progreso, luego completadas
         const statusOrder = {
-            'New': 0, 'Not Started': 0,
-            'in_progress': 1, 'In Progress': 1,
-            'completed': 2, 'Completed': 2,
-            'Closed': 2,
+            'New': 0, 'Not Started': 0, 'Prospecting': 0, 'Qualification': 0,
+            'in_progress': 1, 'In Progress': 1, 'Needs Analysis': 1, 'Value Proposition': 1,
+            'completed': 2, 'Completed': 2, 'Closed': 2, 'Closed Won': 2,
             'cancelled': 3, 'Rejected': 3
         }
         return (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99)
@@ -1116,9 +1149,15 @@ const scrollToDelegated = () => {
 }
 
 const loadData = async () => {
-  // Trigger SweetCRM Sync
-  dashboardStore.fetchContent();
-  dashboardStore.fetchDelegated(); // Obtener tareas delegadas
+  // Trigger area-based SweetCRM Sync (handles both sales and standard dashboard)
+  dashboardStore.fetchAreaBasedContent();
+
+  // Obtener tareas delegadas (para operaciones) o delegadas con oportunidades (para ventas)
+  if (dashboardStore.userArea === 'sales') {
+    dashboardStore.fetchDelegatedSales();
+  } else {
+    dashboardStore.fetchDelegated();
+  }
 
   try {
     const [flowsRes, tasksRes] = await Promise.all([

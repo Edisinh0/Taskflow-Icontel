@@ -121,7 +121,9 @@ export const flowBuilderAPI = {
 export const dashboardAPI = {
   getStats: () => api.get('dashboard/stats'),
   getMyContent: (params) => api.get('dashboard/my-content', { params }),
+  getAreaBasedContent: (params) => api.get('dashboard/area-content', { params }),
   getDelegated: () => api.get('dashboard/delegated'),
+  getDelegatedSales: () => api.get('dashboard/delegated-sales'),
 }
 
 // ========== OPPORTUNITIES & SALES ==========
