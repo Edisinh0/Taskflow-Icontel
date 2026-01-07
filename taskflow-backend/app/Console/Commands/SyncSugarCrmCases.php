@@ -92,14 +92,16 @@ class SyncSugarCrmCases extends Command
         // Estados que se consideran "cerrados" o inactivos en SuiteCRM
         $closedStatuses = ['Closed', 'Rejected', 'Duplicate', 'Closed_Closed', 'Merged'];
 
+        // Mapeo de estados desde SweetCRM (campo 'state') a estados locales
         $statusMap = [
-            'New' => 'Nuevo',
-            'Assigned' => 'Asignado',
-            'Closed' => 'Cerrado',
+            'Open' => 'Abierto',           // Estado principal de casos activos
+            'New' => 'Nuevo',              // Legacy
+            'Assigned' => 'Asignado',      // Legacy
+            'Closed' => 'Cerrado',         // Estado principal de casos cerrados
             'Pending Input' => 'Pendiente Datos',
             'Rejected' => 'Rechazado',
             'Duplicate' => 'Duplicado',
-            'Closed_Closed' => 'Cerrado',
+            'Closed_Closed' => 'Cerrado',  // Legacy
             'Merged' => 'Cerrado',
         ];
 
@@ -139,13 +141,21 @@ class SyncSugarCrmCases extends Command
                     // Guardar ID de CRM para tracking
                     $syncedCrmIds[] = $sweetId;
 
+                    // Obtener estado desde el campo 'state' (no 'status')
+                    $stateValue = $nvl['state']['value'] ?? '';
+                    $mappedStatus = $statusMap[$stateValue] ?? $stateValue;
+                    // Si el estado está vacío, usar 'Nuevo' como default
+                    if (empty($mappedStatus)) {
+                        $mappedStatus = 'Nuevo';
+                    }
+
                     $crmCase = CrmCase::updateOrCreate(
                         ['sweetcrm_id' => $sweetId],
                         [
                             'case_number' => $nvl['case_number']['value'] ?? '',
                             'subject' => $nvl['name']['value'] ?? 'Sin asunto',
                             'description' => $nvl['description']['value'] ?? null,
-                            'status' => $statusMap[$nvl['status']['value'] ?? ''] ?? ($nvl['status']['value'] ?: 'Nuevo'),
+                            'status' => $mappedStatus,
                             'priority' => $priorityMap[$nvl['priority']['value'] ?? ''] ?? ($nvl['priority']['value'] ?? 'Media'),
                             'type' => $nvl['type']['value'] ?? null,
                             'area' => $nvl['area_c']['value'] ?? null, // Campo personalizado de área

@@ -671,7 +671,8 @@ class SweetCrmService
                             'name',
                             'account_id',
                             'description',
-                            'status',
+                            'state', // Campo real de estado en SweetCRM (Open, Closed, etc.)
+                            'status', // Campo legacy (generalmente vacío)
                             'priority',
                             'type',
                             'area_c', // Campo personalizado de área en SweetCRM
