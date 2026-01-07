@@ -184,7 +184,7 @@ class DashboardController extends Controller
                 return $this->getSalesTeamContent($request, $user);
             } else {
                 // Para otros: traer Casos + Tareas (comportamiento actual)
-                return $this->getMyContent($request);
+                return $this->getOperationsTeamContent($request, $user);
             }
 
         } catch (\Exception $e) {
@@ -192,6 +192,117 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener contenido del dashboard',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener Casos + Tareas para equipo de Operaciones
+     * Método simplificado y directo
+     */
+    protected function getOperationsTeamContent(Request $request, $user)
+    {
+        try {
+            $username = config('services.sweetcrm.username');
+            $password = config('services.sweetcrm.password');
+
+            if (!$username || !$password) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Credenciales de SweetCRM no configuradas'
+                ], 500);
+            }
+
+            // Obtener sesión de SweetCRM
+            $sessionResult = $this->sweetCrmService->getCachedSession($username, $password);
+
+            if (!$sessionResult['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de autenticación con SweetCRM'
+                ], 500);
+            }
+
+            $sessionId = $sessionResult['session_id'];
+            $userSweetCrmId = $user->sweetcrm_id;
+
+            // Casos asignados al usuario (activos, no cerrados)
+            $casesData = [];
+            $caseQuery = "cases.assigned_user_id = '{$userSweetCrmId}' AND cases.status NOT IN ('Closed', 'Rejected', 'Duplicate', 'Merged')";
+
+            $casesFromCrm = $this->sweetCrmService->getCases($sessionId, [
+                'query' => $caseQuery,
+                'max_results' => 100
+            ]);
+
+            foreach ($casesFromCrm as $crmCase) {
+                $nvl = $crmCase['name_value_list'];
+                $casesData[] = [
+                    'id' => $crmCase['id'],
+                    'type' => 'case',
+                    'title' => $nvl['name']['value'] ?? 'Sin nombre',
+                    'case_number' => $nvl['case_number']['value'] ?? null,
+                    'subject' => $nvl['name']['value'] ?? 'Sin nombre',
+                    'status' => $nvl['status']['value'] ?? 'Open',
+                    'priority' => $nvl['priority']['value'] ?? 'Normal',
+                    'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? 'Sin asignar',
+                    'created_by_name' => $nvl['created_by_name']['value'] ?? null,
+                    'date_entered' => $nvl['date_entered']['value'] ?? null,
+                ];
+            }
+
+            // Tareas asignadas al usuario (activas)
+            $tasksData = [];
+            $activeTaskStatuses = ['Open', 'Reassigned', 'In Progress', 'Not Started'];
+            $taskQuery = "tasks.assigned_user_id = '{$userSweetCrmId}' AND tasks.status IN ('" . implode("','", $activeTaskStatuses) . "')";
+
+            $tasksFromCrm = $this->sweetCrmService->getTasks($sessionId, [
+                'query' => $taskQuery,
+                'max_results' => 100
+            ]);
+
+            foreach ($tasksFromCrm as $task) {
+                $nvl = $task['name_value_list'];
+                $taskStatus = $nvl['status']['value'] ?? 'Not Started';
+
+                if (in_array($taskStatus, $activeTaskStatuses)) {
+                    $tasksData[] = [
+                        'id' => $task['id'],
+                        'type' => 'task',
+                        'title' => $nvl['name']['value'] ?? 'Sin nombre',
+                        'status' => $taskStatus,
+                        'priority' => $nvl['priority']['value'] ?? 'Medium',
+                        'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? 'Sin asignar',
+                        'date_due' => $nvl['date_due']['value'] ?? null,
+                        'date_entered' => $nvl['date_entered']['value'] ?? null,
+                    ];
+                }
+            }
+
+            Log::info('✅ Operations team content loaded:', [
+                'cases_count' => count($casesData),
+                'tasks_count' => count($tasksData),
+                'total' => count($casesData) + count($tasksData)
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'user_area' => null,
+                'data' => [
+                    'cases' => $casesData,
+                    'tasks' => $tasksData,
+                    'total' => count($casesData) + count($tasksData),
+                    'total_cases' => count($casesData),
+                    'total_tasks' => count($tasksData),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en getOperationsTeamContent: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener contenido de operaciones',
                 'error' => $e->getMessage()
             ], 500);
         }

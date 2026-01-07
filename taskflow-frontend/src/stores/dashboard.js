@@ -143,6 +143,8 @@ export const useDashboardStore = defineStore('dashboard', {
                         // Para equipo de ventas: Oportunidades + Tareas
                         this.opportunities = data.opportunities || [];
                         this.orphanTasks = data.tasks || [];
+                        // Limpiar casos para ventas
+                        this.cases = [];
                         console.log('✅ Sales team content loaded:', {
                             opportunities: this.opportunities.length,
                             tasks: this.orphanTasks.length,
@@ -150,11 +152,19 @@ export const useDashboardStore = defineStore('dashboard', {
                         });
                     } else {
                         // Para otros: Casos + Tareas
-                        this.cases = data.cases || [];
+                        // Procesar casos con expanded: false para mantener compatibilidad
+                        this.cases = (data.cases || []).map(c => ({
+                            ...c,
+                            expanded: false,
+                            tasks: c.tasks || []
+                        }));
                         this.orphanTasks = data.tasks || [];
-                        console.log('✅ Standard content loaded:', {
+                        // Limpiar oportunidades para ops
+                        this.opportunities = [];
+                        console.log('✅ Operations team content loaded:', {
                             cases: this.cases.length,
-                            tasks: this.orphanTasks.length
+                            tasks: this.orphanTasks.length,
+                            total: data.total
                         });
                     }
                 } else {
