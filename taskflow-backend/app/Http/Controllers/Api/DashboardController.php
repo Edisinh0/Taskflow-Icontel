@@ -235,7 +235,8 @@ class DashboardController extends Controller
             // Formatear casos para el frontend
             $casesData = $cases->map(function ($case) {
                 return [
-                    'id' => $case->sweetcrm_id ?? $case->id,
+                    'id' => $case->id, // ID local (integer) para navegación
+                    'sweetcrm_id' => $case->sweetcrm_id, // ID de SweetCRM (UUID)
                     'type' => 'case',
                     'title' => $case->subject,
                     'case_number' => $case->case_number,
@@ -267,7 +268,8 @@ class DashboardController extends Controller
             // Formatear tareas para el frontend
             $tasksData = $tasks->map(function ($task) {
                 $taskData = [
-                    'id' => $task->sweetcrm_id ?? $task->id,
+                    'id' => $task->id, // ID local (integer) para navegación
+                    'sweetcrm_id' => $task->sweetcrm_id, // ID de SweetCRM (UUID)
                     'type' => 'task',
                     'title' => $task->title,
                     'status' => $task->status,
@@ -281,7 +283,8 @@ class DashboardController extends Controller
                 // Si la tarea tiene un caso asociado, incluir información del caso
                 if ($task->case_id && $task->crmCase) {
                     $taskData['crm_case'] = [
-                        'id' => $task->crmCase->sweetcrm_id ?? $task->crmCase->id,
+                        'id' => $task->crmCase->id, // ID local (integer) para navegación
+                        'sweetcrm_id' => $task->crmCase->sweetcrm_id, // ID de SweetCRM (UUID)
                         'case_number' => $task->crmCase->case_number,
                         'subject' => $task->crmCase->subject,
                     ];
