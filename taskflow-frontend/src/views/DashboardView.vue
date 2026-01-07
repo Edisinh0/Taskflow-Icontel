@@ -1149,17 +1149,18 @@ const scrollToDelegated = () => {
 }
 
 const loadData = async () => {
-  // Trigger area-based SweetCRM Sync (handles both sales and standard dashboard)
-  dashboardStore.fetchAreaBasedContent();
-
-  // Obtener tareas delegadas (para operaciones) o delegadas con oportunidades (para ventas)
-  if (dashboardStore.userArea === 'sales') {
-    dashboardStore.fetchDelegatedSales();
-  } else {
-    dashboardStore.fetchDelegated();
-  }
-
   try {
+    // 1. Primero cargar contenido basado en área (AWAIT para esperar respuesta)
+    await dashboardStore.fetchAreaBasedContent();
+
+    // 2. Luego obtener tareas delegadas (ahora userArea está seteado)
+    if (dashboardStore.userArea === 'sales') {
+      await dashboardStore.fetchDelegatedSales();
+    } else {
+      await dashboardStore.fetchDelegated();
+    }
+
+    // 3. Cargar datos adicionales en paralelo
     const [flowsRes, tasksRes] = await Promise.all([
       flowsAPI.getAll(), // Los flujos por ahora los dejamos todos o según permisos de backend
       tasksAPI.getAll({ assignee_id: authStore.currentUser?.id })

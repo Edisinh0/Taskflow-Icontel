@@ -124,6 +124,7 @@ export const dashboardAPI = {
   getAreaBasedContent: (params) => api.get('dashboard/area-content', { params }),
   getDelegated: () => api.get('dashboard/delegated'),
   getDelegatedSales: () => api.get('dashboard/delegated-sales'),
+  getContentByView: (view = 'my') => api.get('dashboard/area-content', { params: { view } }),
 }
 
 // ========== OPPORTUNITIES & SALES ==========

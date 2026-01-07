@@ -93,7 +93,10 @@ export const useDashboardStore = defineStore('dashboard', {
         setScope(scope) {
             if (['my', 'area'].includes(scope)) {
                 this.scope = scope;
-                this.fetchContent(); // Refresh data on scope change
+                // Refresh data when scope changes
+                // Note: fetchAreaBasedContent() handles both 'my' and 'area' automatically
+                // because it queries based on user's department
+                this.fetchAreaBasedContent();
             }
         },
 
@@ -134,7 +137,8 @@ export const useDashboardStore = defineStore('dashboard', {
             this.loading = true;
             this.error = null;
             try {
-                const response = await dashboardAPI.getAreaBasedContent();
+                // Pasar el parámetro 'view' basado en this.scope
+                const response = await dashboardAPI.getContentByView(this.scope);
                 if (response.data.success) {
                     this.userArea = response.data.user_area;
                     const data = response.data.data;
@@ -148,7 +152,8 @@ export const useDashboardStore = defineStore('dashboard', {
                         console.log('✅ Sales team content loaded:', {
                             opportunities: this.opportunities.length,
                             tasks: this.orphanTasks.length,
-                            total: data.total
+                            total: data.total,
+                            scope: this.scope
                         });
                     } else {
                         // Para otros: Casos + Tareas
@@ -164,7 +169,9 @@ export const useDashboardStore = defineStore('dashboard', {
                         console.log('✅ Operations team content loaded:', {
                             cases: this.cases.length,
                             tasks: this.orphanTasks.length,
-                            total: data.total
+                            total: data.total,
+                            scope: this.scope,
+                            viewMode: response.data.view_mode
                         });
                     }
                 } else {

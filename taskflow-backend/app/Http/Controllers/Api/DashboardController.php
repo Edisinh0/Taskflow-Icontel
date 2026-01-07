@@ -199,7 +199,7 @@ class DashboardController extends Controller
 
     /**
      * Obtener Casos + Tareas para equipo de Operaciones
-     * Método simplificado y directo
+     * Soporta viewMode: 'my' (mis casos) o 'area' (casos del área)
      */
     protected function getOperationsTeamContent(Request $request, $user)
     {
@@ -227,9 +227,19 @@ class DashboardController extends Controller
             $sessionId = $sessionResult['session_id'];
             $userSweetCrmId = $user->sweetcrm_id;
 
-            // Casos asignados al usuario (activos, no cerrados)
+            // Determinar qué vista mostrar (my vs area)
+            $viewMode = $request->query('view', 'my'); // 'my' o 'area'
+
+            // Casos activos (no cerrados)
             $casesData = [];
-            $caseQuery = "cases.assigned_user_id = '{$userSweetCrmId}' AND cases.status NOT IN ('Closed', 'Rejected', 'Duplicate', 'Merged')";
+
+            if ($viewMode === 'area') {
+                // Casos asignados a CUALQUIER usuario en el área (no solo al usuario actual)
+                $caseQuery = "cases.status NOT IN ('Closed', 'Rejected', 'Duplicate', 'Merged')";
+            } else {
+                // Casos asignados solo al usuario actual
+                $caseQuery = "cases.assigned_user_id = '{$userSweetCrmId}' AND cases.status NOT IN ('Closed', 'Rejected', 'Duplicate', 'Merged')";
+            }
 
             $casesFromCrm = $this->sweetCrmService->getCases($sessionId, [
                 'query' => $caseQuery,
@@ -252,7 +262,7 @@ class DashboardController extends Controller
                 ];
             }
 
-            // Tareas asignadas al usuario (activas)
+            // Tareas asignadas al usuario (activas) - SIEMPRE son personales
             $tasksData = [];
             $activeTaskStatuses = ['Open', 'Reassigned', 'In Progress', 'Not Started'];
             $taskQuery = "tasks.assigned_user_id = '{$userSweetCrmId}' AND tasks.status IN ('" . implode("','", $activeTaskStatuses) . "')";
@@ -281,6 +291,7 @@ class DashboardController extends Controller
             }
 
             Log::info('✅ Operations team content loaded:', [
+                'view_mode' => $viewMode,
                 'cases_count' => count($casesData),
                 'tasks_count' => count($tasksData),
                 'total' => count($casesData) + count($tasksData)
@@ -289,6 +300,7 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => true,
                 'user_area' => null,
+                'view_mode' => $viewMode,
                 'data' => [
                     'cases' => $casesData,
                     'tasks' => $tasksData,
