@@ -203,46 +203,13 @@ class DashboardController extends Controller
                 'pending' => 0
             ];
 
-            // Estados activos para casos
-            $openCaseStatuses = ['New', 'Open', 'In Progress', 'Pending', 'Reopened'];
+            // Estados específicos para tareas delegadas activas
+            // Solo: Abierto, Reasignada, Tarea en progreso, Tarea no iniciada
+            $activeTaskStatuses = ['Open', 'Reassigned', 'In Progress', 'Not Started'];
 
-            // Casos creados por el usuario y asignados a otros (solo estados abiertos)
-            $casesFilters = [
-                'query' => "cases.created_by = '{$userSweetCrmId}' AND cases.assigned_user_id IS NOT NULL AND cases.assigned_user_id != '{$userSweetCrmId}' AND (cases.status IS NULL OR cases.status = '' OR cases.status IN ('" . implode("','", $openCaseStatuses) . "'))",
-                'max_results' => 100,
-            ];
-
-            $casesFromCrm = $this->sweetCrmService->getCases($sessionId, $casesFilters);
-
-            foreach ($casesFromCrm as $crmCase) {
-                $nvl = $crmCase['name_value_list'];
-                $caseStatus = $nvl['status']['value'] ?? 'New';
-
-                // Solo incluir si está en estados activos
-                if (in_array($caseStatus, $openCaseStatuses) || empty($caseStatus)) {
-                    $delegatedData['cases'][] = [
-                        'id' => $crmCase['id'],
-                        'type' => 'case',
-                        'title' => $nvl['name']['value'] ?? 'Sin nombre',
-                        'case_number' => $nvl['case_number']['value'] ?? null,
-                        'status' => $caseStatus,
-                        'priority' => $nvl['priority']['value'] ?? 'Normal',
-                        'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? 'Sin asignar',
-                        'created_by_name' => $nvl['created_by_name']['value'] ?? null,
-                        'date_entered' => $nvl['date_entered']['value'] ?? null,
-                    ];
-
-                    $delegatedData['total']++;
-                    $delegatedData['pending']++;
-                }
-            }
-
-            // Estados activos para tareas: Not Started, In Progress, Reassigned, Open
-            $openTaskStatuses = ['Not Started', 'In Progress', 'Reassigned', 'Open', 'Pending'];
-
-            // Tareas creadas por el usuario y asignadas a otros (solo estados activos)
+            // Tareas creadas por el usuario y asignadas a otros (solo estados activos específicos)
             $tasksFilters = [
-                'query' => "tasks.created_by = '{$userSweetCrmId}' AND tasks.assigned_user_id IS NOT NULL AND tasks.assigned_user_id != '{$userSweetCrmId}' AND tasks.parent_type = 'Cases' AND (tasks.status IS NULL OR tasks.status = '' OR tasks.status IN ('" . implode("','", $openTaskStatuses) . "'))",
+                'query' => "tasks.created_by = '{$userSweetCrmId}' AND tasks.assigned_user_id IS NOT NULL AND tasks.assigned_user_id != '{$userSweetCrmId}' AND tasks.parent_type = 'Cases' AND tasks.status IN ('" . implode("','", $activeTaskStatuses) . "')",
                 'max_results' => 100,
             ];
 
@@ -252,8 +219,8 @@ class DashboardController extends Controller
                 $nvl = $task['name_value_list'];
                 $taskStatus = $nvl['status']['value'] ?? 'Not Started';
 
-                // Solo incluir si está en estados activos
-                if (in_array($taskStatus, $openTaskStatuses) || empty($taskStatus)) {
+                // Solo incluir si está en los estados específicos
+                if (in_array($taskStatus, $activeTaskStatuses)) {
                     $delegatedData['tasks'][] = [
                         'id' => $task['id'],
                         'type' => 'task',
@@ -263,6 +230,39 @@ class DashboardController extends Controller
                         'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? 'Sin asignar',
                         'created_by_name' => $nvl['created_by_name']['value'] ?? null,
                         'date_due' => $nvl['date_due']['value'] ?? null,
+                        'date_entered' => $nvl['date_entered']['value'] ?? null,
+                    ];
+
+                    $delegatedData['total']++;
+                    $delegatedData['pending']++;
+                }
+            }
+
+            // Casos creados por el usuario y asignados a otros (solo estados abiertos)
+            $openCaseStatuses = ['Open'];
+
+            $casesFilters = [
+                'query' => "cases.created_by = '{$userSweetCrmId}' AND cases.assigned_user_id IS NOT NULL AND cases.assigned_user_id != '{$userSweetCrmId}' AND cases.status IN ('" . implode("','", $openCaseStatuses) . "')",
+                'max_results' => 100,
+            ];
+
+            $casesFromCrm = $this->sweetCrmService->getCases($sessionId, $casesFilters);
+
+            foreach ($casesFromCrm as $crmCase) {
+                $nvl = $crmCase['name_value_list'];
+                $caseStatus = $nvl['status']['value'] ?? 'Open';
+
+                // Solo incluir si está en estados activos
+                if (in_array($caseStatus, $openCaseStatuses)) {
+                    $delegatedData['cases'][] = [
+                        'id' => $crmCase['id'],
+                        'type' => 'case',
+                        'title' => $nvl['name']['value'] ?? 'Sin nombre',
+                        'case_number' => $nvl['case_number']['value'] ?? null,
+                        'status' => $caseStatus,
+                        'priority' => $nvl['priority']['value'] ?? 'Normal',
+                        'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? 'Sin asignar',
+                        'created_by_name' => $nvl['created_by_name']['value'] ?? null,
                         'date_entered' => $nvl['date_entered']['value'] ?? null,
                     ];
 
