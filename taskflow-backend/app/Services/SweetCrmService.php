@@ -11,11 +11,100 @@ class SweetCrmService
     private string $baseUrl;
     private string $apiToken;
     private int $timeout = 30;
+    private int $sessionCacheTTL = 3600; // 1 hour session cache
 
     public function __construct()
     {
         $this->baseUrl = rtrim(config('services.sweetcrm.url'), '/');
         $this->apiToken = config('services.sweetcrm.api_token');
+    }
+
+    /**
+     * Get or create cached session for a user
+     * Reduces authentication overhead by caching session IDs for 1 hour
+     *
+     * @param string $username
+     * @param string $password
+     * @return array ['success' => bool, 'session_id' => string|null, 'error' => string|null]
+     */
+    public function getCachedSession(string $username, string $password): array
+    {
+        $cacheKey = 'sweetcrm_session_' . md5($username);
+
+        // Try to get cached session
+        $cachedSessionId = Cache::get($cacheKey);
+
+        if ($cachedSessionId) {
+            // Validate session is still active by making a lightweight API call
+            if ($this->validateSession($cachedSessionId)) {
+                Log::info('Using cached SweetCRM session', ['username' => $username]);
+                return [
+                    'success' => true,
+                    'session_id' => $cachedSessionId,
+                    'cached' => true,
+                ];
+            } else {
+                // Session expired, remove from cache
+                Cache::forget($cacheKey);
+                Log::info('Cached SweetCRM session expired', ['username' => $username]);
+            }
+        }
+
+        // No valid cached session, authenticate
+        $authResult = $this->authenticate($username, $password);
+
+        if ($authResult['success']) {
+            $sessionId = $authResult['data']['session_id'];
+
+            // Cache the session ID for 1 hour
+            Cache::put($cacheKey, $sessionId, $this->sessionCacheTTL);
+
+            Log::info('Created new SweetCRM session and cached it', ['username' => $username]);
+
+            return [
+                'success' => true,
+                'session_id' => $sessionId,
+                'cached' => false,
+            ];
+        }
+
+        return [
+            'success' => false,
+            'error' => $authResult['error'] ?? 'Authentication failed',
+        ];
+    }
+
+    /**
+     * Validate if a session ID is still active
+     *
+     * @param string $sessionId
+     * @return bool
+     */
+    private function validateSession(string $sessionId): bool
+    {
+        try {
+            $response = Http::timeout(5) // Short timeout for validation
+                ->asForm()
+                ->post("{$this->baseUrl}/service/v4_1/rest.php", [
+                    'method' => 'get_user_id',
+                    'input_type' => 'JSON',
+                    'response_type' => 'JSON',
+                    'rest_data' => json_encode([
+                        'session' => $sessionId,
+                    ]),
+                ]);
+
+            if ($response->successful()) {
+                $userId = $response->json();
+                // If we get a valid user ID, session is active
+                return !empty($userId) && !isset($userId['name']) || $userId['name'] !== 'Invalid Session ID';
+            }
+
+            return false;
+        } catch (\Exception $e) {
+            Log::warning('Session validation failed', ['error' => $e->getMessage()]);
+            return false;
+        }
     }
 
     /**
@@ -28,6 +117,7 @@ class SweetCrmService
     {
         try {
             // SugarCRM v4_1 REST API authentication
+            Log::info('SweetCRM Auth Request', ['username' => $username, 'url' => "{$this->baseUrl}/service/v4_1/rest.php"]);
             $response = Http::timeout($this->timeout)
                 ->asForm()
                 ->post("{$this->baseUrl}/service/v4_1/rest.php", [
@@ -45,6 +135,7 @@ class SweetCrmService
 
             if ($response->successful()) {
                 $data = $response->json();
+                Log::info('SweetCRM Auth Response', ['status' => $response->status(), 'data' => $data]);
 
                 // Verificar si hubo error en la respuesta
                 if (isset($data['name']) && $data['name'] === 'Invalid Login') {
@@ -585,8 +676,15 @@ class SweetCrmService
                             'type',
                             'area_c', // Campo personalizado de área en SweetCRM
                             'assigned_user_id',
+                            'assigned_user_name', // Nombre del usuario asignado
+                            'created_by',
+                            'created_by_name', // Nombre del creador
                             'date_entered',
                             'date_modified',
+                            'avances_1_c',
+                            'avances_2_c',
+                            'avances_3_c',
+                            'avances_4_c',
                         ],
                         'link_name_to_fields_array' => [],
                         'max_results' => $filters['max_results'] ?? 100,
@@ -612,6 +710,13 @@ class SweetCrmService
     public function getTasks(string $sessionId, array $filters = []): array
     {
         try {
+            $query = $filters['query'] ?? '';
+
+            Log::info('🔍 SweetCRM getTasks Request', [
+                'query' => $query,
+                'max_results' => $filters['max_results'] ?? 100
+            ]);
+
             $response = Http::timeout($this->timeout)
                 ->asForm()
                 ->post("{$this->baseUrl}/service/v4_1/rest.php", [
@@ -621,7 +726,7 @@ class SweetCrmService
                     'rest_data' => json_encode([
                         'session' => $sessionId,
                         'module_name' => 'Tasks',
-                        'query' => $filters['query'] ?? '',
+                        'query' => $query,
                         'order_by' => $filters['order_by'] ?? 'date_entered DESC',
                         'offset' => $filters['offset'] ?? 0,
                         'select_fields' => [
@@ -638,6 +743,7 @@ class SweetCrmService
                             'assigned_user_id',
                             'date_entered',
                             'date_modified',
+                            'avance_c',
                         ],
                         'link_name_to_fields_array' => [],
                         'max_results' => $filters['max_results'] ?? 100,
@@ -647,12 +753,182 @@ class SweetCrmService
 
             if ($response->successful()) {
                 $data = $response->json();
+                $resultCount = count($data['entry_list'] ?? []);
+
+                Log::info('✅ SweetCRM getTasks Response', [
+                    'count' => $resultCount,
+                    'result_count_from_api' => $data['result_count'] ?? 'N/A'
+                ]);
+
                 return $data['entry_list'] ?? [];
             }
+
+            Log::warning('❌ SweetCRM getTasks HTTP Error', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
 
             return [];
         } catch (\Exception $e) {
             Log::error('SugarCRM v4_1 tasks fetch error', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
+     * Obtener oportunidades (Opportunities) desde SugarCRM v4_1
+     */
+    public function getOpportunities(string $sessionId, array $filters = []): array
+    {
+        try {
+            $query = $filters['query'] ?? '';
+
+            Log::info('🔍 SweetCRM getOpportunities Request', [
+                'query' => $query,
+                'max_results' => $filters['max_results'] ?? 100
+            ]);
+
+            $response = Http::timeout($this->timeout)
+                ->asForm()
+                ->post("{$this->baseUrl}/service/v4_1/rest.php", [
+                    'method' => 'get_entry_list',
+                    'input_type' => 'JSON',
+                    'response_type' => 'JSON',
+                    'rest_data' => json_encode([
+                        'session' => $sessionId,
+                        'module_name' => 'Opportunities',
+                        'query' => $query,
+                        'order_by' => $filters['order_by'] ?? 'date_entered DESC',
+                        'offset' => $filters['offset'] ?? 0,
+                        'select_fields' => [
+                            'id',
+                            'name',
+                            'description',
+                            'amount',
+                            'amount_usdollar',
+                            'currency_id',
+                            'sales_stage',
+                            'probability',
+                            'date_closed',
+                            'next_step',
+                            'lead_source',
+                            'opportunity_type',
+                            'account_id',
+                            'account_name',
+                            'assigned_user_id',
+                            'assigned_user_name',
+                            'created_by',
+                            'date_entered',
+                            'date_modified',
+                        ],
+                        'link_name_to_fields_array' => [],
+                        'max_results' => $filters['max_results'] ?? 100,
+                        'deleted' => 0,
+                    ]),
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $resultCount = count($data['entry_list'] ?? []);
+
+                Log::info('✅ SweetCRM getOpportunities Response', [
+                    'count' => $resultCount,
+                    'result_count_from_api' => $data['result_count'] ?? 'N/A'
+                ]);
+
+                return $data['entry_list'] ?? [];
+            }
+
+            Log::warning('❌ SweetCRM getOpportunities HTTP Error', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+            return [];
+        } catch (\Exception $e) {
+            Log::error('SugarCRM v4_1 opportunities fetch error', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
+     * Obtener cotizaciones (Quotes) desde SugarCRM v4_1
+     */
+    public function getQuotes(string $sessionId, array $filters = []): array
+    {
+        try {
+            $query = $filters['query'] ?? '';
+
+            Log::info('🔍 SweetCRM getQuotes Request', [
+                'query' => $query,
+                'max_results' => $filters['max_results'] ?? 100
+            ]);
+
+            $response = Http::timeout($this->timeout)
+                ->asForm()
+                ->post("{$this->baseUrl}/service/v4_1/rest.php", [
+                    'method' => 'get_entry_list',
+                    'input_type' => 'JSON',
+                    'response_type' => 'JSON',
+                    'rest_data' => json_encode([
+                        'session' => $sessionId,
+                        'module_name' => 'Quotes',
+                        'query' => $query,
+                        'order_by' => $filters['order_by'] ?? 'date_entered DESC',
+                        'offset' => $filters['offset'] ?? 0,
+                        'select_fields' => [
+                            'id',
+                            'name',
+                            'quote_num',
+                            'quote_stage',
+                            'purchase_order_num',
+                            'payment_terms',
+                            'description',
+                            'total',
+                            'subtotal',
+                            'tax',
+                            'shipping',
+                            'discount',
+                            'currency_id',
+                            'date_quote_expected_closed',
+                            'billing_account_id',
+                            'billing_account_name',
+                            'billing_contact_id',
+                            'billing_contact_name',
+                            'opportunity_id',
+                            'opportunity_name',
+                            'assigned_user_id',
+                            'assigned_user_name',
+                            'created_by',
+                            'date_entered',
+                            'date_modified',
+                        ],
+                        'link_name_to_fields_array' => [],
+                        'max_results' => $filters['max_results'] ?? 100,
+                        'deleted' => 0,
+                    ]),
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $resultCount = count($data['entry_list'] ?? []);
+
+                Log::info('✅ SweetCRM getQuotes Response', [
+                    'count' => $resultCount,
+                    'result_count_from_api' => $data['result_count'] ?? 'N/A'
+                ]);
+
+                return $data['entry_list'] ?? [];
+            }
+
+            Log::warning('❌ SweetCRM getQuotes HTTP Error', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+            return [];
+        } catch (\Exception $e) {
+            Log::error('SugarCRM v4_1 quotes fetch error', ['error' => $e->getMessage()]);
             return [];
         }
     }

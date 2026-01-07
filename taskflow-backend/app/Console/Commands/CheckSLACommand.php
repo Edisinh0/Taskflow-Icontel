@@ -14,69 +14,136 @@ class CheckSlaCommand extends Command
 
     public function handle()
     {
-        $this->info('🔍 Verificando SLA de tareas...');
+        $this->info('🔍 Iniciando verificación maestra de SLA...');
 
-        $tasksToCheck = Task::whereIn('status', ['pending', 'in_progress'])
-            ->whereNotNull('estimated_end_at')
-            ->with(['assignee', 'flow'])
-            ->get();
+        // 1. Verificar tareas próximas a vencer (Warning 24h)
+        $this->checkUpcomingDeadlines();
 
-        $warnings = 0;
-        $criticals = 0;
+        // 2. Verificar SLAs Vencidos (+0 min) -> Marcar como breached
+        $this->checkBreachedSlas();
 
-        foreach ($tasksToCheck as $task) {
-            $hoursUntilDeadline = Carbon::parse($task->estimated_end_at)
-                ->diffInHours(now(), false);
+        // 3. Notificación (+1 día de retraso) -> Scope NeedsAssigneeNotification
+        $this->checkDayOneOverdue();
 
-            // Si es negativo, ya pasó la fecha
-            if ($hoursUntilDeadline < 0) {
-                $this->createOverdueNotification($task, abs($hoursUntilDeadline));
-                $criticals++;
-            } 
-            // Alerta 24 horas antes
-            elseif ($hoursUntilDeadline <= 24 && $hoursUntilDeadline > 0) {
-                $this->createWarningNotification($task, $hoursUntilDeadline);
-                $warnings++;
-            }
-        }
+        // 4. Escalamiento (+2 días de retraso) -> Scope NeedsEscalation
+        $this->checkDayTwoEscalation();
 
-        $this->info("✅ Verificación completada:");
-        $this->info("   - {$warnings} advertencias enviadas");
-        $this->info("   - {$criticals} tareas vencidas detectadas");
-
+        $this->info("✅ Verificación de SLA completada.");
         return 0;
     }
 
-    private function createWarningNotification($task, $hours)
+    private function checkUpcomingDeadlines()
     {
-        // Evitar duplicados
-        $exists = Notification::where('task_id', $task->id)
-            ->where('type', 'sla_warning')
-            ->where('created_at', '>', now()->subHours(12))
-            ->exists();
+        $tasks = Task::whereIn('status', ['pending', 'in_progress'])
+            ->whereNotNull('estimated_end_at')
+            ->where('sla_breached', false) // No vencidas aun
+            ->get();
 
-        if ($exists) return;
-
-        Notification::create([
-            'user_id' => $task->assignee_id,
-            'task_id' => $task->id,
-            'flow_id' => $task->flow_id,
-            'type' => 'sla_warning',
-            'title' => '⚠️ Tarea próxima a vencer',
-            'message' => "La tarea '{$task->title}' vence en " . round($hours) . " horas",
-            'priority' => 'high',
-            'data' => [
-                'hours_remaining' => round($hours, 1),
-                'deadline' => $task->estimated_end_at,
-            ],
-        ]);
+        foreach ($tasks as $task) {
+            $hoursUntil = Carbon::parse($task->estimated_end_at)->diffInHours(now(), false);
+            // Aviso preventivo entre 1 y 24 horas antes
+            if ($hoursUntil > 0 && $hoursUntil <= 24) {
+                 $this->createNotification(
+                    $task, 
+                    'sla_warning', 
+                    '⚠️ Tarea próxima a vencer', 
+                    "Vence en " . round($hoursUntil) . " horas",
+                    'high'
+                );
+            }
+        }
     }
 
-    private function createOverdueNotification($task, $hours)
+    private function checkBreachedSlas()
     {
-        // Evitar duplicados
+        // Revisar tareas que vencieron y aún no han sido marcadas
+        $tasks = Task::whereIn('status', ['pending', 'in_progress'])
+            ->whereNotNull('estimated_end_at')
+            ->where('sla_breached', false)
+            ->where('estimated_end_at', '<', now())
+            ->get();
+
+        foreach ($tasks as $task) {
+            $task->checkSlaStatus(); // Esto marca sla_breached = true y calcula days_overdue
+            $this->createNotification(
+                $task,
+                'task_overdue',
+                '🚨 Tarea Vencida',
+                "La tarea ha vencido. Por favor regularizar.",
+                'urgent'
+            );
+        }
+    }
+
+    private function checkDayOneOverdue()
+    {
+        // Scope definido en Task.php para +1 día
+        $tasks = Task::needsAssigneeNotification()->get();
+        $count = 0;
+
+        foreach ($tasks as $task) {
+            $this->createNotification(
+                $task,
+                'sla_overdue_1day',
+                '⏰ Recordatorio de Retraso (+1 Día)',
+                "Esta tarea tiene 1 día de retraso. Se requiere actualización inmediata.",
+                'urgent'
+            );
+            
+            $task->update(['sla_notified_assignee' => true, 'sla_notified_at' => now()]);
+            $count++;
+        }
+        
+        if ($count > 0) $this->info("   - Notificadas $count tareas con +1 día de retraso.");
+    }
+
+    private function checkDayTwoEscalation()
+    {
+        // Scope definido en Task.php para +2 días (Escalamiento)
+        $tasks = Task::needsEscalation()->get();
+        $count = 0;
+
+        foreach ($tasks as $task) {
+            // Lógica de escalamiento: Notificar al supervisor/PM
+            $supervisor = $task->getSupervisor(); // Método en Task.php
+            
+            if ($supervisor) {
+                Notification::create([
+                    'user_id' => $supervisor->id,
+                    'task_id' => $task->id,
+                    'flow_id' => $task->flow_id,
+                    'type' => 'sla_escalation',
+                    'title' => '🔥 Escalamiento de Tarea (+2 Días)',
+                    'message' => "La tarea '{$task->title}' (Asignada a: {$task->assignee->name}) tiene 2 días de retraso.",
+                    'priority' => 'critical',
+                    'data' => [
+                        'days_overdue' => $task->sla_days_overdue,
+                        'assignee_id' => $task->assignee_id
+                    ]
+                ]);
+            }
+
+            // También notificar al usuario que ha sido escalado
+            $this->createNotification(
+                $task,
+                'sla_escalated_user',
+                '🛑 Tarea Escalada',
+                "Tu tarea tiene 2 días de retraso y ha sido escalada a supervisión.",
+                'critical'
+            );
+            
+            $task->update(['sla_escalated' => true, 'sla_escalated_at' => now()]);
+            $count++;
+        }
+
+        if ($count > 0) $this->info("   - Escaladas $count tareas con +2 días de retraso.");
+    }
+
+    private function createNotification($task, $type, $title, $message, $priority)
+    {
+        // Evitar spam: solo 1 notif del mismo tipo cada 24h
         $exists = Notification::where('task_id', $task->id)
-            ->where('type', 'task_overdue')
+            ->where('type', $type)
             ->where('created_at', '>', now()->subDay())
             ->exists();
 
@@ -86,13 +153,13 @@ class CheckSlaCommand extends Command
             'user_id' => $task->assignee_id,
             'task_id' => $task->id,
             'flow_id' => $task->flow_id,
-            'type' => 'task_overdue',
-            'title' => '🚨 Tarea vencida',
-            'message' => "La tarea '{$task->title}' está vencida hace " . round($hours) . " horas",
-            'priority' => 'urgent',
+            'type' => $type,
+            'title' => $title,
+            'message' => $message,
+            'priority' => $priority,
             'data' => [
-                'hours_overdue' => round($hours, 1),
                 'deadline' => $task->estimated_end_at,
+                'days_overdue' => $task->sla_days_overdue ?? 0
             ],
         ]);
     }

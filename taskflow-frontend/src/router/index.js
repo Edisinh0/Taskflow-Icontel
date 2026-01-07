@@ -51,6 +51,24 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/opportunities',
+      name: 'opportunities',
+      component: () => import('../views/OpportunitiesView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/quotes',
+      name: 'quotes',
+      component: () => import('../views/QuotesView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/tasks',
+      name: 'tasks',
+      component: () => import('../views/TasksView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/templates',
       name: 'templates',
       component: () => import('../views/TemplatesView.vue'),
@@ -96,12 +114,8 @@ router.beforeEach((to, from, next) => {
     next('/login')
   } else if (requiresGuest && authStore.isAuthenticated) {
     // Ruta de invitado y autenticado → Redirigir según rol
-    const role = authStore.user?.role
-    if (['admin', 'project_manager', 'pm'].includes(role)) {
-      next('/dashboard')
-    } else {
-      next('/flows')
-    }
+    // Ruta de invitado y autenticado → Redirigir al Dashboard
+    next('/dashboard')
   } else if (requiredRoles && authStore.isAuthenticated) {
     // Verificar roles
     const userRole = authStore.user?.role

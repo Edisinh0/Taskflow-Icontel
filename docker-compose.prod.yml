@@ -28,7 +28,7 @@ services:
       DB_HOST: db
       REDIS_HOST: redis
     volumes:
-      - ./taskflow-backend/.env:/var/www/html/.env
+      - ./taskflow-backend/.env.docker:/var/www/html/.env
       - ./taskflow-backend/storage:/var/www/html/storage
       - ./taskflow-backend/public:/var/www/html/public
     depends_on:
@@ -52,7 +52,7 @@ services:
       - redis
       - db
     volumes:
-      - ./taskflow-backend/.env:/var/www/html/.env
+      - ./taskflow-backend/.env.docker:/var/www/html/.env
       - ./taskflow-backend/storage:/var/www/html/storage
     networks:
       - taskflow_net

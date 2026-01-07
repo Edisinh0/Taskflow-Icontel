@@ -59,7 +59,7 @@ export const useTasksStore = defineStore('tasks', () => {
     error.value = null
 
     try {
-      const response = await api.get('/tasks', { params })
+      const response = await api.get('tasks', { params })
 
       if (response.data.data) {
         tasks.value = response.data.data
@@ -111,7 +111,7 @@ export const useTasksStore = defineStore('tasks', () => {
     error.value = null
 
     try {
-      const response = await api.post('/tasks', taskData)
+      const response = await api.post('tasks', taskData)
       const newTask = response.data.task || response.data
 
       tasks.value.unshift(newTask)

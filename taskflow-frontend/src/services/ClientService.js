@@ -2,7 +2,7 @@ import api from './api'
 
 export default {
     getAll(params) {
-        return api.get('/clients', { params })
+        return api.get('clients', { params })
     },
 
     get(id) {
@@ -14,7 +14,7 @@ export default {
     },
 
     create(data) {
-        return api.post('/clients', data)
+        return api.post('clients', data)
     },
 
     update(id, data) {

@@ -13,13 +13,13 @@
             </span>
           </router-link>
 
-          <!-- Links de navegación (Desktop) -->
+          <!-- Links de navegación (Desktop) - Dinámicos por Área -->
           <div class="hidden md:flex items-center space-x-1">
             <router-link
               to="/dashboard"
               class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
-              :class="isActive('/dashboard') 
-                ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]' 
+              :class="isActive('/dashboard')
+                ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
             >
               <span class="flex items-center space-x-2">
@@ -29,82 +29,165 @@
                 <span>Dashboard</span>
               </span>
             </router-link>
-            
-            <router-link
-              to="/flows"
-              class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
-              :class="isActive('/flows')
-                ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
-            >
-              <span class="flex items-center space-x-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                <span>Proyectos</span>
-              </span>
-            </router-link>
 
-            <router-link
-              to="/clients"
-              class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
-              :class="isActive('/clients')
-                ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
-            >
-              <span class="flex items-center space-x-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <span>Clientes</span>
-              </span>
-            </router-link>
+            <!-- Área Ventas: Clientes, Oportunidades, Cotizaciones, Tareas -->
+            <template v-if="userDepartment === 'Ventas'">
+              <router-link
+                to="/clients"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
+                :class="isActive('/clients')
+                  ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
+              >
+                <span class="flex items-center space-x-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <span>Clientes</span>
+                </span>
+              </router-link>
 
-            <router-link
-              to="/cases"
-              class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
-              :class="isActive('/cases')
-                ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
-            >
-              <span class="flex items-center space-x-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-                <span>Casos</span>
-              </span>
-            </router-link>
+              <router-link
+                to="/opportunities"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
+                :class="isActive('/opportunities')
+                  ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
+              >
+                <span class="flex items-center space-x-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                  <span>Oportunidades</span>
+                </span>
+              </router-link>
 
-            <router-link
-              v-if="canManageTemplates"
-              to="/templates"
-              class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
-              :class="isActive('/templates') 
-                ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]' 
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
-            >
-              <span class="flex items-center space-x-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-                </svg>
-                <span>Plantillas</span>
-              </span>
-            </router-link>
+              <router-link
+                to="/quotes"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
+                :class="isActive('/quotes')
+                  ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
+              >
+                <span class="flex items-center space-x-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>Cotizaciones</span>
+                </span>
+              </router-link>
 
-            <router-link
-              to="/reports"
-              class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
-              :class="isActive('/reports') 
-                ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]' 
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
-            >
-              <span class="flex items-center space-x-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                <span>Reportes</span>
-              </span>
-            </router-link>
+              <router-link
+                to="/tasks"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
+                :class="isActive('/tasks')
+                  ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
+              >
+                <span class="flex items-center space-x-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                  <span>Tareas</span>
+                </span>
+              </router-link>
+            </template>
+
+            <!-- Área Operaciones y Soporte: Oportunidades, Casos, Tareas -->
+            <template v-else-if="userDepartment === 'Operaciones' || userDepartment === 'Soporte' || userDepartment === 'Instalaciones'">
+              <router-link
+                to="/opportunities"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
+                :class="isActive('/opportunities')
+                  ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
+              >
+                <span class="flex items-center space-x-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                  <span>Oportunidades</span>
+                </span>
+              </router-link>
+
+              <router-link
+                to="/cases"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
+                :class="isActive('/cases')
+                  ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
+              >
+                <span class="flex items-center space-x-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                  <span>Casos</span>
+                </span>
+              </router-link>
+
+              <router-link
+                to="/tasks"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
+                :class="isActive('/tasks')
+                  ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
+              >
+                <span class="flex items-center space-x-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                  <span>Tareas</span>
+                </span>
+              </router-link>
+            </template>
+
+            <!-- Área General/Otros: Acceso a todo -->
+            <template v-else>
+              <router-link
+                to="/clients"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
+                :class="isActive('/clients')
+                  ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
+              >
+                <span class="flex items-center space-x-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <span>Clientes</span>
+                </span>
+              </router-link>
+
+              <router-link
+                to="/cases"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
+                :class="isActive('/cases')
+                  ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
+              >
+                <span class="flex items-center space-x-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                  <span>Casos</span>
+                </span>
+              </router-link>
+
+              <router-link
+                to="/flows"
+                class="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
+                :class="isActive('/flows')
+                  ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'"
+              >
+                <span class="flex items-center space-x-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  <span>Proyectos</span>
+                </span>
+              </router-link>
+            </template>
           </div>
         </div>
 
@@ -200,14 +283,14 @@
             </div>
           </div>
 
-          <!-- Links de navegación -->
+          <!-- Links de navegación - Dinámicos por Área (Mobile) -->
           <div class="space-y-1 px-4">
             <router-link
               to="/dashboard"
               @click="mobileMenuOpen = false"
               class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
-              :class="isActive('/dashboard') 
-                ? 'bg-blue-500/10 text-blue-400' 
+              :class="isActive('/dashboard')
+                ? 'bg-blue-500/10 text-blue-400'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -215,68 +298,155 @@
               </svg>
               <span>Dashboard</span>
             </router-link>
-            
-            <router-link
-              to="/flows"
-              @click="mobileMenuOpen = false"
-              class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
-              :class="isActive('/flows') 
-                ? 'bg-blue-500/10 text-blue-400' 
-                : 'text-slate-400 hover:text-white hover:bg-white/5'"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              <span>Flujos</span>
-            </router-link>
 
-              <span>Clientes</span>
-            
+            <!-- Área Ventas -->
+            <template v-if="userDepartment === 'Ventas'">
+              <router-link
+                to="/clients"
+                @click="mobileMenuOpen = false"
+                class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
+                :class="isActive('/clients')
+                  ? 'bg-blue-500/10 text-blue-400'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span>Clientes</span>
+              </router-link>
 
-            <router-link
-              to="/cases"
-              @click="mobileMenuOpen = false"
-              class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
-              :class="isActive('/cases') 
-                ? 'bg-blue-500/10 text-blue-400' 
-                : 'text-slate-400 hover:text-white hover:bg-white/5'"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-              <span>Casos</span>
-            </router-link>
+              <router-link
+                to="/opportunities"
+                @click="mobileMenuOpen = false"
+                class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
+                :class="isActive('/opportunities')
+                  ? 'bg-blue-500/10 text-blue-400'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                <span>Oportunidades</span>
+              </router-link>
 
+              <router-link
+                to="/quotes"
+                @click="mobileMenuOpen = false"
+                class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
+                :class="isActive('/quotes')
+                  ? 'bg-blue-500/10 text-blue-400'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>Cotizaciones</span>
+              </router-link>
 
+              <router-link
+                to="/tasks"
+                @click="mobileMenuOpen = false"
+                class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
+                :class="isActive('/tasks')
+                  ? 'bg-blue-500/10 text-blue-400'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                <span>Tareas</span>
+              </router-link>
+            </template>
 
-            <router-link
-              v-if="canManageTemplates"
-              to="/templates"
-              @click="mobileMenuOpen = false"
-              class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
-              :class="isActive('/templates') 
-                 ? 'bg-blue-500/10 text-blue-400' 
-                : 'text-slate-400 hover:text-white hover:bg-white/5'"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-              </svg>
-              <span>Plantillas</span>
-            </router-link>
+            <!-- Área Operaciones, Soporte, Instalaciones -->
+            <template v-else-if="userDepartment === 'Operaciones' || userDepartment === 'Soporte' || userDepartment === 'Instalaciones'">
+              <router-link
+                to="/opportunities"
+                @click="mobileMenuOpen = false"
+                class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
+                :class="isActive('/opportunities')
+                  ? 'bg-blue-500/10 text-blue-400'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                <span>Oportunidades</span>
+              </router-link>
 
-             <router-link
-              to="/reports"
-              @click="mobileMenuOpen = false"
-              class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
-              :class="isActive('/reports') 
-                ? 'bg-blue-500/10 text-blue-400' 
-                : 'text-slate-400 hover:text-white hover:bg-white/5'"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span>Reportes</span>
-            </router-link>
+              <router-link
+                to="/cases"
+                @click="mobileMenuOpen = false"
+                class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
+                :class="isActive('/cases')
+                  ? 'bg-blue-500/10 text-blue-400'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <span>Casos</span>
+              </router-link>
+
+              <router-link
+                to="/tasks"
+                @click="mobileMenuOpen = false"
+                class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
+                :class="isActive('/tasks')
+                  ? 'bg-blue-500/10 text-blue-400'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                <span>Tareas</span>
+              </router-link>
+            </template>
+
+            <!-- Área General/Otros -->
+            <template v-else>
+              <router-link
+                to="/clients"
+                @click="mobileMenuOpen = false"
+                class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
+                :class="isActive('/clients')
+                  ? 'bg-blue-500/10 text-blue-400'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span>Clientes</span>
+              </router-link>
+
+              <router-link
+                to="/cases"
+                @click="mobileMenuOpen = false"
+                class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
+                :class="isActive('/cases')
+                  ? 'bg-blue-500/10 text-blue-400'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <span>Casos</span>
+              </router-link>
+
+              <router-link
+                to="/flows"
+                @click="mobileMenuOpen = false"
+                class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all"
+                :class="isActive('/flows')
+                  ? 'bg-blue-500/10 text-blue-400'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <span>Proyectos</span>
+              </router-link>
+            </template>
           </div>
 
           <!-- Botón logout móvil -->
@@ -312,9 +482,9 @@ const themeStore = useThemeStore()
 
 const mobileMenuOpen = ref(false)
 
-const canManageTemplates = computed(() => {
-  const role = authStore.user?.role
-  return ['admin', 'project_manager', 'pm'].includes(role)
+// Obtener el departamento del usuario desde el auth store
+const userDepartment = computed(() => {
+  return authStore.currentUser?.department || 'General'
 })
 
 const isActive = (path) => {

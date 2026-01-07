@@ -5,12 +5,21 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Events\TaskUpdated;
+use App\Services\SweetCrmService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class TaskController extends Controller
 {
+    protected SweetCrmService $sweetCrmService;
+
+    public function __construct(SweetCrmService $sweetCrmService)
+    {
+        $this->sweetCrmService = $sweetCrmService;
+    }
+
     /**
      * Listar tareas (con filtros opcionales)
      * GET /api/v1/tasks
@@ -50,6 +59,172 @@ class TaskController extends Controller
             'success' => true,
             'data' => $tasks,
         ], 200);
+    }
+
+    /**
+     * Obtener tareas asignadas al usuario autenticado (activas)
+     * GET /api/v1/my-tasks
+     */
+    public function myTasks(Request $request)
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no autenticado',
+                'tasks' => []
+            ], 401);
+        }
+
+        // Filtrar tareas asignadas al usuario Y que estén activas (no completadas ni canceladas)
+        $query = Task::with(['flow', 'crmCase', 'crmCase.client', 'parentTask'])
+            ->where('assignee_id', $user->id)
+            ->whereIn('status', ['pending', 'in_progress', 'blocked', 'paused']);
+
+        // Permitir búsqueda
+        if ($request->has('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'like', '%' . addslashes($search) . '%')
+                  ->orWhere('description', 'like', '%' . addslashes($search) . '%');
+            });
+        }
+
+        // Filtrar por prioridad
+        if ($request->has('priority')) {
+            $query->where('priority', $request->priority);
+        }
+
+        $tasks = $query->orderBy('priority', 'desc')
+            ->orderBy('estimated_end_at', 'asc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'tasks' => $tasks,
+            'count' => $tasks->count()
+        ]);
+    }
+
+    /**
+     * Obtener tareas del usuario actual desde SweetCRM
+     * GET /api/v1/tasks/my-tasks
+     */
+    public function mySweetCrmTasks(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            // Obtener session ID desde cache o autenticar
+            $sessionResult = $this->getSessionForUser($user);
+
+            if (!$sessionResult['success']) {
+                return response()->json([
+                    'message' => 'Error de autenticación con SweetCRM',
+                    'error' => $sessionResult['error'] ?? 'No se pudo obtener sesión'
+                ], 401);
+            }
+
+            $sessionId = $sessionResult['session_id'];
+
+            // Construir filtros para tareas del usuario
+            $filters = [
+                'max_results' => $request->input('limit', 100),
+                'offset' => $request->input('offset', 0),
+            ];
+
+            // Filtrar por usuario asignado (sweetcrm_id del usuario actual)
+            if ($user->sweetcrm_id) {
+                $filters['query'] = "tasks.assigned_user_id = '{$user->sweetcrm_id}'";
+            }
+
+            // Filtrar por estado si se especifica
+            if ($request->has('status')) {
+                $existingQuery = $filters['query'] ?? '';
+                $statusFilter = "tasks.status = '{$request->input('status')}'";
+                $filters['query'] = $existingQuery ? "({$existingQuery}) AND {$statusFilter}" : $statusFilter;
+            }
+
+            // Excluir completadas por defecto (a menos que se pida explícitamente)
+            if (!$request->input('include_completed', false)) {
+                $existingQuery = $filters['query'] ?? '';
+                $activeFilter = "tasks.status NOT IN ('Completed', 'Deferred')";
+                $filters['query'] = $existingQuery ? "({$existingQuery}) AND {$activeFilter}" : $activeFilter;
+            }
+
+            // Obtener tareas desde SweetCRM
+            $rawTasks = $this->sweetCrmService->getTasks($sessionId, $filters);
+
+            // Transformar datos al formato esperado por el frontend
+            $tasks = $this->transformTasks($rawTasks);
+
+            return response()->json([
+                'data' => $tasks,
+                'meta' => [
+                    'total' => count($tasks),
+                    'offset' => $filters['offset'],
+                    'limit' => $filters['max_results'],
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error al obtener tareas de SweetCRM', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'message' => 'Error al obtener tareas',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener session ID para el usuario actual
+     */
+    private function getSessionForUser($user): array
+    {
+        $username = config('services.sweetcrm.username');
+        $password = config('services.sweetcrm.password');
+
+        if (!$username || !$password) {
+            return [
+                'success' => false,
+                'error' => 'Credenciales de SweetCRM no configuradas'
+            ];
+        }
+
+        return $this->sweetCrmService->getCachedSession($username, $password);
+    }
+
+    /**
+     * Transformar datos crudos de SweetCRM al formato del frontend
+     */
+    private function transformTasks(array $rawTasks): array
+    {
+        return array_map(function ($entry) {
+            $nvl = $entry['name_value_list'] ?? [];
+
+            return [
+                'id' => $entry['id'] ?? null,
+                'name' => $nvl['name']['value'] ?? 'Sin nombre',
+                'description' => $nvl['description']['value'] ?? null,
+                'status' => $nvl['status']['value'] ?? 'Not Started',
+                'priority' => $nvl['priority']['value'] ?? 'Medium',
+                'parent_type' => $nvl['parent_type']['value'] ?? null,
+                'parent_id' => $nvl['parent_id']['value'] ?? null,
+                'parent_name' => $nvl['parent_name']['value'] ?? null,
+                'contact_id' => $nvl['contact_id']['value'] ?? null,
+                'date_start' => $nvl['date_start']['value'] ?? null,
+                'date_due' => $nvl['date_due']['value'] ?? null,
+                'assigned_user_id' => $nvl['assigned_user_id']['value'] ?? null,
+                'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? null,
+                'date_entered' => $nvl['date_entered']['value'] ?? null,
+                'date_modified' => $nvl['date_modified']['value'] ?? null,
+            ];
+        }, $rawTasks);
     }
 
     /**
@@ -143,7 +318,9 @@ class TaskController extends Controller
                 'dependencies.dependsOnTask',
                 'dependents.task',
                 'attachments.uploader', // Cargar adjuntos
-                'crmCase'
+                'crmCase',
+                'updates.user:id,name', // Cargar avances
+                'updates.attachments' // Cargar adjuntos de avances
             ])->findOrFail($id);
 
             // Verificar si está bloqueada
@@ -182,14 +359,18 @@ class TaskController extends Controller
     // Determinar si es una actualización de estructura o de ejecución
     $isStructuralChange = $request->hasAny([
         'title', 'description', 'parent_task_id', 'is_milestone', 
-        'depends_on_task_id', 'depends_on_milestone_id', 'priority', 
-        'estimated_start_at', 'estimated_end_at', 'assignee_id'
+        'depends_on_task_id', 'depends_on_milestone_id', 'priority'
     ]);
+
+    // Campos que el usuario quiere cambiar y que el usuario solicitó específicamente
+    $isAssigneeChange = $request->has('assignee_id');
+    $isDateChange = $request->has('estimated_end_at');
 
     if ($isStructuralChange) {
         \Illuminate\Support\Facades\Gate::authorize('updateStructure', $task);
     } else {
-        // Si solo es estado/progreso/adjuntos, es ejecución
+        // Para cambios de ejecución (status, progress, notes, etc.)
+        // También incluimos assignee_id y estimated_end_at si el usuario tiene permiso específico
         \Illuminate\Support\Facades\Gate::authorize('execute', $task);
     }
     
@@ -207,47 +388,30 @@ class TaskController extends Controller
         'depends_on_milestone_id' => 'nullable|exists:tasks,id',
         'progress' => 'sometimes|integer|min:0|max:100',
         'priority' => ['sometimes', 'string', Rule::in(['low', 'medium', 'high', 'urgent'])],
-        'notes' => 'nullable|string', // <-- Permitir notas
+        'notes' => 'nullable|string',
     ]);
+
+    // 🎯 Lógica automática de progreso al completar
+    if (isset($validated['status']) && $validated['status'] === 'completed') {
+        $validated['progress'] = 100;
+        
+        // También establecer fecha real de término si no existe
+        if (!$task->actual_end_at) {
+            $validated['actual_end_at'] = now();
+        }
+    }
+
+    // Si el estado cambia a "in_progress", establecer fecha real de inicio si no existe
+    if (isset($validated['status']) && $validated['status'] === 'in_progress') {
+        if (!$task->actual_start_at) {
+            $validated['actual_start_at'] = now();
+        }
+    }
 
     // 🎯 MOTOR DE CONTROL DE FLUJOS (Lógica de Bloqueo y Requisitos)
     if (isset($validated['status'])) {
-        // ⚠️ IMPORTANTE: Refrescar desde BD para obtener el valor actualizado de is_blocked
         $task->refresh();
         $newStatus = $validated['status'];
-        
-        // 1. Verificar Bloqueo
-        if ($task->is_blocked) {
-            // Si intenta iniciarla o finalizarla estando bloqueada
-            if (in_array($newStatus, ['in_progress', 'completed'])) {
-                
-                // Generar mensaje detallado del bloqueo
-                $blockingReasons = [];
-                
-                if ($task->depends_on_task_id) {
-                    $precedentTask = Task::find($task->depends_on_task_id);
-                    if ($precedentTask && $precedentTask->status !== 'completed') {
-                        $blockingReasons[] = "la tarea '{$precedentTask->title}' (ID: {$precedentTask->id})";
-                    }
-                }
-                
-                if ($task->depends_on_milestone_id) {
-                    $milestone = Task::find($task->depends_on_milestone_id);
-                    if ($milestone && $milestone->status !== 'completed') {
-                        $blockingReasons[] = "el milestone '{$milestone->title}' (ID: {$milestone->id})";
-                    }
-                }
-                
-                $blockMessage = !empty($blockingReasons)
-                    ? "Esta tarea está bloqueada. Debe completarse " . implode(' y ', $blockingReasons) . " primero."
-                    : "Esta tarea está bloqueada por dependencias no cumplidas.";
-                
-                return response()->json([
-                    'success' => false,
-                    'message' => "🔒 Acción prohibida: {$blockMessage}",
-                ], 403);
-            }
-        }
         
         // 2. Validar adjuntos obligatorios al completar
         if ($newStatus === 'completed' && $task->allow_attachments) {
@@ -298,6 +462,47 @@ class TaskController extends Controller
             'message' => 'Error al actualizar tarea: ' . $e->getMessage(),
         ], 500);
     }
+}
+
+/**
+ * Registrar un avance en la tarea
+ */
+public function addUpdate(Request $request, $id)
+{
+    $request->validate([
+        'content' => 'required|string|min:3',
+        'attachments.*' => 'nullable|file|max:10240', // Max 10MB
+    ]);
+
+    $task = Task::findOrFail($id);
+    $user = auth()->user();
+
+    $update = $task->updates()->create([
+        'user_id' => $user->id,
+        'content' => $request->content,
+        'type' => \App\Models\CaseUpdate::TYPE_UPDATE,
+        'case_id' => $task->case_id // Mantener vínculo con el caso si existe
+    ]);
+
+    // Manejar adjuntos
+    if ($request->hasFile('attachments')) {
+        foreach ($request->file('attachments') as $file) {
+            $path = $file->store('update_attachments', 'public');
+            $update->attachments()->create([
+                'user_id' => $user->id,
+                'name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'file_type' => $file->getMimeType(),
+                'file_size' => $file->getSize(),
+            ]);
+        }
+    }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Avance registrado correctamente',
+        'update' => $update->load(['user:id,name', 'attachments'])
+    ]);
 }
 
     /**

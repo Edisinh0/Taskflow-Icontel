@@ -41,7 +41,7 @@ export const useClientsStore = defineStore('clients', () => {
     error.value = null
 
     try {
-      const response = await api.get('/clients', { params })
+      const response = await api.get('clients', { params })
 
       if (response.data.data) {
         // Si la respuesta viene paginada
@@ -96,7 +96,7 @@ export const useClientsStore = defineStore('clients', () => {
     error.value = null
 
     try {
-      const response = await api.post('/clients', clientData)
+      const response = await api.post('clients', clientData)
       const newClient = response.data.client || response.data
 
       clients.value.unshift(newClient)
@@ -172,7 +172,7 @@ export const useClientsStore = defineStore('clients', () => {
     error.value = null
 
     try {
-      const response = await api.post('/sweetcrm/sync-clients', credentials)
+      const response = await api.post('sweetcrm/sync-clients', credentials)
 
       // Recargar la lista de clientes después de sincronizar
       await fetchClients()

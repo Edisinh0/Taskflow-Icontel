@@ -75,11 +75,37 @@ class TaskPolicy
      * - Registrar tiempo (actual_start_at, actual_end_at)
      * - Subir archivos adjuntos
      */
-    public function execute(User $user, Task $task): bool
+    public function execute(User $user, Task $task)
     {
-        // Solo el usuario asignado o PM/Admin
-        return $task->assignee_id === $user->id
-            || $this->isFlowBuilder($user);
+        // 1. Verificar Bloqueo estricto del Motor de Flujos
+        if ($task->isBlocked()) {
+             $task->is_blocked = true;
+             return $this->deny("⛔ Tarea Bloqueada: No puedes iniciar ni completar esta tarea porque tiene dependencias pendientes.");
+        }
+
+        // 2. Verificar si es Admin o PM
+        if ($this->isFlowBuilder($user)) {
+            return true;
+        }
+
+        // 3. Es el usuario asignado
+        if ($task->assignee_id === $user->id) {
+            return true;
+        }
+
+        // 4. Es el creador del flujo asociado
+        if ($task->flow && $task->flow->created_by === $user->id) {
+            return true;
+        }
+
+        // 5. Es el creador original del caso CRM
+        if ($task->crmCase && $task->crmCase->original_creator_id && $user->sweetcrm_id) {
+            if ($task->crmCase->original_creator_id === $user->sweetcrm_id) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

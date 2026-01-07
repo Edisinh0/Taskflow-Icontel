@@ -10,9 +10,8 @@ export function initializeEcho(authToken) {
     return echoInstance
   }
 
-  // Si no hay token, no inicializar Echo
+  // Si no hay token, no inicializar Echo (esto es normal antes del login)
   if (!authToken) {
-    console.warn('⚠️ Echo not initialized: No auth token provided')
     return null
   }
 

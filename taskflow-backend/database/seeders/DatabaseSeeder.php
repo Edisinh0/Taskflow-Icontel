@@ -9,6 +9,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            DefaultUserSeeder::class,  // Must be first to satisfy foreign keys
             UserSeeder::class,
             TemplateSeeder::class,
             FlowSeeder::class,

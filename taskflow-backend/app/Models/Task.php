@@ -230,6 +230,30 @@ class Task extends Model implements Auditable
     }
 
     /**
+     * Relación: Una tarea puede pertenecer a una oportunidad
+     */
+    public function opportunity(): BelongsTo
+    {
+        return $this->belongsTo(CrmOpportunity::class, 'opportunity_id');
+    }
+
+    /**
+     * Relación: Una tarea tiene muchos avances/updates
+     */
+    public function updates(): HasMany
+    {
+        return $this->hasMany(CaseUpdate::class, 'task_id')->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Accessor para decodificar descripción HTML
+     */
+    public function getDescriptionAttribute($value)
+    {
+        return html_entity_decode(html_entity_decode($value ?? ''));
+    }
+
+    /**
      * Verificar y actualizar el estado del SLA
      */
     public function checkSlaStatus(): void

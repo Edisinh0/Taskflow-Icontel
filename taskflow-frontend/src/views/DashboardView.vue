@@ -134,8 +134,66 @@
         </div>
       </div>
 
-      <!-- Gráficos y Métricas -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <!-- Dashboard Especializado Operaciones/Soporte -->
+      <div v-if="userDepartment !== 'Ventas' && userDepartment !== 'General'" class="mb-10">
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center">
+          <span class="w-2 h-6 bg-indigo-500 rounded-sm mr-3 shadow-[0_0_10px_rgba(99,102,241,0.5)]"></span>
+          Mi Agenda Operativa
+        </h3>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <!-- Tareas de Levantamiento (Urgentes) -->
+          <div class="space-y-4">
+            <h4 class="text-sm font-black text-rose-500 uppercase tracking-widest flex items-center gap-2 px-1">
+              <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+              Levantamientos Técnicos
+            </h4>
+            <div v-for="task in allTasks.filter(t => t.title.includes('Levantamiento'))" :key="task.id" 
+                 class="bg-white dark:bg-slate-800 border-l-4 border-rose-500 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                 @click="handleTaskClick(task)">
+              <div class="flex justify-between items-start">
+                <div>
+                  <h5 class="font-bold text-slate-800 dark:text-white group-hover:text-rose-500 transition-colors">{{ task.title }}</h5>
+                  <p class="text-xs text-slate-500 mt-1 line-clamp-1">{{ task.description }}</p>
+                </div>
+                <span class="text-[10px] font-black bg-rose-50 text-rose-600 px-2 py-1 rounded-lg uppercase border border-rose-100">Urgente</span>
+              </div>
+              <div class="mt-4 flex items-center justify-between text-[11px] font-bold text-slate-400">
+                <span class="flex items-center gap-1"><Briefcase :size="12" /> {{ task.crm_case?.client?.name || 'S/C' }}</span>
+                <span class="flex items-center gap-1"><Clock :size="12" /> {{ formatDate(task.estimated_end_at) }}</span>
+              </div>
+            </div>
+            <div v-if="!allTasks.filter(t => t.title.includes('Levantamiento')).length" class="text-xs text-slate-400 italic px-1">No hay levantamientos pendientes.</div>
+          </div>
+
+          <!-- Tareas de Ejecución -->
+          <div class="space-y-4">
+            <h4 class="text-sm font-black text-blue-500 uppercase tracking-widest flex items-center gap-2 px-1">
+              <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+              Tareas de Ejecución
+            </h4>
+            <div v-for="task in allTasks.filter(t => t.title.includes('Ejecución'))" :key="task.id" 
+                 class="bg-white dark:bg-slate-800 border-l-4 border-blue-500 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                 @click="handleTaskClick(task)">
+               <div class="flex justify-between items-start">
+                <div>
+                  <h5 class="font-bold text-slate-800 dark:text-white group-hover:text-blue-500 transition-colors">{{ task.title }}</h5>
+                  <p class="text-xs text-slate-500 mt-1 line-clamp-1">{{ task.description }}</p>
+                </div>
+                <span class="text-[10px] font-black bg-blue-50 text-blue-600 px-2 py-1 rounded-lg uppercase border border-blue-100">En Curso</span>
+              </div>
+              <div class="mt-4 flex items-center justify-between text-[11px] font-bold text-slate-400">
+                <span class="flex items-center gap-1"><Briefcase :size="12" /> {{ task.crm_case?.client?.name || 'S/C' }}</span>
+                <span class="flex items-center gap-1"><Clock :size="12" /> {{ formatDate(task.estimated_end_at) }}</span>
+              </div>
+            </div>
+             <div v-if="!allTasks.filter(t => t.title.includes('Ejecución')).length" class="text-xs text-slate-400 italic px-1">No hay ejecuciones pendientes.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficos y Métricas (Sólo para general/admin) -->
+      <div v-if="userDepartment === 'General'" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <!-- Tendencia de Tareas (Últimos 7 días) -->
         <div class="bg-white dark:bg-slate-800/50 backdrop-blur-sm rounded-2xl shadow-sm dark:shadow-lg p-6 border border-slate-200 dark:border-white/5">
           <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center">
@@ -228,81 +286,161 @@
         </div>
       </div>
 
-      <!-- Casos CRM -->
-      <div class="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-sm dark:shadow-lg border border-slate-200 dark:border-white/5 mb-8">
-        <div class="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
+      <!-- Proyectos SweetCRM (Jerárquico) -->
+      <div class="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-sm dark:shadow-lg border border-slate-200 dark:border-white/5 mb-8 overflow-hidden">
+        <!-- Header con Toggles -->
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center">
-            <span class="w-2 h-6 bg-amber-500 rounded-sm mr-3"></span>
-            Mis Casos Abiertos (CRM)
+            <span class="w-2 h-6 bg-indigo-500 rounded-sm mr-3"></span>
+            Proyectos SweetCRM
+            <span v-if="dashboardStore.loading" class="ml-3 text-xs font-normal text-slate-400 animate-pulse">Sincronizando...</span>
           </h3>
-          <span class="text-xs font-semibold bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-md border border-amber-100 dark:border-amber-500/20">
-            {{ myCases.length }} casos
-          </span>
+          
+          <div class="flex items-center gap-3">
+             <!-- Scope Toggle -->
+             <div class="bg-slate-100 dark:bg-slate-700/50 p-1 rounded-lg flex items-center">
+                <button 
+                  @click="dashboardStore.setScope('my')"
+                  class="px-3 py-1.5 text-xs font-bold rounded-md transition-all"
+                  :class="dashboardStore.scope === 'my' 
+                    ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'"
+                >
+                  Mis Casos
+                </button>
+                <div class="w-px h-4 bg-slate-200 dark:bg-slate-600 mx-1"></div>
+                <button 
+                  @click="dashboardStore.setScope('area')"
+                  class="px-3 py-1.5 text-xs font-bold rounded-md transition-all"
+                  :class="dashboardStore.scope === 'area' 
+                    ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'"
+                >
+                  Área
+                </button>
+             </div>
+
+             <!-- View Mode Toggle -->
+             <button 
+                @click="dashboardStore.toggleViewMode()" 
+                class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-600"
+                :title="dashboardStore.viewMode === 'cases' ? 'Ver como Lista Plana' : 'Ver Jerarquía'"
+             >
+                <layout-list v-if="dashboardStore.viewMode === 'cases'" class="w-4 h-4" />
+                <list v-else class="w-4 h-4" />
+             </button>
+          </div>
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/5">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Número</th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Asunto</th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Cliente</th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Estado</th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Prioridad</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-white/5">
-              <tr
-                v-for="crmCase in myCases"
-                :key="crmCase.id"
-                @click="$router.push('/cases')"
-                class="hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors"
-              >
-                <td class="px-6 py-4">
-                  <span class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">#{{ crmCase.case_number }}</span>
-                </td>
-                <td class="px-6 py-4">
-                  <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate max-w-xs">{{ crmCase.subject }}</h4>
-                </td>
-                <td class="px-6 py-4">
-                  <span class="text-xs text-slate-500 flex items-center gap-1">
-                    <Briefcase :size="12" /> {{ crmCase.client?.name || 'Sin cliente' }}
-                  </span>
-                </td>
-                <td class="px-6 py-4">
-                  <span 
-                    class="px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-full border shadow-sm"
-                    :class="crmCase.status === 'Nuevo' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-slate-50 text-slate-600 border-slate-100'"
-                  >
-                    {{ crmCase.status }}
-                  </span>
-                </td>
-                <td class="px-6 py-4">
-                  <span 
-                    class="px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-full border shadow-sm"
-                    :class="{
-                      'bg-rose-50 text-rose-600 border-rose-100': crmCase.priority === 'Alta',
-                      'bg-amber-50 text-amber-600 border-amber-100': crmCase.priority === 'Media',
-                      'bg-emerald-50 text-emerald-600 border-emerald-100': crmCase.priority === 'Baja'
-                    }"
-                  >
-                    {{ crmCase.priority }}
-                  </span>
-                </td>
-              </tr>
-              <tr v-if="myCases.length === 0">
-                <td colspan="5" class="px-6 py-8 text-center text-slate-400 dark:text-slate-500 text-sm italic">
-                  No tienes casos asignados abiertos en este momento.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="px-6 py-3 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-white/5 text-right">
-          <router-link to="/cases" class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 uppercase tracking-widest">
-            Ver todos los casos →
-          </router-link>
+
+        <!-- Contenido -->
+        <div class="overflow-x-auto min-h-[200px]">
+           
+           <!-- Loading State -->
+           <div v-if="dashboardStore.loading" class="flex items-center justify-center h-48 text-slate-400 text-sm">
+              <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Cargando datos de SweetCRM...
+           </div>
+
+           <!-- Empty State -->
+           <div v-else-if="!dashboardStore.cases.length && !dashboardStore.orphanTasks.length" class="flex flex-col items-center justify-center h-48 text-slate-400 text-sm">
+              <Folder class="w-8 h-8 opacity-20 mb-2" />
+              No hay elementos para mostrar en esta vista.
+           </div>
+
+           <!-- Hierarchy View (Cases) -->
+           <div v-else-if="dashboardStore.viewMode === 'cases'" class="divide-y divide-slate-100 dark:divide-white/5">
+              <div v-for="crmCase in dashboardStore.cases" :key="crmCase.id" class="group">
+                 <!-- Case Row -->
+                 <div class="px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors flex items-start justify-between cursor-pointer" @click="dashboardStore.toggleCase(crmCase.id)">
+                    <div class="flex items-start gap-3">
+                       <button class="mt-0.5 text-slate-400 hover:text-indigo-500 transition-colors">
+                          <chevron-right :class="{'rotate-90': crmCase.expanded}" class="w-4 h-4 transition-transform duration-200" />
+                       </button>
+                       <div>
+                          <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                             {{ crmCase.title }}
+                             <span class="text-xs font-mono font-normal text-slate-400 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">#{{ crmCase.case_number }}</span>
+                          </h4>
+                          <div class="flex flex-col gap-1 mt-1.5 text-xs text-slate-500">
+                             <div class="flex items-center gap-3">
+                                 <span class="flex items-center gap-1" title="Cliente"><Briefcase class="w-3 h-3" /> {{ crmCase.client_id || 'Sin Cliente' }}</span>
+                                 <span :class="getStatusClass(crmCase.status, 'case')" class="font-medium px-1.5 rounded">{{ crmCase.status }}</span>
+                             </div>
+                             <div class="flex items-center gap-2 text-[10px] text-slate-400">
+                                <span v-if="crmCase.created_by_name">Creado por: {{ crmCase.created_by_name }}</span>
+                                <span v-if="crmCase.assigned_user_name" class="flex items-center gap-1">
+                                    • Asignado a: <span class="font-medium text-slate-500 dark:text-slate-300">{{ crmCase.assigned_user_name }}</span>
+                                </span>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+                    <!-- Case Actions/Meta -->
+                    <div class="flex flex-col items-end gap-2">
+                       <span class="text-[10px] uppercase font-bold text-slate-400 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-full">{{ crmCase.priority || 'Normal' }}</span>
+                       <span class="text-xs text-indigo-500 font-medium" v-if="crmCase.tasks?.length">{{ crmCase.tasks.length }} tareas</span>
+                    </div>
+                 </div>
+
+                 <!-- Nested Tasks -->
+                 <div v-show="crmCase.expanded" class="bg-slate-50/50 dark:bg-slate-800/30 border-y border-slate-100 dark:border-white/5 pl-12 pr-6 py-2 space-y-1 transition-all duration-300">
+                    <div v-if="!crmCase.tasks?.length" class="py-2 text-xs text-slate-400 italic">No hay tareas asociadas en TaskFlow.</div>
+                    <div 
+                        v-for="task in crmCase.tasks" 
+                        :key="task.id" 
+                        @click="handleTaskClick(task)"
+                        class="flex items-center justify-between py-2 px-3 rounded-md hover:bg-white dark:hover:bg-slate-700/50 transition-colors group/task border border-transparent hover:border-slate-200 dark:hover:border-white/5 cursor-pointer"
+                    >
+                        <div class="flex items-center gap-3">
+                            <!-- Visual Inheritance -->
+                            <div v-if="crmCase.status === 'Blocket' || task.is_blocked" class="text-rose-500" title="Tarea Bloqueada por Dependencia">
+                                <lock class="w-3.5 h-3.5" />
+                            </div>
+                            <div v-else class="w-3.5 h-3.5 rounded-full border-2 border-slate-300 dark:border-slate-600 group-hover/task:border-indigo-500 transition-colors"></div>
+                            
+                            <span class="text-sm text-slate-600 dark:text-slate-300 decoration-slate-400 group-hover/task:text-indigo-600 dark:group-hover/task:text-indigo-400 transition-colors" :class="{'line-through opacity-50': task.status === 'Completed', 'font-medium text-slate-800 dark:text-slate-100': task.status !== 'Completed'}">
+                                {{ task.title }}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-4 text-xs font-mono text-slate-400">
+                            <span v-if="task.due_date">{{ formatDate(task.due_date) }}</span>
+                            <span class="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-sans text-[10px]">{{ task.status }}</span>
+                        </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
+
+           <!-- Flat List View -->
+           <div v-else class="divide-y divide-slate-100 dark:divide-white/5">
+                <div 
+                    v-for="task in dashboardStore.allTasksFlat" 
+                    :key="task.id"
+                    @click="handleTaskClick(task)"
+                    class="px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors flex items-center justify-between cursor-pointer"
+                >
+                    <div class="flex items-center gap-3">
+                        <check-square class="w-4 h-4 text-slate-400" />
+                        <div>
+                            <p class="text-sm font-medium text-slate-700 dark:text-slate-200">{{ task.title }}</p>
+                            <p class="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                                <span v-if="task.crm_case?.case_number">En Caso #{{ task.crm_case.case_number }}</span>
+                                <span v-else-if="task.case_id">En Caso #{{ task.case_id }}</span>
+                                <span v-else-if="task.flow?.name">En Flujo: {{ task.flow.name }}</span>
+                                <span v-else>Tarea Independiente</span>
+                            </p>
+                        </div>
+                    </div>
+                     <span :class="getStatusClass(task.status, 'task')" class="text-xs px-2 py-1 rounded-md font-bold uppercase">{{ task.status }}</span>
+                </div>
+           </div>
+
         </div>
       </div>
+
 
       <!-- Tareas Urgentes y Flujos Recientes -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -318,10 +456,10 @@
             </span>
           </div>
           <div class="divide-y divide-slate-100 dark:divide-white/5">
-            <router-link
+            <div
               v-for="task in urgentTasks"
               :key="task.id"
-              :to="`/flows/${task.flow_id}`"
+              @click="handleTaskClick(task)"
               class="block px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors group"
             >
               <div class="flex items-start justify-between mb-2">
@@ -329,7 +467,7 @@
                   <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ task.title }}</h4>
                   <p class="text-xs text-slate-500 mt-1 flex items-center">
                     <svg class="w-3 h-3 mr-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-                    {{ task.flow?.name }}
+                    {{ task.crm_case?.title || task.flow?.name || 'Tarea de CRM' }}
                   </p>
                 </div>
                 <span class="px-2.5 py-1 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-bold rounded-lg border border-rose-100 dark:border-rose-500/20 shadow-sm shrink-0 ml-3">
@@ -341,7 +479,7 @@
                 <span>•</span>
                 <span>Término: {{ formatDate(task.estimated_end_at) }}</span>
               </div>
-            </router-link>
+            </div>
             <div v-if="urgentTasks.length === 0" class="px-6 py-8 text-center text-slate-400 dark:text-slate-500 text-sm">
                 ¡Todo bajo control! No hay tareas urgentes.
             </div>
@@ -399,10 +537,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { flowsAPI, tasksAPI, casesAPI } from '@/services/api'
+import { useDashboardStore } from '@/stores/dashboard'
+import { flowsAPI, tasksAPI } from '@/services/api'
 import { Line, Doughnut } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -416,29 +555,51 @@ import {
   Title
 } from 'chart.js'
 import Navbar from '@/components/AppNavbar.vue'
-import { Rocket, Folder, Briefcase } from 'lucide-vue-next'
+import { Rocket, Folder, Briefcase, ChevronRight, Lock, LayoutList, List, CheckSquare } from 'lucide-vue-next'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title)
 
 const authStore = useAuthStore()
+const dashboardStore = useDashboardStore()
 const router = useRouter()
 
-const stats = ref({
-  activeFlows: 0,
-  pendingTasks: 0,
-  completedToday: 0,
-  overdueTasks: 0,
-  urgentTasks: 0,
-  flowsThisWeek: 0,
-  completedThisWeek: 0,
-  totalThisWeek: 0,
-  completionRate: 0
+const stats = computed(() => {
+    // CRM Data
+    const crmCasesCount = dashboardStore.cases.length
+    const crmTasks = dashboardStore.allTasksFlat
+    
+    // Calcular completadas hoy (de CRM o de tasks locales si se mezclan)
+    // Por ahora solo usamos CRM Tasks para métricas de "Actividad" si el usuario pidió que dependan de la vista
+    // Pero para ser robustos, usemos datos seguros.
+    
+    return {
+        activeFlows: dashboardStore.totalActiveCases, // Getter del store
+        pendingTasks: crmTasks.filter(t => t.status !== 'Completed' && t.status !== 'Deferred').length,
+        completedToday: crmTasks.filter(t => t.status === 'Completed').length, // Simplificado
+        overdueTasks: crmTasks.filter(t => {
+             if (!t.date_due) return false;
+             return new Date(t.date_due) < new Date() && t.status !== 'Completed';
+        }).length,
+        urgentTasks: crmTasks.filter(t => t.priority === 'High' || t.priority === 'Urgent').length,
+        
+        // Placeholders o Cálculos para métricas semanales
+        flowsThisWeek: 0, 
+        completedThisWeek: crmTasks.filter(t => t.status === 'Completed').length, // Simplificado, idealmente filtrar por fecha de modificación
+        totalThisWeek: crmTasks.length,
+        completionRate: crmTasks.length ? Math.round((crmTasks.filter(t=>t.status==='Completed').length / crmTasks.length) * 100) : 0
+    }
 })
 
-const urgentTasks = ref([])
+// stats ref removed in favor of computed property
+const urgentTasks = computed(() => {
+    return dashboardStore.allTasksFlat
+        .filter(t => (t.priority === 'High' || t.priority === 'Urgent') && t.status !== 'Completed' && t.status !== 'Deferred')
+        .slice(0, 5)
+})
+
 const recentFlows = ref([])
-const allTasks = ref([])
-const myCases = ref([])
+const allTasks = computed(() => dashboardStore.allTasksFlat)
+// myCases removed in favor of store
 
 const taskTrendData = ref({
   labels: [],
@@ -668,11 +829,23 @@ const formatDate = (date) => {
   return `${day}/${month}/${year}`
 }
 
-const getStatusClass = (status) => {
+const getStatusClass = (status, type = 'flow') => {
+  if (type === 'case') {
+      const caseClasses = {
+          'New': 'text-blue-600 bg-blue-50 border-blue-100',
+          'Assigned': 'text-indigo-600 bg-indigo-50 border-indigo-100',
+          'Pending Input': 'text-amber-600 bg-amber-50 border-amber-100',
+          'Closed': 'text-emerald-600 bg-emerald-50 border-emerald-100',
+          'Rejected': 'text-rose-600 bg-rose-50 border-rose-100',
+      }
+      return caseClasses[status] || 'text-slate-600 bg-slate-50 border-slate-100'
+  }
+  
   const classes = {
     active: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400',
     paused: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400',
     completed: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400',
+    'Pending Input': 'bg-amber-100 text-amber-800',
   }
   return classes[status] || 'bg-gray-100 text-gray-800'
 }
@@ -689,9 +862,10 @@ const calculateProgress = (flow) => {
 }
 
 const handleTaskClick = (task) => {
-  if (task.crm_case) {
-    // Si la tarea pertenece a un caso CRM, ir a la vista de casos
-    router.push('/cases')
+  const caseId = task.crm_case?.id || task.case_id
+  if (caseId) {
+    // Si la tarea pertenece a un caso CRM, ir a la vista de casos con el ID del caso
+    router.push({ path: '/cases', query: { caseId: caseId, taskId: task.id } })
   } else if (task.flow_id) {
     // Si la tarea pertenece a un flujo, ir al detalle del flujo
     router.push(`/flows/${task.flow_id}`)
@@ -699,44 +873,19 @@ const handleTaskClick = (task) => {
 }
 
 const loadData = async () => {
+  // Trigger SweetCRM Sync
+  dashboardStore.fetchContent();
+
   try {
-    const [flowsRes, tasksRes, casesRes] = await Promise.all([
+    const [flowsRes, tasksRes] = await Promise.all([
       flowsAPI.getAll(), // Los flujos por ahora los dejamos todos o según permisos de backend
-      tasksAPI.getAll({ assignee_id: authStore.currentUser?.id }),
-      casesAPI.getAll({ assigned_to_me: 1, per_page: 100 })
+      tasksAPI.getAll({ assignee_id: authStore.currentUser?.id })
     ])
 
     const flows = flowsRes.data.data
     const tasks = tasksRes.data.data
-    const cases = casesRes.data.data // Casos paginados de la API Laravel
-
-    stats.value = {
-      activeFlows: flows.filter(f => f.status === 'active').length,
-      pendingTasks: tasks.filter(t => ['pending', 'in_progress'].includes(t.status)).length,
-      completedToday: tasks.filter(t => t.status === 'completed' && isToday(t.updated_at)).length,
-      overdueTasks: tasks.filter(t => t.estimated_end_at && new Date(t.estimated_end_at) < new Date() && t.status !== 'completed').length,
-      urgentTasks: tasks.filter(t => t.priority === 'urgent' && t.status !== 'completed').length,
-      flowsThisWeek: flows.filter(f => isThisWeek(f.created_at)).length,
-      completedThisWeek: tasks.filter(t => t.status === 'completed' && isThisWeek(t.updated_at)).length,
-      totalThisWeek: tasks.filter(t => isThisWeek(t.created_at)).length,
-      completionRate: Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100) || 0
-    }
-
-    urgentTasks.value = tasks
-      .filter(t => t.priority === 'urgent' && t.status !== 'completed')
-      .slice(0, 5)
-
-    recentFlows.value = flows.slice(0, 5)
-
-    // Todas las tareas (limitado a 20 para no sobrecargar)
-    allTasks.value = tasks
-      .filter(t => t.status !== 'completed')
-      .slice(0, 20)
-
-    // Casos asignados abiertos (no cerrados)
-    myCases.value = (cases || [])
-      .filter(c => c.status !== 'Cerrado')
-      .slice(0, 10)
+    
+    // myCases logic removed
 
     // Calcular datos reales para los últimos 7 días
     const last7Days = []
@@ -798,6 +947,7 @@ const isThisWeek = (date) => {
   const today = new Date()
   const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
   return d >= weekAgo && d <= today
+
 }
 
 onMounted(() => {

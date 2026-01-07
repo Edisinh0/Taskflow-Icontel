@@ -6,6 +6,7 @@ use App\Models\CrmCase;
 use App\Models\Client;
 use App\Models\Task;
 use App\Models\User;
+use App\Models\CaseUpdate;
 use App\Services\SweetCrmService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -85,7 +86,11 @@ class SyncSugarCrmCases extends Command
         $offset = 0;
         $chunkSize = 250;
         $synced = 0;
+        $skippedClosed = 0;
         $maxToSync = $limit > 0 ? $limit : 100000;
+
+        // Estados que se consideran "cerrados" o inactivos en SuiteCRM
+        $closedStatuses = ['Closed', 'Rejected', 'Duplicate', 'Closed_Closed', 'Merged'];
 
         $statusMap = [
             'New' => 'Nuevo',
@@ -94,6 +99,8 @@ class SyncSugarCrmCases extends Command
             'Pending Input' => 'Pendiente Datos',
             'Rejected' => 'Rechazado',
             'Duplicate' => 'Duplicado',
+            'Closed_Closed' => 'Cerrado',
+            'Merged' => 'Cerrado',
         ];
 
         $priorityMap = [
@@ -105,10 +112,16 @@ class SyncSugarCrmCases extends Command
             'Low' => 'Baja',
         ];
 
+        // Obtener IDs de casos sincronizados desde CRM para detectar casos eliminados/cerrados
+        $syncedCrmIds = [];
+
         while ($synced < $maxToSync) {
+            // Filtrar solo casos activos (no cerrados/rechazados/duplicados)
+            // y deleted = 0 (el servicio ya lo hace, pero la query adicional filtra estados)
             $entries = $this->sweetCrmService->getCases($sessionId, [
                 'offset' => $offset,
                 'max_results' => $chunkSize,
+                'query' => "(cases.status IS NULL OR cases.status = '' OR cases.status NOT IN ('Closed', 'Rejected', 'Duplicate', 'Closed_Closed', 'Merged', 'Cerrado', 'Cerrado_Cerrado'))",
             ]);
 
             if (empty($entries)) break;
@@ -123,22 +136,32 @@ class SyncSugarCrmCases extends Command
                     $accountId = $nvl['account_id']['value'] ?? null;
                     $client = $accountId ? Client::where('sweetcrm_id', $accountId)->first() : null;
 
-                    CrmCase::updateOrCreate(
+                    // Guardar ID de CRM para tracking
+                    $syncedCrmIds[] = $sweetId;
+
+                    $crmCase = CrmCase::updateOrCreate(
                         ['sweetcrm_id' => $sweetId],
                         [
                             'case_number' => $nvl['case_number']['value'] ?? '',
                             'subject' => $nvl['name']['value'] ?? 'Sin asunto',
                             'description' => $nvl['description']['value'] ?? null,
-                            'status' => $statusMap[$nvl['status']['value'] ?? ''] ?? ($nvl['status']['value'] ?? 'Nuevo'),
+                            'status' => $statusMap[$nvl['status']['value'] ?? ''] ?? ($nvl['status']['value'] ?: 'Nuevo'),
                             'priority' => $priorityMap[$nvl['priority']['value'] ?? ''] ?? ($nvl['priority']['value'] ?? 'Media'),
                             'type' => $nvl['type']['value'] ?? null,
                             'area' => $nvl['area_c']['value'] ?? null, // Campo personalizado de área
                             'client_id' => $client?->id,
                             'sweetcrm_account_id' => $accountId,
                             'sweetcrm_assigned_user_id' => $nvl['assigned_user_id']['value'] ?? null,
+                            'original_creator_id' => $nvl['created_by']['value'] ?? null,
+                            'original_creator_name' => $nvl['created_by_name']['value'] ?? null,
+                            'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? null,
+                            'sweetcrm_created_at' => $nvl['date_entered']['value'] ?? null,
                             'sweetcrm_synced_at' => now(),
                         ]
                     );
+
+                    // Sincronizar avances (campos personalizados de CRM)
+                    $this->syncCaseAdvances($crmCase, $nvl);
 
                     $synced++;
                 } catch (\Exception $e) {
@@ -154,7 +177,26 @@ class SyncSugarCrmCases extends Command
             if (count($entries) < $chunkSize) break;
         }
 
-        $this->info("   📊 Total casos: $synced");
+        // Marcar como "Cerrado" los casos locales que ya no están activos en CRM
+        // (casos que están en nuestra BD pero no vinieron en la respuesta de CRM activos)
+        if (!empty($syncedCrmIds)) {
+            $this->line('   🔄 Verificando casos cerrados/eliminados en CRM...');
+            $casesToMarkClosed = CrmCase::whereNotNull('sweetcrm_id')
+                ->whereNotIn('sweetcrm_id', $syncedCrmIds)
+                ->whereNotIn('status', ['Cerrado', 'Rechazado', 'Duplicado'])
+                ->count();
+
+            if ($casesToMarkClosed > 0) {
+                CrmCase::whereNotNull('sweetcrm_id')
+                    ->whereNotIn('sweetcrm_id', $syncedCrmIds)
+                    ->whereNotIn('status', ['Cerrado', 'Rechazado', 'Duplicado'])
+                    ->update(['status' => 'Cerrado', 'sweetcrm_synced_at' => now()]);
+
+                $this->info("   ⚠️  Marcados como cerrados: $casesToMarkClosed casos (no activos en CRM)");
+            }
+        }
+
+        $this->info("   📊 Total casos sincronizados: $synced");
     }
 
     protected function syncTasks(string $sessionId, int $limit)
@@ -164,10 +206,14 @@ class SyncSugarCrmCases extends Command
         $synced = 0;
         $maxToSync = $limit > 0 ? $limit * 5 : 200000; // Generalmente hay más tareas que casos
 
+        // Obtener IDs de tareas sincronizadas para marcar las eliminadas
+        $syncedTaskIds = [];
+
         while ($synced < $maxToSync) {
-            // Filtrar tareas que pertenecen a casos
+            // Filtrar tareas que pertenecen a casos y no están completadas/diferidas
+            // El servicio ya filtra deleted = 0
             $entries = $this->sweetCrmService->getTasks($sessionId, [
-                'query' => "tasks.parent_type = 'Cases'",
+                'query' => "tasks.parent_type = 'Cases' AND (tasks.status IS NULL OR tasks.status = '' OR tasks.status NOT IN ('Completed', 'Deferred'))",
                 'offset' => $offset,
                 'max_results' => $chunkSize,
             ]);
@@ -214,7 +260,10 @@ class SyncSugarCrmCases extends Command
                         $dateStart = $dateCreated ?: $crmCase->created_at;
                     }
 
-                    Task::updateOrCreate(
+                    // Guardar ID para tracking
+                    $syncedTaskIds[] = $sweetId;
+
+                    $task = Task::updateOrCreate(
                         ['sweetcrm_id' => $sweetId],
                         [
                             'title' => $nvl['name']['value'] ?? 'Tarea de CRM',
@@ -228,6 +277,9 @@ class SyncSugarCrmCases extends Command
                             'estimated_end_at' => $dateDue,
                         ]
                     );
+
+                    // Sincronizar avances de la tarea
+                    $this->syncTaskAdvances($task, $nvl);
 
                     $synced++;
                 } catch (\Exception $e) {
@@ -243,12 +295,99 @@ class SyncSugarCrmCases extends Command
             if (count($entries) < $chunkSize) break;
         }
 
-        $this->info("   📊 Total tareas: $synced");
+        // Marcar como completadas las tareas que ya no están activas en CRM
+        if (!empty($syncedTaskIds)) {
+            $this->line('   🔄 Verificando tareas completadas/eliminadas en CRM...');
+            $tasksToComplete = Task::whereNotNull('sweetcrm_id')
+                ->whereNotIn('sweetcrm_id', $syncedTaskIds)
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->count();
+
+            if ($tasksToComplete > 0) {
+                Task::whereNotNull('sweetcrm_id')
+                    ->whereNotIn('sweetcrm_id', $syncedTaskIds)
+                    ->whereNotIn('status', ['completed', 'cancelled'])
+                    ->update(['status' => 'completed', 'sweetcrm_synced_at' => now()]);
+
+                $this->info("   ⚠️  Marcadas como completadas: $tasksToComplete tareas (no activas en CRM)");
+            }
+        }
+
+        $this->info("   📊 Total tareas sincronizadas: $synced");
     }
 
     protected function parseCrmDate(?string $date): ?string
     {
         if (!$date || $date === '0000-00-00 00:00:00') return null;
         return $date;
+    }
+
+    protected function syncCaseAdvances(CrmCase $crmCase, array $nvl)
+    {
+        $advanceFields = ['avances_1_c', 'avances_2_c', 'avances_3_c', 'avances_4_c'];
+        
+        foreach ($advanceFields as $field) {
+            $rawContent = $nvl[$field]['value'] ?? '';
+            if (empty(trim($rawContent))) continue;
+            
+            // Dejar HTML si viene del CRM para mejor visualización
+            $content = trim(html_entity_decode($rawContent));
+            if (empty(strip_tags($content))) continue;
+
+            // Evitar duplicados
+            $exists = CaseUpdate::where('case_id', $crmCase->id)
+                ->where('content', $content)
+                ->exists();
+                
+            if (!$exists) {
+                $update = new CaseUpdate([
+                    'case_id' => $crmCase->id,
+                    'user_id' => $crmCase->sweetcrm_assigned_user_id 
+                        ? (User::where('sweetcrm_id', $crmCase->sweetcrm_assigned_user_id)->first()?->id ?? User::where('role', 'admin')->first()?->id) 
+                        : User::where('role', 'admin')->first()?->id,
+                    'content' => $content,
+                    'type' => 'update'
+                ]);
+
+                // Usar fecha del CRM si está disponible
+                if (isset($nvl['date_modified']['value'])) {
+                    $update->created_at = $nvl['date_modified']['value'];
+                }
+
+                $update->save();
+            }
+        }
+    }
+
+    protected function syncTaskAdvances(Task $task, array $nvl)
+    {
+        $rawContent = $nvl['avance_c']['value'] ?? '';
+        if (empty(trim($rawContent))) return;
+        
+        // Dejar HTML
+        $content = trim(html_entity_decode($rawContent));
+        if (empty(strip_tags($content))) return;
+
+        // Evitar duplicados
+        $exists = CaseUpdate::where('task_id', $task->id)
+            ->where('content', $content)
+            ->exists();
+            
+        if (!$exists) {
+            $update = new CaseUpdate([
+                'case_id' => $task->case_id,
+                'task_id' => $task->id,
+                'user_id' => $task->assignee_id ?: User::where('role', 'admin')->first()?->id,
+                'content' => $content,
+                'type' => 'update'
+            ]);
+
+            // Usar fecha del CRM
+            if (isset($nvl['date_modified']['value'])) {
+                $update->created_at = $nvl['date_modified']['value'];
+            }
+
+            $update->save();
+        }
     }
 }

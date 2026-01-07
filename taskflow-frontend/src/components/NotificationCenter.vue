@@ -115,7 +115,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useUserNotifications } from '@/composables/useRealtime'
 import { useAuthStore } from '@/stores/auth'
@@ -142,19 +142,44 @@ const unreadCount = computed(() => notificationsStore.unreadCount)
 const isLoading = computed(() => notificationsStore.isLoading)
 
 // Setup realtime notifications when user is authenticated and Echo is ready
+// Connection state
+let activeChannel = null
+
+const cleanupRealtime = () => {
+  if (activeChannel) {
+    const echo = getEcho()
+    if (echo) echo.leave(activeChannel)
+    activeChannel = null
+    realtimeConnection = null
+  }
+}
+
+// Setup realtime notifications
 const setupRealtime = () => {
   const userId = authStore.user?.id
   const echo = getEcho()
 
   if (userId && authStore.isAuthenticated && echo && !realtimeConnection) {
     console.log('🔔 Setting up realtime notifications for user:', userId)
-    realtimeConnection = useUserNotifications(userId, (event) => {
+    
+    const channelName = `user.${userId}`
+    const channel = echo.private(channelName)
+    
+    channel.listen('.notification.sent', (event) => {
       console.log('📬 Nueva notificación:', event.notification)
       notificationsStore.addNotification(event.notification)
       notificationsStore.showToast(event.notification)
     })
+    
+    activeChannel = channelName
+    realtimeConnection = true
   }
 }
+
+// Register cleanup synchronousy
+onUnmounted(() => {
+  cleanupRealtime()
+})
 
 // Watch for authentication changes
 watch(() => authStore.isAuthenticated, (isAuth) => {

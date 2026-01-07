@@ -19,158 +19,76 @@ class AuthController extends Controller
         $this->sweetCrmService = $sweetCrmService;
     }
 
-    /**
-     * Login - Autenticar usuario y devolver token
-     * POST /api/v1/auth/login
-     */
     public function login(Request $request)
     {
-        // Validar datos de entrada
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-            'use_sweetcrm' => 'sometimes|boolean',
-        ]);
-
-        $useSweetCrm = $request->boolean('use_sweetcrm', config('services.sweetcrm.enabled'));
-
-        // Si está habilitado SweetCRM, intentar autenticación primero
-        if ($useSweetCrm) {
-            $sweetCrmAuth = $this->sweetCrmService->authenticate($request->email, $request->password);
-
-            if ($sweetCrmAuth['success']) {
-                return $this->handleSweetCrmLogin($sweetCrmAuth['data'], $request->password);
-            }
-
-            // Si falla SweetCRM, continuar con autenticación local
-            Log::info('SweetCRM authentication failed, trying local auth', [
-                'email' => $request->email,
+        try {
+            $request->validate([
+                'username' => 'required|string',
+                'password' => 'required|string',
             ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+                'received_data' => $request->all() // Para depurar qué está llegando
+            ], 422);
         }
 
-        // Autenticación local
-        return $this->handleLocalLogin($request->email, $request->password);
-    }
-
-    /**
-     * Login con autenticación de SweetCRM
-     * POST /api/v1/auth/sweetcrm-login
-     */
-    public function sweetCrmLogin(Request $request)
-    {
-        $request->validate([
-            'username' => 'required|string',
-            'password' => 'required',
-        ]);
-
+        // Autenticar SIEMPRE contra SweetCRM
         $result = $this->sweetCrmService->authenticate($request->username, $request->password);
 
         if (!$result['success']) {
-            throw ValidationException::withMessages([
-                'username' => [$result['error'] ?? 'Error de autenticación con SweetCRM'],
-            ]);
+            return response()->json([
+                'message' => $result['error'] ?? 'Credenciales de SuiteCRM inválidas.',
+                'errors' => ['username' => [$result['error'] ?? 'Credenciales inválidas']]
+            ], 422);
         }
 
+        // Login exitoso - manejar usuario local
         return $this->handleSweetCrmLogin($result['data'], $request->password, $request->username);
     }
 
     /**
      * Manejar login exitoso desde SweetCRM
      */
-    protected function handleSweetCrmLogin(array $sweetCrmData, string $password, ?string $username = null): \Illuminate\Http\JsonResponse
+    protected function handleSweetCrmLogin(array $sweetCrmData, string $password, string $username): \Illuminate\Http\JsonResponse
     {
         $sweetCrmUser = $sweetCrmData['user'] ?? $sweetCrmData;
 
-        // Validar que tengamos al menos ID o email para buscar
         $sweetcrmId = $sweetCrmUser['id'] ?? null;
         $sweetcrmEmail = $sweetCrmUser['email'] ?? null;
+        $sweetcrmDepartment = $sweetCrmUser['department'] ?? $sweetCrmUser['dept'] ?? null;
 
-        if (!$sweetcrmId && !$sweetcrmEmail) {
-            Log::error('SweetCRM login failed: no ID or email provided', [
-                'data' => $sweetCrmUser,
-            ]);
-
-            return response()->json([
-                'message' => 'Error: datos incompletos de SweetCRM',
-            ], 422);
+        if (!$sweetcrmId) {
+            Log::error('SweetCRM login failed: no ID provided', ['data' => $sweetCrmUser]);
+            return response()->json(['message' => 'Error: datos incompletos de SuiteCRM'], 422);
         }
 
-        // Buscar usuario - solo buscar por los campos que existen
-        $query = User::query();
+        // Mapear área/departamento
+        $area = $this->mapDepartment($sweetcrmDepartment);
 
-        if ($sweetcrmId) {
-            $query->where('sweetcrm_id', $sweetcrmId);
-        }
-
-        if ($sweetcrmEmail && !$sweetcrmId) {
-            $query->orWhere('email', $sweetcrmEmail);
-        }
-
-        $user = $query->first();
+        // Buscar o crear usuario por sweetcrm_id
+        $user = User::where('sweetcrm_id', $sweetcrmId)->first();
 
         $userData = [
             'name' => $sweetCrmUser['name'] ?? $sweetCrmUser['username'] ?? $username,
+            'email' => $sweetcrmEmail ?? "{$username}@icontel.cl",
             'sweetcrm_id' => $sweetcrmId,
+            'department' => $area,
             'sweetcrm_user_type' => $sweetCrmUser['user_type'] ?? null,
             'sweetcrm_synced_at' => now(),
+            'password' => Hash::make($password), // Mantener el password local sincronizado por seguridad de sesión
         ];
 
-        // Si el usuario de SweetCRM tiene email, lo usamos, si no generamos uno temporal único
-        $email = $sweetcrmEmail ?? ($sweetcrmId ? "{$sweetcrmId}@sweetcrm.local" : $username . '@sweetcrm.local');
-
         if (!$user) {
-            // Crear nuevo usuario desde datos de SweetCRM
-            $user = User::create([
-                ...$userData,
-                'email' => $email,
-                'password' => Hash::make($password),
-                'role' => $this->mapSweetCrmRole($sweetCrmUser['role'] ?? 'user'),
-            ]);
-
-            Log::info('New user created from SweetCRM', [
-                'user_id' => $user->id,
-                'sweetcrm_id' => $sweetCrmUser['id'],
-                'username' => $username,
-            ]);
+            $user = User::create($userData);
+            Log::info("✅ Nuevo usuario registrado desde SuiteCRM: {$user->name} ({$area})");
         } else {
-            // Actualizar datos desde SweetCRM
             $user->update($userData);
+            Log::info("🔄 Usuario sincronizado al iniciar sesión: {$user->name} ({$area})");
         }
 
-        // Crear token de acceso
-        $token = $user->createToken('api-token')->plainTextToken;
-
-        return response()->json([
-            'message' => 'Login exitoso con SweetCRM',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                'sweetcrm_id' => $user->sweetcrm_id,
-            ],
-            'token' => $token,
-            'expires_in' => 3600,
-            'auth_source' => 'sweetcrm',
-        ], 200);
-    }
-
-    /**
-     * Manejar login local (sin SweetCRM)
-     */
-    protected function handleLocalLogin(string $email, string $password): \Illuminate\Http\JsonResponse
-    {
-        // Buscar usuario por email
-        $user = User::where('email', $email)->first();
-
-        // Verificar si existe y la contraseña es correcta
-        if (!$user || !Hash::check($password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['Las credenciales son incorrectas.'],
-            ]);
-        }
-
-        // Crear token de acceso
+        // Crear token
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
@@ -179,78 +97,53 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $user->role,
+                'department' => $user->department,
+                'role' => $user->role ?? 'user',
+                'sweetcrm_id' => $user->sweetcrm_id,
             ],
-            'token' => $token,
-            'expires_in' => 3600,
-            'auth_source' => 'local',
+            'token' => $token
         ], 200);
     }
 
     /**
-     * Mapear roles de SweetCRM a roles de Taskflow
+     * Mapear departamento de SweetCRM a áreas de Taskflow
      */
-    protected function mapSweetCrmRole(string $sweetCrmRole): string
+    protected function mapDepartment(?string $sweetcrmDepartment): string
     {
-        $roleMap = [
-            'admin' => 'admin',
-            'manager' => 'project_manager',
-            'user' => 'user',
-            'client' => 'user',
+        if (!$sweetcrmDepartment) return 'General';
+
+        $dept = strtolower(trim($sweetcrmDepartment));
+        
+        $areaMap = [
+            'ventas' => 'Ventas',
+            'sales' => 'Ventas',
+            'comercial' => 'Ventas',
+            'operaciones' => 'Operaciones',
+            'operations' => 'Operaciones',
+            'ops' => 'Operaciones',
+            'soporte' => 'Soporte',
+            'support' => 'Soporte',
+            'instalaciones' => 'Instalaciones',
+            'installation' => 'Instalaciones',
         ];
 
-        return $roleMap[strtolower($sweetCrmRole)] ?? 'user';
+        return $areaMap[$dept] ?? 'General';
     }
 
     /**
-     * Logout - Revocar token actual
-     * POST /api/v1/auth/logout
+     * Logout
      */
     public function logout(Request $request)
     {
-        // Eliminar el token actual del usuario autenticado
         $request->user()->currentAccessToken()->delete();
-
-        return response()->json([
-            'message' => 'Logout exitoso',
-        ], 200);
+        return response()->json(['message' => 'Sesión cerrada']);
     }
 
     /**
-     * Obtener información del usuario autenticado
-     * GET /api/v1/auth/me
+     * Información del usuario
      */
     public function me(Request $request)
     {
-        return response()->json([
-            'user' => $request->user(),
-        ], 200);
-    }
-
-    /**
-     * Registro de nuevo usuario (opcional)
-     * POST /api/v1/auth/register
-     */
-    public function register(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:8|confirmed',
-        ]);
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        $token = $user->createToken('api-token')->plainTextToken;
-
-        return response()->json([
-            'message' => 'Usuario registrado exitosamente',
-            'user' => $user,
-            'token' => $token,
-        ], 201);
+        return response()->json(['user' => $request->user()]);
     }
 }

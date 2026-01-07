@@ -19,22 +19,41 @@ export const useAuthStore = defineStore('auth', () => {
     const storedToken = localStorage.getItem('token')
     const storedUser = localStorage.getItem('user')
 
-    if (storedToken && storedUser) {
-      token.value = storedToken
-      user.value = JSON.parse(storedUser)
-      // Inicializar Echo si hay token
-      initializeEcho(storedToken)
+    if (storedToken && storedUser && storedUser !== 'undefined' && storedUser !== 'null') {
+      try {
+        token.value = storedToken
+        user.value = JSON.parse(storedUser)
+        // Inicializar Echo si hay token
+        initializeEcho(storedToken)
+      } catch (err) {
+        console.error('Error al cargar usuario del localStorage:', err)
+        // Limpiar localStorage corrupto
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        localStorage.removeItem('auth_source')
+      }
     }
   }
 
-  // Login
+  // Login Unificado (Solo SuiteCRM)
   const login = async (credentials) => {
     try {
+      console.log('Final credentials being sent to API:', {
+        username: credentials.email || credentials.username || credentials.identifier,
+        password: '***'
+      })
       isLoading.value = true
       error.value = null
 
-      const response = await authAPI.login(credentials)
-      const { user: userData, token: authToken, auth_source } = response.data
+      // Enviar 'username' y 'password' tal cual espera el backend
+      const response = await authAPI.login({
+        username: credentials.email || credentials.username || credentials.identifier,
+        password: credentials.password
+      })
+
+      const responseData = response.data
+
+      const { user: userData, token: authToken, auth_source } = responseData
 
       // Guardar en el estado
       user.value = userData
@@ -43,44 +62,15 @@ export const useAuthStore = defineStore('auth', () => {
       // Guardar en localStorage
       localStorage.setItem('token', authToken)
       localStorage.setItem('user', JSON.stringify(userData))
-      localStorage.setItem('auth_source', auth_source || 'local')
+      localStorage.setItem('auth_source', auth_source || 'sweetcrm')
 
-      // Inicializar Echo con el nuevo token
+      // Inicializar Echo
       initializeEcho(authToken)
 
-      return { success: true, auth_source }
+      return { success: true, auth_source, user: userData }
     } catch (err) {
+      console.error('Login error detail:', err.response?.data)
       error.value = err.response?.data?.message || 'Error al iniciar sesión'
-      return { success: false, error: error.value }
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  // Login con SweetCRM
-  const sweetCrmLogin = async (credentials) => {
-    try {
-      isLoading.value = true
-      error.value = null
-
-      const response = await authAPI.sweetCrmLogin(credentials)
-      const { user: userData, token: authToken } = response.data
-
-      // Guardar en el estado
-      user.value = userData
-      token.value = authToken
-
-      // Guardar en localStorage
-      localStorage.setItem('token', authToken)
-      localStorage.setItem('user', JSON.stringify(userData))
-      localStorage.setItem('auth_source', 'sweetcrm')
-
-      // Inicializar Echo con el nuevo token
-      initializeEcho(authToken)
-
-      return { success: true, auth_source: 'sweetcrm' }
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Error al iniciar sesión con SweetCRM'
       return { success: false, error: error.value }
     } finally {
       isLoading.value = false
@@ -128,7 +118,6 @@ export const useAuthStore = defineStore('auth', () => {
     currentUser,
     // Acciones
     login,
-    sweetCrmLogin,
     logout,
     fetchCurrentUser,
     loadFromStorage,

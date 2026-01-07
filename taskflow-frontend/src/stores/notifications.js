@@ -27,7 +27,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
   async function fetchNotifications() {
     try {
       isLoading.value = true
-      const response = await api.get('/notifications')
+      const response = await api.get('notifications')
       notifications.value = response.data.data || []
     } catch (error) {
       console.error('Error fetching notifications:', error)
@@ -50,7 +50,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
   async function markAllAsRead() {
     try {
-      await api.post('/notifications/read-all')
+      await api.post('notifications/read-all')
       notifications.value.forEach((n) => {
         n.is_read = true
       })

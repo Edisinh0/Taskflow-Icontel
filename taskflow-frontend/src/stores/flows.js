@@ -43,7 +43,7 @@ export const useFlowsStore = defineStore('flows', () => {
     error.value = null
 
     try {
-      const response = await api.get('/flows', { params })
+      const response = await api.get('flows', { params })
 
       if (response.data.data) {
         flows.value = response.data.data
@@ -95,7 +95,7 @@ export const useFlowsStore = defineStore('flows', () => {
     error.value = null
 
     try {
-      const response = await api.post('/flows', flowData)
+      const response = await api.post('flows', flowData)
       const newFlow = response.data.flow || response.data
 
       flows.value.unshift(newFlow)
