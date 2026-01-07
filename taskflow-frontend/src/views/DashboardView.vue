@@ -1150,21 +1150,34 @@ const scrollToDelegated = () => {
 
 const loadData = async () => {
   try {
+    console.log('📊 [Dashboard] Starting loadData...');
+
     // 1. Primero cargar contenido basado en área (AWAIT para esperar respuesta)
+    console.log('📊 [Dashboard] Calling fetchAreaBasedContent...');
     await dashboardStore.fetchAreaBasedContent();
+    console.log('📊 [Dashboard] fetchAreaBasedContent completed', {
+      cases: dashboardStore.cases.length,
+      opportunities: dashboardStore.opportunities.length,
+      tasks: dashboardStore.orphanTasks.length,
+      userArea: dashboardStore.userArea
+    });
 
     // 2. Luego obtener tareas delegadas (ahora userArea está seteado)
+    console.log('📊 [Dashboard] Fetching delegated items...');
     if (dashboardStore.userArea === 'sales') {
       await dashboardStore.fetchDelegatedSales();
     } else {
       await dashboardStore.fetchDelegated();
     }
+    console.log('📊 [Dashboard] Delegated items fetched');
 
     // 3. Cargar datos adicionales en paralelo
+    console.log('📊 [Dashboard] Fetching flows and tasks...');
     const [flowsRes, tasksRes] = await Promise.all([
       flowsAPI.getAll(), // Los flujos por ahora los dejamos todos o según permisos de backend
       tasksAPI.getAll({ assignee_id: authStore.currentUser?.id })
     ])
+    console.log('📊 [Dashboard] Flows and tasks fetched');
 
     const flows = flowsRes.data.data
     const tasks = tasksRes.data.data
@@ -1215,8 +1228,12 @@ const loadData = async () => {
       tasks.filter(t => t.priority === 'high' && ['pending', 'in_progress'].includes(t.status)).length,
       tasks.filter(t => t.priority === 'urgent' && ['pending', 'in_progress'].includes(t.status)).length
     ]
+
+    console.log('📊 [Dashboard] ✅ loadData completed successfully');
   } catch (error) {
-    console.error('Error cargando datos:', error)
+    console.error('❌ [Dashboard] Error cargando datos:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
   }
 }
 
