@@ -230,6 +230,13 @@ class DashboardController extends Controller
             // Determinar qué vista mostrar (my vs area)
             $viewMode = $request->query('view', 'my'); // 'my' o 'area'
 
+            Log::info('🔍 Dashboard Operations - Starting data fetch', [
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'sweetcrm_id' => $userSweetCrmId,
+                'view_mode' => $viewMode
+            ]);
+
             // Casos activos (no cerrados)
             $casesData = [];
 
@@ -241,9 +248,18 @@ class DashboardController extends Controller
                 $caseQuery = "cases.assigned_user_id = '{$userSweetCrmId}' AND cases.status NOT IN ('Closed', 'Rejected', 'Duplicate', 'Merged')";
             }
 
+            Log::info('📋 Fetching cases from SweetCRM', [
+                'query' => $caseQuery
+            ]);
+
             $casesFromCrm = $this->sweetCrmService->getCases($sessionId, [
                 'query' => $caseQuery,
                 'max_results' => 100
+            ]);
+
+            Log::info('✅ Cases fetched', [
+                'count' => count($casesFromCrm),
+                'first_case' => $casesFromCrm[0] ?? 'none'
             ]);
 
             foreach ($casesFromCrm as $crmCase) {
@@ -267,9 +283,18 @@ class DashboardController extends Controller
             $activeTaskStatuses = ['Open', 'Reassigned', 'In Progress', 'Not Started'];
             $taskQuery = "tasks.assigned_user_id = '{$userSweetCrmId}' AND tasks.status IN ('" . implode("','", $activeTaskStatuses) . "')";
 
+            Log::info('📋 Fetching tasks from SweetCRM', [
+                'query' => $taskQuery
+            ]);
+
             $tasksFromCrm = $this->sweetCrmService->getTasks($sessionId, [
                 'query' => $taskQuery,
                 'max_results' => 100
+            ]);
+
+            Log::info('✅ Tasks fetched', [
+                'count' => count($tasksFromCrm),
+                'first_task' => $tasksFromCrm[0] ?? 'none'
             ]);
 
             foreach ($tasksFromCrm as $task) {
