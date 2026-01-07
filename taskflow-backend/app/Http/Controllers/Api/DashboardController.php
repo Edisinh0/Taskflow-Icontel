@@ -204,118 +204,81 @@ class DashboardController extends Controller
     protected function getOperationsTeamContent(Request $request, $user)
     {
         try {
-            $username = config('services.sweetcrm.username');
-            $password = config('services.sweetcrm.password');
-
-            if (!$username || !$password) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Credenciales de SweetCRM no configuradas'
-                ], 500);
-            }
-
-            // Obtener sesión de SweetCRM
-            $sessionResult = $this->sweetCrmService->getCachedSession($username, $password);
-
-            if (!$sessionResult['success']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Error de autenticación con SweetCRM'
-                ], 500);
-            }
-
-            $sessionId = $sessionResult['session_id'];
             $userSweetCrmId = $user->sweetcrm_id;
-
-            // Determinar qué vista mostrar (my vs area)
             $viewMode = $request->query('view', 'my'); // 'my' o 'area'
 
-            Log::info('🔍 Dashboard Operations - Starting data fetch', [
+            Log::info('🔍 Dashboard Operations - Starting data fetch from LOCAL DATABASE', [
                 'user_id' => $user->id,
                 'user_name' => $user->name,
                 'sweetcrm_id' => $userSweetCrmId,
                 'view_mode' => $viewMode
             ]);
 
-            // Casos activos (no cerrados)
-            $casesData = [];
+            // Consultar CASOS desde la base de datos local
+            $casesQuery = \App\Models\CrmCase::whereNotIn('status', ['Closed', 'Rejected', 'Duplicate', 'Merged']);
 
-            if ($viewMode === 'area') {
-                // Casos asignados a CUALQUIER usuario en el área (no solo al usuario actual)
-                $caseQuery = "cases.status NOT IN ('Closed', 'Rejected', 'Duplicate', 'Merged')";
-            } else {
-                // Casos asignados solo al usuario actual
-                $caseQuery = "cases.assigned_user_id = '{$userSweetCrmId}' AND cases.status NOT IN ('Closed', 'Rejected', 'Duplicate', 'Merged')";
+            if ($viewMode === 'my') {
+                // Solo casos asignados al usuario actual
+                $casesQuery->where('sweetcrm_assigned_user_id', $userSweetCrmId);
             }
+            // Si es 'area', traer todos los casos activos (sin filtro de usuario)
 
-            Log::info('📋 Fetching cases from SweetCRM', [
-                'query' => $caseQuery
+            $cases = $casesQuery->orderBy('created_at', 'desc')
+                ->limit(100)
+                ->get();
+
+            Log::info('📋 Cases fetched from LOCAL DB', [
+                'count' => $cases->count(),
+                'view_mode' => $viewMode
             ]);
 
-            $casesFromCrm = $this->sweetCrmService->getCases($sessionId, [
-                'query' => $caseQuery,
-                'max_results' => 100
-            ]);
-
-            Log::info('✅ Cases fetched', [
-                'count' => count($casesFromCrm),
-                'first_case' => $casesFromCrm[0] ?? 'none'
-            ]);
-
-            foreach ($casesFromCrm as $crmCase) {
-                $nvl = $crmCase['name_value_list'];
-                $casesData[] = [
-                    'id' => $crmCase['id'],
+            // Formatear casos para el frontend
+            $casesData = $cases->map(function ($case) {
+                return [
+                    'id' => $case->sweetcrm_id ?? $case->id,
                     'type' => 'case',
-                    'title' => $nvl['name']['value'] ?? 'Sin nombre',
-                    'case_number' => $nvl['case_number']['value'] ?? null,
-                    'subject' => $nvl['name']['value'] ?? 'Sin nombre',
-                    'status' => $nvl['status']['value'] ?? 'Open',
-                    'priority' => $nvl['priority']['value'] ?? 'Normal',
-                    'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? 'Sin asignar',
-                    'created_by_name' => $nvl['created_by_name']['value'] ?? null,
-                    'date_entered' => $nvl['date_entered']['value'] ?? null,
+                    'title' => $case->subject,
+                    'case_number' => $case->case_number,
+                    'subject' => $case->subject,
+                    'status' => $case->status,
+                    'priority' => $case->priority ?? 'Normal',
+                    'assigned_user_name' => $case->assigned_user_name ?? 'Sin asignar',
+                    'created_by_name' => $case->original_creator_name,
+                    'date_entered' => $case->sweetcrm_created_at ?? $case->created_at,
                 ];
-            }
+            })->toArray();
 
-            // Tareas asignadas al usuario (activas) - SIEMPRE son personales
-            $tasksData = [];
-            $activeTaskStatuses = ['Open', 'Reassigned', 'In Progress', 'Not Started'];
-            $taskQuery = "tasks.assigned_user_id = '{$userSweetCrmId}' AND tasks.status IN ('" . implode("','", $activeTaskStatuses) . "')";
+            // Consultar TAREAS desde la base de datos local
+            // Estados locales de Taskflow (no los de SweetCRM)
+            $activeTaskStatuses = ['pending', 'in_progress'];
+            $tasksQuery = \App\Models\Task::whereIn('status', $activeTaskStatuses);
 
-            Log::info('📋 Fetching tasks from SweetCRM', [
-                'query' => $taskQuery
+            // Las tareas SIEMPRE son personales (asignadas al usuario actual)
+            $tasksQuery->where('assignee_id', $user->id);
+
+            $tasks = $tasksQuery->orderBy('created_at', 'desc')
+                ->limit(100)
+                ->get();
+
+            Log::info('📋 Tasks fetched from LOCAL DB', [
+                'count' => $tasks->count()
             ]);
 
-            $tasksFromCrm = $this->sweetCrmService->getTasks($sessionId, [
-                'query' => $taskQuery,
-                'max_results' => 100
-            ]);
+            // Formatear tareas para el frontend
+            $tasksData = $tasks->map(function ($task) {
+                return [
+                    'id' => $task->sweetcrm_id ?? $task->id,
+                    'type' => 'task',
+                    'title' => $task->title,
+                    'status' => $task->status,
+                    'priority' => $task->priority ?? 'Medium',
+                    'assigned_user_name' => $task->assignee->name ?? 'Sin asignar',
+                    'date_due' => $task->estimated_end_at,
+                    'date_entered' => $task->created_at,
+                ];
+            })->toArray();
 
-            Log::info('✅ Tasks fetched', [
-                'count' => count($tasksFromCrm),
-                'first_task' => $tasksFromCrm[0] ?? 'none'
-            ]);
-
-            foreach ($tasksFromCrm as $task) {
-                $nvl = $task['name_value_list'];
-                $taskStatus = $nvl['status']['value'] ?? 'Not Started';
-
-                if (in_array($taskStatus, $activeTaskStatuses)) {
-                    $tasksData[] = [
-                        'id' => $task['id'],
-                        'type' => 'task',
-                        'title' => $nvl['name']['value'] ?? 'Sin nombre',
-                        'status' => $taskStatus,
-                        'priority' => $nvl['priority']['value'] ?? 'Medium',
-                        'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? 'Sin asignar',
-                        'date_due' => $nvl['date_due']['value'] ?? null,
-                        'date_entered' => $nvl['date_entered']['value'] ?? null,
-                    ];
-                }
-            }
-
-            Log::info('✅ Operations team content loaded:', [
+            Log::info('✅ Operations team content loaded from LOCAL DB:', [
                 'view_mode' => $viewMode,
                 'cases_count' => count($casesData),
                 'tasks_count' => count($tasksData),
@@ -337,6 +300,7 @@ class DashboardController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Error en getOperationsTeamContent: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener contenido de operaciones',
