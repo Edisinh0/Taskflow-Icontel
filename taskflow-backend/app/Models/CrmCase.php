@@ -21,6 +21,7 @@ class CrmCase extends Model
         'type',
         'area',
         'client_id',
+        'created_by',
         'sweetcrm_id',
         'sweetcrm_account_id',
         'sweetcrm_assigned_user_id',
@@ -89,5 +90,13 @@ class CrmCase extends Model
     public function closureRequester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'closure_requested_by');
+    }
+
+    /**
+     * Relación: Usuario que creó el caso (local)
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }
