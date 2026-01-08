@@ -232,23 +232,6 @@ class DashboardController extends Controller
                 'view_mode' => $viewMode
             ]);
 
-            // Formatear casos para el frontend
-            $casesData = $cases->map(function ($case) {
-                return [
-                    'id' => $case->id, // ID local (integer) para navegación
-                    'sweetcrm_id' => $case->sweetcrm_id, // ID de SweetCRM (UUID)
-                    'type' => 'case',
-                    'title' => $case->subject,
-                    'case_number' => $case->case_number,
-                    'subject' => $case->subject,
-                    'status' => $case->status,
-                    'priority' => $case->priority ?? 'Normal',
-                    'assigned_user_name' => $case->assigned_user_name ?? 'Sin asignar',
-                    'created_by_name' => $case->original_creator_name,
-                    'date_entered' => $case->sweetcrm_created_at ?? $case->created_at,
-                ];
-            })->toArray();
-
             // Consultar TAREAS desde la base de datos local
             // Estados locales de Taskflow (no los de SweetCRM)
             $activeTaskStatuses = ['pending', 'in_progress'];
@@ -265,8 +248,65 @@ class DashboardController extends Controller
                 'count' => $tasks->count()
             ]);
 
-            // Formatear tareas para el frontend
-            $tasksData = $tasks->map(function ($task) {
+            // Agrupar tareas por caso
+            $tasksByCase = [];
+            $orphanTasks = [];
+
+            foreach ($tasks as $task) {
+                if ($task->case_id) {
+                    if (!isset($tasksByCase[$task->case_id])) {
+                        $tasksByCase[$task->case_id] = [];
+                    }
+                    $tasksByCase[$task->case_id][] = $task;
+                } else {
+                    $orphanTasks[] = $task;
+                }
+            }
+
+            // Formatear casos para el frontend CON sus tareas anidadas
+            $casesData = $cases->map(function ($case) use ($tasksByCase) {
+                $caseData = [
+                    'id' => $case->id, // ID local (integer) para navegación
+                    'sweetcrm_id' => $case->sweetcrm_id, // ID de SweetCRM (UUID)
+                    'type' => 'case',
+                    'title' => $case->subject,
+                    'case_number' => $case->case_number,
+                    'subject' => $case->subject,
+                    'status' => $case->status,
+                    'priority' => $case->priority ?? 'Normal',
+                    'assigned_user_name' => $case->assigned_user_name ?? 'Sin asignar',
+                    'created_by_name' => $case->original_creator_name,
+                    'date_entered' => $case->sweetcrm_created_at ?? $case->created_at,
+                    'tasks' => [] // Inicializar tareas vacío
+                ];
+
+                // Agregar tareas de este caso si existen
+                if (isset($tasksByCase[$case->id])) {
+                    $caseData['tasks'] = collect($tasksByCase[$case->id])->map(function ($task) {
+                        return [
+                            'id' => $task->id,
+                            'sweetcrm_id' => $task->sweetcrm_id,
+                            'type' => 'task',
+                            'title' => $task->title,
+                            'description' => $task->description,
+                            'status' => $task->status,
+                            'priority' => $task->priority ?? 'Medium',
+                            'assigned_user_name' => $task->assignee->name ?? 'Sin asignar',
+                            'date_due' => $task->estimated_end_at,
+                            'due_date' => $task->estimated_end_at,
+                            'estimated_end_at' => $task->estimated_end_at,
+                            'estimated_start_at' => $task->estimated_start_at,
+                            'date_entered' => $task->created_at,
+                            'case_id' => $task->case_id,
+                        ];
+                    })->toArray();
+                }
+
+                return $caseData;
+            })->toArray();
+
+            // Formatear tareas huérfanas para el frontend
+            $tasksData = collect($orphanTasks)->map(function ($task) {
                 $taskData = [
                     'id' => $task->id, // ID local (integer) para navegación
                     'sweetcrm_id' => $task->sweetcrm_id, // ID de SweetCRM (UUID)

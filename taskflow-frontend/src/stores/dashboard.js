@@ -161,7 +161,8 @@ export const useDashboardStore = defineStore('dashboard', {
                         this.cases = (data.cases || []).map(c => ({
                             ...c,
                             expanded: false,
-                            tasks: c.tasks || []
+                            tasks: c.tasks || [],
+                            title: c.subject || c.title
                         }));
                         this.orphanTasks = data.tasks || [];
                         // Limpiar oportunidades para ops
