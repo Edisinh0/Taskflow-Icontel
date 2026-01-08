@@ -354,11 +354,26 @@ class SyncSugarCrmCases extends Command
                 ->exists();
                 
             if (!$exists) {
+                // Obtener user_id: primero intenta con el usuario asignado, luego cualquier usuario, finalmente el primer usuario
+                $userId = null;
+                if ($crmCase->sweetcrm_assigned_user_id) {
+                    $userId = User::where('sweetcrm_id', $crmCase->sweetcrm_assigned_user_id)->first()?->id;
+                }
+                if (!$userId) {
+                    $userId = User::where('role', 'admin')->first()?->id;
+                }
+                if (!$userId) {
+                    $userId = User::first()?->id;
+                }
+
+                if (!$userId) {
+                    // Si no hay ningún usuario, no crear el update
+                    return;
+                }
+
                 $update = new CaseUpdate([
                     'case_id' => $crmCase->id,
-                    'user_id' => $crmCase->sweetcrm_assigned_user_id 
-                        ? (User::where('sweetcrm_id', $crmCase->sweetcrm_assigned_user_id)->first()?->id ?? User::where('role', 'admin')->first()?->id) 
-                        : User::where('role', 'admin')->first()?->id,
+                    'user_id' => $userId,
                     'content' => $content,
                     'type' => 'update'
                 ]);
@@ -388,10 +403,24 @@ class SyncSugarCrmCases extends Command
             ->exists();
             
         if (!$exists) {
+            // Obtener user_id: primero el asignado a la tarea, luego admin, luego cualquier usuario
+            $userId = $task->assignee_id;
+            if (!$userId) {
+                $userId = User::where('role', 'admin')->first()?->id;
+            }
+            if (!$userId) {
+                $userId = User::first()?->id;
+            }
+
+            if (!$userId) {
+                // Si no hay ningún usuario, no crear el update
+                return;
+            }
+
             $update = new CaseUpdate([
                 'case_id' => $task->case_id,
                 'task_id' => $task->id,
-                'user_id' => $task->assignee_id ?: User::where('role', 'admin')->first()?->id,
+                'user_id' => $userId,
                 'content' => $content,
                 'type' => 'update'
             ]);
