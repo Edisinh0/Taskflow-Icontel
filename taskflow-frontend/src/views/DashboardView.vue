@@ -1067,6 +1067,19 @@ const calculateProgress = (flow) => {
 }
 
 const handleTaskClick = (task) => {
+  // Si es un caso, navegar a la vista de casos
+  if (task.type === 'case') {
+    router.push({ path: '/cases', query: { caseId: task.id } })
+    return
+  }
+
+  // Si es una oportunidad, navegar a la vista de oportunidades
+  if (task.type === 'opportunity') {
+    router.push({ path: '/opportunities', query: { opportunityId: task.id } })
+    return
+  }
+
+  // Si es una tarea
   const caseId = task.crm_case?.id || task.case_id
   if (caseId) {
     // Si la tarea pertenece a un caso CRM, ir a la vista de casos con el ID del caso
@@ -1075,6 +1088,7 @@ const handleTaskClick = (task) => {
     // Si la tarea pertenece a un flujo, ir al detalle del flujo
     router.push(`/flows/${task.flow_id}`)
   }
+  // Si es una tarea sin caso y sin flujo, no navegar (es una tarea delegada aislada)
 }
 
 const handleCaseClick = (crmCase, event) => {

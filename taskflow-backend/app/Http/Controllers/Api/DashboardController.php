@@ -595,6 +595,7 @@ class DashboardController extends Controller
 
     /**
      * Obtener casos y tareas delegados (creados por el usuario y asignados a otros)
+     * Usa BD LOCAL en lugar de SweetCRM API para obtener IDs consistentes
      * GET /api/v1/dashboard/delegated
      */
     public function getDelegated(Request $request)
@@ -609,29 +610,6 @@ class DashboardController extends Controller
                 ], 401);
             }
 
-            $username = config('services.sweetcrm.username');
-            $password = config('services.sweetcrm.password');
-
-            if (!$username || !$password) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Credenciales de SweetCRM no configuradas'
-                ], 500);
-            }
-
-            // Obtener sesión de SweetCRM
-            $sessionResult = $this->sweetCrmService->getCachedSession($username, $password);
-
-            if (!$sessionResult['success']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Error de autenticación con SweetCRM'
-                ], 500);
-            }
-
-            $sessionId = $sessionResult['session_id'];
-            $userSweetCrmId = $user->sweetcrm_id;
-
             $delegatedData = [
                 'cases' => [],
                 'tasks' => [],
@@ -639,70 +617,75 @@ class DashboardController extends Controller
                 'pending' => 0
             ];
 
-            // Estados específicos para tareas delegadas activas
-            // Solo: Abierto, Reasignada, Tarea en progreso, Tarea no iniciada
-            $activeTaskStatuses = ['Open', 'Reassigned', 'In Progress', 'Not Started'];
+            // Obtener CASOS delegados desde BD LOCAL
+            // Casos donde el usuario actual es el creador y están asignados a otros
+            $delegatedCases = \App\Models\CrmCase::where('created_by', $user->id)
+                ->where(function($query) use ($user) {
+                    $query->whereNotNull('sweetcrm_assigned_user_id')
+                          ->where('sweetcrm_assigned_user_id', '!=', $user->sweetcrm_id);
+                })
+                ->whereNotIn('status', ['Closed', 'Rejected', 'Merged', 'Cerrado'])
+                ->orderBy('created_at', 'desc')
+                ->limit(100)
+                ->get();
 
-            // Tareas creadas por el usuario y asignadas a otros (solo estados activos específicos)
-            $tasksFilters = [
-                'query' => "tasks.created_by = '{$userSweetCrmId}' AND tasks.assigned_user_id IS NOT NULL AND tasks.assigned_user_id != '{$userSweetCrmId}' AND tasks.parent_type = 'Cases' AND tasks.status IN ('" . implode("','", $activeTaskStatuses) . "')",
-                'max_results' => 100,
-            ];
+            foreach ($delegatedCases as $case) {
+                $delegatedData['cases'][] = [
+                    'id' => $case->id, // ID LOCAL (integer)
+                    'type' => 'case',
+                    'title' => $case->subject,
+                    'case_number' => $case->case_number,
+                    'status' => $case->status,
+                    'priority' => $case->priority ?? 'Normal',
+                    'assigned_user_name' => $case->assigned_user_name ?? 'Sin asignar',
+                    'created_by_name' => $case->original_creator_name,
+                    'date_entered' => $case->sweetcrm_created_at ?? $case->created_at,
+                ];
 
-            $tasksFromCrm = $this->sweetCrmService->getTasks($sessionId, $tasksFilters);
-
-            foreach ($tasksFromCrm as $task) {
-                $nvl = $task['name_value_list'];
-                $taskStatus = $nvl['status']['value'] ?? 'Not Started';
-
-                // Solo incluir si está en los estados específicos
-                if (in_array($taskStatus, $activeTaskStatuses)) {
-                    $delegatedData['tasks'][] = [
-                        'id' => $task['id'],
-                        'type' => 'task',
-                        'title' => $nvl['name']['value'] ?? 'Sin nombre',
-                        'status' => $taskStatus,
-                        'priority' => $nvl['priority']['value'] ?? 'Medium',
-                        'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? 'Sin asignar',
-                        'created_by_name' => $nvl['created_by_name']['value'] ?? null,
-                        'date_due' => $nvl['date_due']['value'] ?? null,
-                        'date_entered' => $nvl['date_entered']['value'] ?? null,
-                    ];
-
-                    $delegatedData['total']++;
+                $delegatedData['total']++;
+                if ($case->status !== 'Cerrado') {
                     $delegatedData['pending']++;
                 }
             }
 
-            // Casos creados por el usuario y asignados a otros (solo estados abiertos)
-            $openCaseStatuses = ['Open'];
+            // Obtener TAREAS delegadas desde BD LOCAL
+            // Tareas donde el usuario actual es el creador y están asignadas a otros
+            $delegatedTasks = \App\Models\Task::where('created_by', $user->id)
+                ->where(function($query) use ($user) {
+                    $query->whereNotNull('assignee_id')
+                          ->where('assignee_id', '!=', $user->id);
+                })
+                ->whereIn('status', ['pending', 'in_progress'])
+                ->orderBy('created_at', 'desc')
+                ->limit(100)
+                ->get();
 
-            $casesFilters = [
-                'query' => "cases.created_by = '{$userSweetCrmId}' AND cases.assigned_user_id IS NOT NULL AND cases.assigned_user_id != '{$userSweetCrmId}' AND cases.status IN ('" . implode("','", $openCaseStatuses) . "')",
-                'max_results' => 100,
-            ];
+            foreach ($delegatedTasks as $task) {
+                $taskData = [
+                    'id' => $task->id, // ID LOCAL (integer)
+                    'type' => 'task',
+                    'title' => $task->title,
+                    'status' => $task->status,
+                    'priority' => $task->priority ?? 'Medium',
+                    'assigned_user_name' => $task->assignee->name ?? 'Sin asignar',
+                    'date_due' => $task->estimated_end_at,
+                    'date_entered' => $task->created_at,
+                    'case_id' => $task->case_id,
+                ];
 
-            $casesFromCrm = $this->sweetCrmService->getCases($sessionId, $casesFilters);
-
-            foreach ($casesFromCrm as $crmCase) {
-                $nvl = $crmCase['name_value_list'];
-                $caseStatus = $nvl['status']['value'] ?? 'Open';
-
-                // Solo incluir si está en estados activos
-                if (in_array($caseStatus, $openCaseStatuses)) {
-                    $delegatedData['cases'][] = [
-                        'id' => $crmCase['id'],
-                        'type' => 'case',
-                        'title' => $nvl['name']['value'] ?? 'Sin nombre',
-                        'case_number' => $nvl['case_number']['value'] ?? null,
-                        'status' => $caseStatus,
-                        'priority' => $nvl['priority']['value'] ?? 'Normal',
-                        'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? 'Sin asignar',
-                        'created_by_name' => $nvl['created_by_name']['value'] ?? null,
-                        'date_entered' => $nvl['date_entered']['value'] ?? null,
+                // Si la tarea tiene un caso asociado, incluir info del caso
+                if ($task->case_id && $task->crmCase) {
+                    $taskData['crm_case'] = [
+                        'id' => $task->crmCase->id,
+                        'case_number' => $task->crmCase->case_number,
+                        'subject' => $task->crmCase->subject,
                     ];
+                }
 
-                    $delegatedData['total']++;
+                $delegatedData['tasks'][] = $taskData;
+
+                $delegatedData['total']++;
+                if ($task->status !== 'completed') {
                     $delegatedData['pending']++;
                 }
             }
