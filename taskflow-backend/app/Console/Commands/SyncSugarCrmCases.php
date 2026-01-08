@@ -149,6 +149,23 @@ class SyncSugarCrmCases extends Command
                         $mappedStatus = 'Nuevo';
                     }
 
+                    // Calcular priority_score basado en prioridad (Alta=3, Media=2, Baja=1)
+                    $priorityValue = $priorityMap[$nvl['priority']['value'] ?? ''] ?? ($nvl['priority']['value'] ?? 'Media');
+                    $priorityScore = match($priorityValue) {
+                        'Alta' => 3,
+                        'Media' => 2,
+                        'Baja' => 1,
+                        default => 2,
+                    };
+
+                    // Obtener nombre de cuenta si existe
+                    $accountName = null;
+                    $accountNumber = null;
+                    if ($client) {
+                        $accountName = $client->name ?? null;
+                        $accountNumber = $client->account_number ?? null;
+                    }
+
                     $crmCase = CrmCase::updateOrCreate(
                         ['sweetcrm_id' => $sweetId],
                         [
@@ -156,16 +173,20 @@ class SyncSugarCrmCases extends Command
                             'subject' => $nvl['name']['value'] ?? 'Sin asunto',
                             'description' => $nvl['description']['value'] ?? null,
                             'status' => $mappedStatus,
-                            'priority' => $priorityMap[$nvl['priority']['value'] ?? ''] ?? ($nvl['priority']['value'] ?? 'Media'),
+                            'priority' => $priorityValue,
+                            'priority_score' => $priorityScore,
                             'type' => $nvl['type']['value'] ?? null,
                             'area' => $nvl['area_c']['value'] ?? null, // Campo personalizado de área
                             'client_id' => $client?->id,
+                            'account_name' => $accountName,
+                            'account_number' => $accountNumber,
                             'sweetcrm_account_id' => $accountId,
                             'sweetcrm_assigned_user_id' => $nvl['assigned_user_id']['value'] ?? null,
                             'original_creator_id' => $nvl['created_by']['value'] ?? null,
                             'original_creator_name' => $nvl['created_by_name']['value'] ?? null,
                             'assigned_user_name' => $nvl['assigned_user_name']['value'] ?? null,
                             'sweetcrm_created_at' => $nvl['date_entered']['value'] ?? null,
+                            'last_activity_at' => $nvl['date_modified']['value'] ?? null,
                             'sweetcrm_synced_at' => now(),
                         ]
                     );
@@ -266,10 +287,12 @@ class SyncSugarCrmCases extends Command
 
                     $dateStart = $this->parseCrmDate($nvl['date_start']['value'] ?? null);
                     $dateDue = $this->parseCrmDate($nvl['date_due']['value'] ?? null);
+                    $dateEntered = $this->parseCrmDate($nvl['date_entered']['value'] ?? null);
+                    $dateModified = $this->parseCrmDate($nvl['date_modified']['value'] ?? null);
 
                     // Si no hay fecha de inicio pero sí de vencimiento, usar la fecha de creación del caso
                     if (!$dateStart && $dateDue) {
-                        $dateCreated = $this->parseCrmDate($nvl['date_entered']['value'] ?? null);
+                        $dateCreated = $dateEntered;
                         $dateStart = $dateCreated ?: $crmCase->created_at;
                     }
 
@@ -289,6 +312,9 @@ class SyncSugarCrmCases extends Command
                             'sweetcrm_synced_at' => now(),
                             'estimated_start_at' => $dateStart,
                             'estimated_end_at' => $dateDue,
+                            'date_entered' => $dateEntered,
+                            'date_modified' => $dateModified,
+                            'created_by_id' => $nvl['created_by']['value'] ?? null,
                         ]
                     );
 

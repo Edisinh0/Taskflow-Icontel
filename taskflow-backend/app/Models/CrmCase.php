@@ -35,6 +35,14 @@ class CrmCase extends Model
         'closure_requested_at',
         'closure_requested_by',
         'closure_rejection_reason',
+        // Campos adicionales
+        'internal_notes',
+        'priority_score',
+        'last_activity_at',
+        'account_name',
+        'account_number',
+        'sla_status',
+        'sla_due_date',
     ];
 
     protected $casts = [
@@ -42,6 +50,8 @@ class CrmCase extends Model
         'sweetcrm_created_at' => 'datetime',
         'closure_requested_at' => 'datetime',
         'closure_requested' => 'boolean',
+        'last_activity_at' => 'datetime',
+        'sla_due_date' => 'datetime',
     ];
 
     /**
@@ -77,6 +87,14 @@ class CrmCase extends Model
     }
 
     /**
+     * Relación: Un caso tiene una solicitud de cierre (la más reciente)
+     */
+    public function latestClosureRequest(): HasMany
+    {
+        return $this->hasMany(CaseClosureRequest::class, 'case_id')->latest('created_at');
+    }
+
+    /**
      * Relación: Usuario asignado en SweetCRM
      */
     public function assignedUser(): BelongsTo
@@ -98,5 +116,21 @@ class CrmCase extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Relación: Usuario que solicitó el cierre (nuevo sistema)
+     */
+    public function closureRequestedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'closure_requested_by_id');
+    }
+
+    /**
+     * Relación: Usuario que aprobó el cierre
+     */
+    public function closureApprovedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'closure_approved_by_id');
     }
 }

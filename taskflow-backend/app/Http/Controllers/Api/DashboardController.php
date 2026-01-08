@@ -215,7 +215,7 @@ class DashboardController extends Controller
             ]);
 
             // Consultar CASOS desde la base de datos local
-            $casesQuery = \App\Models\CrmCase::whereNotIn('status', ['Closed', 'Rejected', 'Duplicate', 'Merged']);
+            $casesQuery = \App\Models\CrmCase::with('client')->whereNotIn('status', ['Closed', 'Rejected', 'Duplicate', 'Merged']);
 
             if ($viewMode === 'my') {
                 // Solo casos asignados al usuario actual
@@ -234,8 +234,11 @@ class DashboardController extends Controller
 
             // Consultar TAREAS desde la base de datos local
             // Estados locales de Taskflow (no los de SweetCRM)
-            $activeTaskStatuses = ['pending', 'in_progress'];
-            $tasksQuery = \App\Models\Task::whereIn('status', $activeTaskStatuses);
+            // Incluir todos los estados activos: pending, in_progress, blocked, paused
+            // Las tareas completadas/canceladas se excluyen
+            $activeTaskStatuses = ['pending', 'in_progress', 'blocked', 'paused'];
+            $tasksQuery = \App\Models\Task::with(['crmCase', 'crmCase.client', 'assignee'])
+                ->whereIn('status', $activeTaskStatuses);
 
             // Las tareas SIEMPRE son personales (asignadas al usuario actual)
             $tasksQuery->where('assignee_id', $user->id);
@@ -251,6 +254,7 @@ class DashboardController extends Controller
             // Agrupar tareas por caso
             $tasksByCase = [];
             $orphanTasks = [];
+            $caseIdsFromTasks = []; // IDs de casos que tienen tareas del usuario
 
             foreach ($tasks as $task) {
                 if ($task->case_id) {
@@ -258,9 +262,27 @@ class DashboardController extends Controller
                         $tasksByCase[$task->case_id] = [];
                     }
                     $tasksByCase[$task->case_id][] = $task;
+                    $caseIdsFromTasks[] = $task->case_id;
                 } else {
                     $orphanTasks[] = $task;
                 }
+            }
+
+            // Si hay casos que contienen tareas del usuario pero no están en los casos obtenidos,
+            // agregarlos (Ej: tarea asignada a jramirez pero el caso está asignado a otro usuario)
+            // También incluir tareas de casos cerrados si la tarea está activa
+            if ($viewMode === 'my' && !empty($caseIdsFromTasks)) {
+                $caseIdsFromTasks = array_unique($caseIdsFromTasks);
+                $casesFromTasks = \App\Models\CrmCase::whereIn('id', $caseIdsFromTasks)
+                    ->whereNotIn('id', $cases->pluck('id')->toArray())
+                    ->get();
+                
+                $cases = $cases->merge($casesFromTasks);
+                
+                Log::info('📋 Added cases from user tasks (including closed cases)', [
+                    'added_count' => $casesFromTasks->count(),
+                    'total_cases' => $cases->count()
+                ]);
             }
 
             // Formatear casos para el frontend CON sus tareas anidadas
@@ -277,13 +299,25 @@ class DashboardController extends Controller
                     'assigned_user_name' => $case->assigned_user_name ?? 'Sin asignar',
                     'created_by_name' => $case->original_creator_name,
                     'date_entered' => $case->sweetcrm_created_at ?? $case->created_at,
-                    'tasks' => [] // Inicializar tareas vacío
+                    'tasks' => [], // Inicializar tareas vacío
+                    'client' => null,
+                    'client_name' => null,
                 ];
+
+                // Incluir información del cliente si existe
+                if ($case->client) {
+                    $caseData['client'] = [
+                        'id' => $case->client->id,
+                        'name' => $case->client->name,
+                        'sweetcrm_id' => $case->client->sweetcrm_id,
+                    ];
+                    $caseData['client_name'] = $case->client->name;
+                }
 
                 // Agregar tareas de este caso si existen
                 if (isset($tasksByCase[$case->id])) {
-                    $caseData['tasks'] = collect($tasksByCase[$case->id])->map(function ($task) {
-                        return [
+                    $caseData['tasks'] = collect($tasksByCase[$case->id])->map(function ($task) use ($case) {
+                        $taskData = [
                             'id' => $task->id,
                             'sweetcrm_id' => $task->sweetcrm_id,
                             'type' => 'task',
@@ -298,7 +332,21 @@ class DashboardController extends Controller
                             'estimated_start_at' => $task->estimated_start_at,
                             'date_entered' => $task->created_at,
                             'case_id' => $task->case_id,
+                            'client' => null,
+                            'client_name' => null,
                         ];
+
+                        // Incluir información del cliente desde el caso
+                        if ($case->client) {
+                            $taskData['client'] = [
+                                'id' => $case->client->id,
+                                'name' => $case->client->name,
+                                'sweetcrm_id' => $case->client->sweetcrm_id,
+                            ];
+                            $taskData['client_name'] = $case->client->name;
+                        }
+
+                        return $taskData;
                     })->toArray();
                 }
 
@@ -318,9 +366,11 @@ class DashboardController extends Controller
                     'date_due' => $task->estimated_end_at,
                     'date_entered' => $task->created_at,
                     'case_id' => $task->case_id, // ID local del caso
+                    'client' => null,
+                    'client_name' => null,
                 ];
 
-                // Si la tarea tiene un caso asociado, incluir información del caso
+                // Si la tarea tiene un caso asociado, incluir información del caso y cliente
                 if ($task->case_id && $task->crmCase) {
                     $taskData['crm_case'] = [
                         'id' => $task->crmCase->id, // ID local (integer) para navegación
@@ -328,6 +378,16 @@ class DashboardController extends Controller
                         'case_number' => $task->crmCase->case_number,
                         'subject' => $task->crmCase->subject,
                     ];
+
+                    // Incluir información del cliente si existe
+                    if ($task->crmCase->client) {
+                        $taskData['client'] = [
+                            'id' => $task->crmCase->client->id,
+                            'name' => $task->crmCase->client->name,
+                            'sweetcrm_id' => $task->crmCase->client->sweetcrm_id,
+                        ];
+                        $taskData['client_name'] = $task->crmCase->client->name;
+                    }
                 }
 
                 return $taskData;

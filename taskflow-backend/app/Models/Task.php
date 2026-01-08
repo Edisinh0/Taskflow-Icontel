@@ -24,9 +24,9 @@ class Task extends Model implements Auditable
         'priority',
         'status',
         'is_milestone',
-        'allow_attachments', // <-- AGREGAR
-        'is_blocked',           // <-- AGREGAR
-        'depends_on_task_id',   // <-- AGREGAR
+        'allow_attachments',
+        'is_blocked',
+        'depends_on_task_id',
         'depends_on_milestone_id',
         'milestone_auto_complete',
         'milestone_requires_validation',
@@ -39,8 +39,8 @@ class Task extends Model implements Auditable
         'actual_end_at',
         'progress',
         'blocked_reason',
-        'notes', // <-- Nuevo campo para notas
-        'last_updated_by', // Nuevo
+        'notes',
+        'last_updated_by',
         'case_id',
         'sweetcrm_id',
         'sweetcrm_synced_at',
@@ -53,6 +53,13 @@ class Task extends Model implements Auditable
         'sla_escalated',
         'sla_notified_at',
         'sla_escalated_at',
+        // Nuevos campos para SweetCRM
+        'sweetcrm_parent_id',
+        'sweetcrm_parent_type',
+        'date_entered',
+        'date_modified',
+        'sequence',
+        'created_by_id',
     ];
 
     protected $casts = [
@@ -80,6 +87,10 @@ class Task extends Model implements Auditable
         'sla_notified_at' => 'datetime',
         'sla_escalated_at' => 'datetime',
         'sweetcrm_synced_at' => 'datetime',
+        // Nuevos campos
+        'date_entered' => 'datetime',
+        'date_modified' => 'datetime',
+        'sequence' => 'integer',
     ];
 
     /**

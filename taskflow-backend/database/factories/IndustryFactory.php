@@ -16,18 +16,20 @@ class IndustryFactory extends Factory
      */
     public function definition(): array
     {
+        $name = fake()->unique()->randomElement([
+            'Tecnología',
+            'Finanzas',
+            'Salud',
+            'Educación',
+            'Retail',
+            'Manufactura',
+            'Construcción',
+            'Telecomunicaciones',
+        ]);
+
         return [
-            'name' => fake()->unique()->randomElement([
-                'Tecnología',
-                'Finanzas',
-                'Salud',
-                'Educación',
-                'Retail',
-                'Manufactura',
-                'Construcción',
-                'Telecomunicaciones',
-            ]),
-            'description' => fake()->optional()->sentence(),
+            'name' => $name,
+            'slug' => strtolower(str_replace(' ', '-', str_replace('ó', 'o', str_replace('á', 'a', $name)))),
         ];
     }
 }

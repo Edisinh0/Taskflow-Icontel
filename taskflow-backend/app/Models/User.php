@@ -101,4 +101,56 @@ class User extends Authenticatable implements Auditable
         return is_null($this->sweetcrm_synced_at) ||
                $this->sweetcrm_synced_at->addSeconds($syncInterval)->isPast();
     }
+
+    /**
+     * Verificar si el usuario es administrador
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Verificar si el usuario pertenece al departamento SAC
+     */
+    public function isSACDepartment(): bool
+    {
+        return $this->department === 'SAC';
+    }
+
+    /**
+     * Verificar si el usuario puede aprobar solicitudes de cierre
+     * Solo usuarios de SAC o administradores pueden aprobar
+     */
+    public function canApproveClosures(): bool
+    {
+        return $this->isSACDepartment() || $this->isAdmin();
+    }
+
+    /**
+     * Verificar si el usuario es jefe de departamento
+     * Los jefes tienen roles: admin, project_manager, o pm
+     */
+    public function isDepartmentHead(): bool
+    {
+        return in_array($this->role, ['admin', 'project_manager', 'pm']);
+    }
+
+    /**
+     * Obtener el jefe de un departamento específico
+     * Busca usuarios con roles de jefe en el departamento especificado
+     * Prioriza: admin > project_manager > pm
+     */
+    public static function getDepartmentHead(string $department): ?User
+    {
+        return self::where('department', $department)
+            ->whereIn('role', ['admin', 'project_manager', 'pm'])
+            ->orderByRaw("CASE
+                WHEN role = 'admin' THEN 1
+                WHEN role = 'project_manager' THEN 2
+                WHEN role = 'pm' THEN 3
+                ELSE 4
+            END")
+            ->first();
+    }
 }

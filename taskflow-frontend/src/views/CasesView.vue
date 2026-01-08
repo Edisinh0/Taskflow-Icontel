@@ -1172,29 +1172,52 @@ const requestClosureHandler = async () => {
   if (!confirm('¿Estás seguro de solicitar el cierre de este caso?')) return
 
   try {
-    await api.post(`/cases/${selectedCase.value.id}/request-closure`)
-    // Recargar detalle para actualizar estado
-    await showCaseDetail(selectedCase.value)
-    alert('Solicitud de cierre enviada')
+    const response = await api.post(`/cases/${selectedCase.value.id}/request-closure`, {
+      reason: 'Solicitud de cierre del caso',
+      completion_percentage: 100
+    })
+
+    if (response.data.success) {
+      // Recargar detalle para actualizar estado
+      await showCaseDetail(selectedCase.value)
+      alert('Solicitud enviada a Servicio al Cliente')
+    } else {
+      alert(response.data.message || 'Error al solicitar cierre')
+    }
   } catch (error) {
     console.error('Error requesting closure:', error)
-    alert('Error al solicitar cierre')
+    alert(error.response?.data?.message || 'Error al solicitar cierre')
   }
 }
 
 const approveClosureHandler = async () => {
-  if (!confirm('¿Aprobar cieree y finalizar el caso?')) return
+  if (!confirm('¿Aprobar cierre y finalizar el caso?')) return
 
   try {
-    await api.post(`/cases/${selectedCase.value.id}/approve-closure`)
-    await showCaseDetail(selectedCase.value)
-    // También actualizar en la lista principal si es posible
-    const index = casesStore.cases.findIndex(c => c.id === selectedCase.value.id)
-    if (index !== -1) {
-      casesStore.cases[index].status = 'Cerrado'
+    // 1. Obtener ID de la solicitud de cierre
+    const closureResponse = await api.get(`/cases/${selectedCase.value.id}/closure-request`)
+    const closureRequest = closureResponse.data.closure_request
+
+    if (!closureRequest) {
+      alert('No se encontró solicitud de cierre')
+      return
+    }
+
+    // 2. Aprobar usando el ID de la solicitud
+    const response = await api.post(`/closure-requests/${closureRequest.id}/approve`)
+
+    if (response.data.success) {
+      await showCaseDetail(selectedCase.value)
+      // También actualizar en la lista principal si es posible
+      const index = casesStore.cases.findIndex(c => c.id === selectedCase.value.id)
+      if (index !== -1) {
+        casesStore.cases[index].status = 'Cerrado'
+      }
+      alert('Caso cerrado exitosamente')
     }
   } catch (error) {
     console.error('Error approving closure:', error)
+    alert(error.response?.data?.message || 'Error al aprobar cierre')
   }
 }
 
@@ -1205,14 +1228,29 @@ const rejectClosureHandler = async () => {
   }
 
   try {
-    await api.post(`/cases/${selectedCase.value.id}/reject-closure`, {
-      reason: rejectionReason.value
+    // 1. Obtener ID de la solicitud de cierre
+    const closureResponse = await api.get(`/cases/${selectedCase.value.id}/closure-request`)
+    const closureRequest = closureResponse.data.closure_request
+
+    if (!closureRequest) {
+      alert('No se encontró solicitud de cierre')
+      return
+    }
+
+    // 2. Rechazar usando el ID de la solicitud
+    const response = await api.post(`/closure-requests/${closureRequest.id}/reject`, {
+      rejection_reason: rejectionReason.value
     })
-    showRejectModal.value = false
-    rejectionReason.value = ''
-    await showCaseDetail(selectedCase.value)
+
+    if (response.data.success) {
+      showRejectModal.value = false
+      rejectionReason.value = ''
+      await showCaseDetail(selectedCase.value)
+      alert('Solicitud de cierre rechazada')
+    }
   } catch (error) {
     console.error('Error rejecting closure:', error)
+    alert(error.response?.data?.message || 'Error al rechazar cierre')
   }
 }
 

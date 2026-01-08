@@ -15,17 +15,30 @@ class CrmOpportunity extends Model
         'sweetcrm_id',
         'sales_stage',
         'amount',
+        'amount_usd',
         'currency',
+        'probability',
         'expected_closed_date',
         'client_id',
         'sweetcrm_assigned_user_id',
         'description',
+        'created_by_id',
+        'created_by_name',
+        'next_step',
+        'lead_source',
+        'opportunity_type',
+        'date_entered',
+        'date_modified',
         'sweetcrm_synced_at',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'amount_usd' => 'decimal:2',
+        'probability' => 'integer',
         'expected_closed_date' => 'date',
+        'date_entered' => 'datetime',
+        'date_modified' => 'datetime',
         'sweetcrm_synced_at' => 'datetime',
     ];
 

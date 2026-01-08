@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CaseClosureRequestController;
 use App\Http\Controllers\Api\CaseController;
 use App\Http\Controllers\Api\ClientAttachmentController;
 use App\Http\Controllers\Api\ClientContactController;
@@ -55,6 +56,14 @@ Route::prefix('v1')->group(function () {
         Route::put('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
         Route::apiResource('notifications', NotificationController::class);
 
+        // Solicitudes de Cierre de Casos
+        Route::get('/closure-requests', [CaseClosureRequestController::class, 'index']);
+        Route::get('/closure-requests/{closureRequest}', [CaseClosureRequestController::class, 'show']);
+        Route::post('/cases/{caseId}/request-closure', [CaseClosureRequestController::class, 'store']);
+        Route::post('/closure-requests/{closureRequest}/approve', [CaseClosureRequestController::class, 'approve']);
+        Route::post('/closure-requests/{closureRequest}/reject', [CaseClosureRequestController::class, 'reject']);
+        Route::get('/cases/{caseId}/closure-request', [CaseClosureRequestController::class, 'getCaseClosureStatus']);
+
         // Proyectos (CrmCase)
         Route::get('/cases/stats', [CaseController::class, 'stats']);
         Route::get('/my-cases', [CaseController::class, 'myCases']);
@@ -62,9 +71,6 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('cases', CaseController::class);
         Route::post('cases/{id}/updates', [CaseController::class, 'addUpdate']);
         Route::delete('updates/{id}', [CaseController::class, 'deleteUpdate']);
-        Route::post('cases/{id}/request-closure', [CaseController::class, 'requestClosure']);
-        Route::post('cases/{id}/approve-closure', [CaseController::class, 'approveClosure']);
-        Route::post('cases/{id}/reject-closure', [CaseController::class, 'rejectClosure']);
 
         // Oportunidades y Flujo de Ventas a Operaciones
         Route::get('opportunities/stats', [OpportunityController::class, 'stats']);

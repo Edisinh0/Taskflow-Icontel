@@ -34,15 +34,33 @@ class CaseDetailResource extends JsonResource
             'original_creator_name' => $this->original_creator_name,
             'assigned_user_name' => $this->assigned_user_name,
             
-            // Estado de solicitud de cierre
+            // Estado de solicitud de cierre (integrado con nuevo sistema)
             'closure_info' => [
-                'requested' => $this->closure_requested,
+                'requested' => $this->closure_status === 'closure_requested',
                 'requested_at' => $this->closure_requested_at?->toISOString(),
-                'requested_by' => $this->whenLoaded('closureRequester', function () {
-                    return $this->closureRequester ? ['id' => $this->closureRequester->id, 'name' => $this->closureRequester->name] : null;
+                'requested_by' => $this->whenLoaded('closureRequestedBy', function () {
+                    return $this->closureRequestedBy ? [
+                        'id' => $this->closureRequestedBy->id,
+                        'name' => $this->closureRequestedBy->name
+                    ] : null;
                 }),
-                'rejection_reason' => $this->closure_rejection_reason,
+                'closure_request_id' => $this->whenLoaded('latestClosureRequest', function () {
+                    return $this->latestClosureRequest?->first()?->id;
+                }),
             ],
+
+            // Nuevo: Estado de cierre
+            'closure_status' => $this->closure_status,
+
+            // Nuevo: Información del aprobador
+            'closure_approved_by' => $this->whenLoaded('closureApprovedBy', function () {
+                return $this->closureApprovedBy ? [
+                    'id' => $this->closureApprovedBy->id,
+                    'name' => $this->closureApprovedBy->name
+                ] : null;
+            }),
+
+            'closure_approved_at' => $this->closure_approved_at?->toISOString(),
             
             // Cliente completo
             'client' => $this->whenLoaded('client', function () {

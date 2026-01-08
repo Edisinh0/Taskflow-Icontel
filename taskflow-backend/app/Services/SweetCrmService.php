@@ -9,13 +9,13 @@ use Illuminate\Support\Facades\Cache;
 class SweetCrmService
 {
     private string $baseUrl;
-    private string $apiToken;
+    private ?string $apiToken;
     private int $timeout = 30;
     private int $sessionCacheTTL = 3600; // 1 hour session cache
 
     public function __construct()
     {
-        $this->baseUrl = rtrim(config('services.sweetcrm.url'), '/');
+        $this->baseUrl = rtrim(config('services.sweetcrm.url') ?? '', '/');
         $this->apiToken = config('services.sweetcrm.api_token');
     }
 

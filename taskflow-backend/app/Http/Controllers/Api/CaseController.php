@@ -187,6 +187,9 @@ class CaseController extends Controller
             'client:id,name,email',
             'assignedUser:id,name,email,department,sweetcrm_id',
             'closureRequester:id,name',
+            'closureRequestedBy:id,name',  // Nuevo: Usuario que solicitó el cierre
+            'closureApprovedBy:id,name',   // Nuevo: Usuario que aprobó el cierre
+            'latestClosureRequest',        // Nuevo: Última solicitud de cierre
             'updates.user:id,name', // Cargar usuario de cada update
             'updates.attachments', // Cargar adjuntos de updates
             'tasks' => function($q) {
@@ -269,82 +272,64 @@ class CaseController extends Controller
     /**
      * Solicitar cierre del caso (por el asignado)
      */
+    /**
+     * @deprecated Use CaseClosureRequestController::store instead
+     * Este endpoint ha sido reemplazado por el nuevo sistema de solicitud de cierre.
+     * Use: POST /api/v1/cases/{caseId}/request-closure
+     */
     public function requestClosure(Request $request, $id)
     {
-        $case = CrmCase::findOrFail($id);
-        $user = auth()->user();
-
-        // Verificar si ya está solicitado
-        if ($case->closure_requested) {
-            return response()->json(['message' => 'El cierre ya ha sido solicitado'], 400);
-        }
-
-        // Registrar solicitud
-        $case->update([
-            'closure_requested' => true,
-            'closure_requested_at' => now(),
-            'closure_requested_by' => $user->id
+        \Illuminate\Support\Facades\Log::warning('DEPRECATED: Usando endpoint antiguo requestClosure', [
+            'case_id' => $id,
+            'user_id' => auth()->id(),
+            'message' => 'Use CaseClosureRequestController::store instead'
         ]);
 
-        // Registrar avance automático
-        $case->updates()->create([
-            'user_id' => $user->id,
-            'content' => 'Ha solicitado el cierre del caso. Pendiente de aprobación por el creador.',
-            'type' => CaseUpdate::TYPE_CLOSURE_REQUEST
-        ]);
-
-        return response()->json(['message' => 'Solicitud de cierre enviada correctamente']);
+        return response()->json([
+            'success' => false,
+            'message' => 'Este endpoint está deprecado. Use POST /api/v1/cases/{caseId}/request-closure en su lugar.',
+            'new_endpoint' => 'POST /api/v1/cases/{caseId}/request-closure'
+        ], 410); // 410 Gone
     }
 
     /**
-     * Aprobar cierre del caso (por el creador)
+     * @deprecated Use CaseClosureRequestController::approve instead
+     * Este endpoint ha sido reemplazado por el nuevo sistema de aprobación de cierre.
+     * Use: POST /api/v1/closure-requests/{closureRequestId}/approve
      */
     public function approveClosure(Request $request, $id)
     {
-        $case = CrmCase::findOrFail($id);
-        $user = auth()->user();
-
-        $case->update([
-            'status' => 'Cerrado', // O el estado final que corresponda
-            'closure_requested' => false,
-            'closure_rejection_reason' => null
+        \Illuminate\Support\Facades\Log::warning('DEPRECATED: Usando endpoint antiguo approveClosure', [
+            'case_id' => $id,
+            'user_id' => auth()->id(),
+            'message' => 'Use CaseClosureRequestController::approve instead'
         ]);
 
-        // Registrar avance
-        $case->updates()->create([
-            'user_id' => $user->id,
-            'content' => 'Ha aprobado el cierre del caso. El caso ha sido finalizado.',
-            'type' => CaseUpdate::TYPE_CLOSURE_APPROVED
-        ]);
-
-        return response()->json(['message' => 'Caso cerrado correctamente']);
+        return response()->json([
+            'success' => false,
+            'message' => 'Este endpoint está deprecado. Use POST /api/v1/closure-requests/{closureRequestId}/approve en su lugar.',
+            'new_endpoint' => 'POST /api/v1/closure-requests/{closureRequestId}/approve'
+        ], 410); // 410 Gone
     }
 
     /**
-     * Rechazar cierre del caso
+     * @deprecated Use CaseClosureRequestController::reject instead
+     * Este endpoint ha sido reemplazado por el nuevo sistema de rechazo de cierre.
+     * Use: POST /api/v1/closure-requests/{closureRequestId}/reject
      */
     public function rejectClosure(Request $request, $id)
     {
-        $request->validate([
-            'reason' => 'required|string|min:5'
+        \Illuminate\Support\Facades\Log::warning('DEPRECATED: Usando endpoint antiguo rejectClosure', [
+            'case_id' => $id,
+            'user_id' => auth()->id(),
+            'message' => 'Use CaseClosureRequestController::reject instead'
         ]);
 
-        $case = CrmCase::findOrFail($id);
-        $user = auth()->user();
-
-        $case->update([
-            'closure_requested' => false,
-            'closure_rejection_reason' => $request->reason
-        ]);
-
-        // Registrar avance con la razón
-        $case->updates()->create([
-            'user_id' => $user->id,
-            'content' => "Solicitud de cierre rechazada. Razón: {$request->reason}",
-            'type' => CaseUpdate::TYPE_CLOSURE_REJECTED
-        ]);
-
-        return response()->json(['message' => 'Solicitud de cierre rechazada']);
+        return response()->json([
+            'success' => false,
+            'message' => 'Este endpoint está deprecado. Use POST /api/v1/closure-requests/{closureRequestId}/reject en su lugar.',
+            'new_endpoint' => 'POST /api/v1/closure-requests/{closureRequestId}/reject'
+        ], 410); // 410 Gone
     }
 
     /**
