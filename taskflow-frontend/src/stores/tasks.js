@@ -112,16 +112,35 @@ export const useTasksStore = defineStore('tasks', () => {
 
     try {
       const response = await api.post('tasks', taskData)
-      const newTask = response.data.task || response.data
+      
+      // Manejar respuesta estructura: { success: true, data: {...} } o { success: false, message: "..." }
+      if (!response.data.success) {
+        error.value = response.data.message || 'Error al crear tarea'
+        return {
+          success: false,
+          message: error.value
+        }
+      }
 
+      const newTask = response.data.data
+
+      // Agregar tarea a la lista
       tasks.value.unshift(newTask)
       pagination.value.total++
 
-      return newTask
+      return {
+        success: true,
+        message: response.data.message || 'Tarea creada exitosamente',
+        data: newTask
+      }
     } catch (err) {
-      error.value = err.response?.data?.message || 'Error al crear tarea'
+      const message = err.response?.data?.message || err.message || 'Error al crear tarea'
+      error.value = message
       console.error('Error creating task:', err)
-      throw err
+      return {
+        success: false,
+        message: message
+      }
     } finally {
       loading.value = false
     }

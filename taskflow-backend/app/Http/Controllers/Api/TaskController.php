@@ -3,10 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\TaskRequest;
 use App\Models\Task;
+use App\Models\CrmCase;
+use App\Models\Opportunity;
 use App\Events\TaskUpdated;
 use App\Services\SweetCrmService;
+use App\Adapters\SugarCRM\SugarCRMApiAdapter;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -14,10 +19,12 @@ use Illuminate\Support\Facades\Log;
 class TaskController extends Controller
 {
     protected SweetCrmService $sweetCrmService;
+    protected SugarCRMApiAdapter $sugarCRMAdapter;
 
-    public function __construct(SweetCrmService $sweetCrmService)
+    public function __construct(SweetCrmService $sweetCrmService, SugarCRMApiAdapter $sugarCRMAdapter)
     {
         $this->sweetCrmService = $sweetCrmService;
+        $this->sugarCRMAdapter = $sugarCRMAdapter;
     }
 
     /**
@@ -228,113 +235,320 @@ class TaskController extends Controller
     }
 
     /**
-     * Crear nueva tarea
+     * Crear nueva tarea (compatible con SuiteCRM v4.1)
      * POST /api/v1/tasks
      */
-    public function store(Request $request)
+    public function store(TaskRequest $request)
     {
-        // ✅ REMOVED Gate authorization - all users can now create tasks
-
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'assignee_id' => 'required|exists:users,id', // NOW REQUIRED
-            'priority' => 'required|in:low,medium,high,urgent', // NOW REQUIRED
-
-            // Parent linking to CRM (REQUIRED for new task creation flow)
-            'sweetcrm_parent_type' => 'required|in:Cases,Opportunities',
-            'sweetcrm_parent_id' => 'required|string',
-
-            // Optional fields (were previously required)
-            'flow_id' => 'nullable|exists:flows,id',
-            'parent_task_id' => 'nullable|exists:tasks,id',
-            'status' => 'nullable|in:pending,blocked,in_progress,paused,completed,cancelled',
-            'is_milestone' => 'nullable|boolean',
-            'allow_attachments' => 'nullable|boolean',
-            'estimated_start_at' => 'nullable|date',
-            'estimated_end_at' => 'nullable|date',
-            'depends_on_task_id' => 'nullable|exists:tasks,id',
-            'depends_on_milestone_id' => 'nullable|exists:tasks,id',
-            'notes' => 'nullable|string',
-        ]);
-
-        // Validate parent exists using TaskParentValidationService
-        $parentValidation = app(\App\Services\TaskParentValidationService::class)
-            ->validateParentId(
-                $validated['sweetcrm_parent_id'],
-                $validated['sweetcrm_parent_type']
-            );
-
-        if (!$parentValidation['valid']) {
-            \Illuminate\Support\Facades\Log::warning('Invalid parent for task creation', [
-                'parent_id' => $validated['sweetcrm_parent_id'],
-                'parent_type' => $validated['sweetcrm_parent_type'],
-                'error' => $parentValidation['error']
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => $parentValidation['error'],
-            ], 422);
-        }
-
-        // Link to local Case or Opportunity if exists
-        if ($parentValidation['parent']) {
-            if ($validated['sweetcrm_parent_type'] === 'Cases') {
-                $validated['case_id'] = $parentValidation['parent']->id;
-            } elseif ($validated['sweetcrm_parent_type'] === 'Opportunities') {
-                $validated['opportunity_id'] = $parentValidation['parent']->id;
-            }
-        }
-
-        // Set created_by to current user
-        $validated['created_by'] = auth()->id();
-
-        // Validar dependencias circulares y auto-referencia
-        if (isset($validated['depends_on_task_id'])) {
-            if (isset($validated['depends_on_milestone_id']) &&
-                $validated['depends_on_task_id'] === $validated['depends_on_milestone_id']) {
+        try {
+            $user = auth()->user();
+            
+            if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Una tarea no puede depender de la misma tarea como precedente y milestone.',
-                ], 422);
+                    'message' => 'Usuario no autenticado'
+                ], 401);
             }
-        }
 
-        // Set default status if not provided
-        if (!isset($validated['status'])) {
-            $validated['status'] = 'pending';
-        }
+            $validated = $request->validated();
 
-        // 🔧 Lógica especial para subtareas de milestones
-        if (isset($validated['parent_task_id'])) {
-            // Verificar si hay otras subtareas hermanas
-            $siblingSubtasks = Task::where('parent_task_id', $validated['parent_task_id'])
-                ->orderBy('order', 'asc')
-                ->orderBy('created_at', 'asc')
-                ->get();
+            // 1. Validar que el parent (Case/Opportunity) exista en BD local o SuiteCRM
+            $parentRecord = $this->validateAndFindParentRecord(
+                $validated['parent_type'],
+                $validated['parent_id']
+            );
 
-            // Si es la primera subtarea, debe estar en "in_progress"
-            if ($siblingSubtasks->isEmpty()) {
-                if (!isset($validated['status'])) {
-                    $validated['status'] = 'in_progress';
-                }
+            if (!$parentRecord) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Caso/Oportunidad no encontrado: {$validated['parent_id']}"
+                ], 404);
+            }
+
+            // Asignar según tipo
+            if ($validated['parent_type'] === 'Cases') {
+                $validated['case_id'] = $parentRecord->id;
             } else {
-                // Si no es la primera, debe depender de la última subtarea creada
-                if (!isset($validated['depends_on_task_id'])) {
-                    $lastSubtask = $siblingSubtasks->last();
-                    $validated['depends_on_task_id'] = $lastSubtask->id;
+                $validated['opportunity_id'] = $parentRecord->id;
+            }
+
+            // 2. Preparar datos para la tarea local
+            $localTaskData = [
+                'title' => $validated['title'],
+                'description' => $validated['description'] ?? null,
+                'priority' => $validated['priority'],
+                'status' => $validated['status'] ?? 'Not Started',
+                'case_id' => $validated['case_id'] ?? null,
+                'opportunity_id' => $validated['opportunity_id'] ?? null,
+                'assigned_user_id' => $validated['assigned_user_id'] ?? $user->id,
+                'created_by' => $user->id,
+                'estimated_start_at' => $validated['date_start'],
+                'estimated_end_at' => $validated['date_due'],
+                'completion_percentage' => $validated['completion_percentage'] ?? 0,
+                'flow_id' => $validated['flow_id'] ?? null,
+                'parent_task_id' => $validated['parent_task_id'] ?? null,
+                // Campos SuiteCRM
+                'sweetcrm_parent_type' => $validated['parent_type'],
+                'sweetcrm_parent_id' => $validated['parent_id'],
+                'date_entered' => now(),
+                'date_modified' => now(),
+                'created_by_id' => $user->id,
+            ];
+
+            // 3. Crear tarea en BD local
+            $localTask = Task::create($localTaskData);
+            Log::info('Local task created', ['task_id' => $localTask->id, 'user' => $user->email]);
+
+            // 4. Preparar datos para SuiteCRM (name_value_list)
+            $nameValueList = [
+                // Campos requeridos
+                'name' => ['name' => 'name', 'value' => $validated['title']],
+                'priority' => ['name' => 'priority', 'value' => $validated['priority']],
+                'status' => ['name' => 'status', 'value' => $validated['status'] ?? 'Not Started'],
+                'date_start' => ['name' => 'date_start', 'value' => $validated['date_start']],
+                'date_due' => ['name' => 'date_due', 'value' => $validated['date_due']],
+                'parent_type' => ['name' => 'parent_type', 'value' => $validated['parent_type']],
+                'parent_id' => ['name' => 'parent_id', 'value' => $validated['parent_id']],
+
+                // Campos opcionales
+                'description' => ['name' => 'description', 'value' => $validated['description'] ?? ''],
+                'parent_name' => ['name' => 'parent_name', 'value' => $parentRecord->subject ?? $parentRecord->name ?? ''],
+            ];
+
+            // Agregar completion_percentage si se proporciona
+            if (isset($validated['completion_percentage']) && $validated['completion_percentage'] !== null) {
+                $nameValueList['completion_percentage'] = [
+                    'name' => 'completion_percentage',
+                    'value' => (int) $validated['completion_percentage']
+                ];
+            }
+
+            // Asignado al usuario actual en SuiteCRM o específico en request
+            if (isset($validated['sweetcrm_assigned_user_id']) && $validated['sweetcrm_assigned_user_id']) {
+                $nameValueList['assigned_user_id'] = [
+                    'name' => 'assigned_user_id',
+                    'value' => $validated['sweetcrm_assigned_user_id']
+                ];
+            } elseif ($user->sweetcrm_id) {
+                $nameValueList['assigned_user_id'] = [
+                    'name' => 'assigned_user_id',
+                    'value' => $user->sweetcrm_id
+                ];
+                $nameValueList['assigned_user_name'] = [
+                    'name' => 'assigned_user_name',
+                    'value' => $user->name
+                ];
+            }
+
+            Log::info('Task name_value_list prepared', [
+                'fields_count' => count($nameValueList),
+                'required_fields' => ['name', 'priority', 'status', 'date_start', 'date_due', 'parent_type', 'parent_id'],
+                'has_dates' => isset($nameValueList['date_start']) && isset($nameValueList['date_due'])
+            ]);
+
+            // 5. Intentar crear en SuiteCRM
+            $suiteTaskId = null;
+            try {
+                // Obtener sesión SuiteCRM
+                $sessionResult = $this->getSessionForUser($user);
+                if (!$sessionResult['success']) {
+                    Log::warning('Could not get SuiteCRM session for task creation', ['user' => $user->email]);
+                } else {
+                    // Llamar set_entry en SuiteCRM
+                    $suiteTaskId = $this->createTaskInSuiteCRM(
+                        $sessionResult['session_id'],
+                        $nameValueList
+                    );
+
+                    if ($suiteTaskId) {
+                        $localTask->update([
+                            'sweetcrm_id' => $suiteTaskId,
+                            'sweetcrm_synced_at' => now(),
+                        ]);
+                        Log::info('Task synced to SuiteCRM', ['local_id' => $localTask->id, 'sweetcrm_id' => $suiteTaskId]);
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('Error creating task in SuiteCRM', ['error' => $e->getMessage()]);
+                // No lanzar error - la tarea local ya existe
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tarea creada exitosamente',
+                'data' => $localTask->fresh()->load(['assignee', 'crmCase', 'crmCase.client', 'opportunity']),
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('Error creating task', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear la tarea: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Crear tarea en SuiteCRM con validación de fechas y reintentos
+     *
+     * @param string $sessionId Session ID válida para SuiteCRM
+     * @param array $nameValueList Datos de la tarea en formato name_value_list
+     * @param int $attempts Número de intento actual (para reintentos)
+     * @return string|null ID de la tarea creada en SuiteCRM o null si falló
+     */
+    private function createTaskInSuiteCRM(string $sessionId, array $nameValueList, int $attempts = 0): ?string
+    {
+        try {
+            // Validar y formatear fechas para SuiteCRM v4.1
+            if (isset($nameValueList['date_start']['value'])) {
+                $nameValueList['date_start']['value'] = $this->validateAndFormatDate(
+                    $nameValueList['date_start']['value'],
+                    'date_start'
+                );
+            }
+
+            if (isset($nameValueList['date_due']['value'])) {
+                $nameValueList['date_due']['value'] = $this->validateAndFormatDate(
+                    $nameValueList['date_due']['value'],
+                    'date_due'
+                );
+            }
+
+            Log::info('Sending task to SuiteCRM', [
+                'attempt' => $attempts + 1,
+                'date_start' => $nameValueList['date_start']['value'] ?? null,
+                'date_due' => $nameValueList['date_due']['value'] ?? null,
+                'parent_type' => $nameValueList['parent_type']['value'] ?? null,
+                'parent_id' => $nameValueList['parent_id']['value'] ?? null,
+            ]);
+
+            $response = Http::timeout(30)
+                ->asForm()
+                ->post(rtrim(config('services.sweetcrm.url'), '/') . '/service/v4_1/rest.php', [
+                    'method' => 'set_entry',
+                    'input_type' => 'JSON',
+                    'response_type' => 'JSON',
+                    'rest_data' => json_encode([
+                        'session' => $sessionId,
+                        'module' => 'Tasks',
+                        'name_value_list' => $nameValueList,
+                    ]),
+                ]);
+
+            if (!$response->successful()) {
+                Log::warning('SuiteCRM set_entry HTTP error', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                    'attempt' => $attempts + 1
+                ]);
+
+                // Reintentar automáticamente si no es el último intento
+                if ($attempts < 2) {
+                    Log::info('Retrying SuiteCRM task creation', [
+                        'attempt' => $attempts + 1,
+                        'next_attempt' => $attempts + 2
+                    ]);
+                    sleep(2); // Esperar 2 segundos antes de reintentar
+                    return $this->createTaskInSuiteCRM($sessionId, $nameValueList, $attempts + 1);
+                }
+
+                return null;
+            }
+
+            $data = $response->json();
+
+            // Verificar si hay error en la respuesta JSON
+            if (isset($data['name']) && $data['name'] === 'invalid_session') {
+                Log::error('SuiteCRM session invalid', ['attempt' => $attempts + 1]);
+                return null;
+            }
+
+            // Extraer ID de la tarea creada
+            if (isset($data['id']) && !empty($data['id'])) {
+                Log::info('Task created in SuiteCRM successfully', [
+                    'sweetcrm_id' => $data['id'],
+                    'attempt' => $attempts + 1
+                ]);
+                return $data['id'];
+            }
+
+            Log::warning('SuiteCRM set_entry returned no ID', [
+                'response' => $data,
+                'attempt' => $attempts + 1
+            ]);
+            return null;
+
+        } catch (\Exception $e) {
+            Log::error('Exception creating task in SuiteCRM', [
+                'error' => $e->getMessage(),
+                'attempt' => $attempts + 1,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Reintentar en caso de exception de red
+            if ($attempts < 2 && strpos($e->getMessage(), 'cURL') !== false) {
+                Log::info('Retrying after network error', ['attempt' => $attempts + 1]);
+                sleep(2);
+                return $this->createTaskInSuiteCRM($sessionId, $nameValueList, $attempts + 1);
+            }
+
+            return null;
+        }
+    }
+
+    /**
+     * Validar y formatear fecha al formato requerido por SuiteCRM v4.1 (Y-m-d H:i:s)
+     *
+     * @param string $dateString Fecha en cualquier formato
+     * @param string $fieldName Nombre del campo (para logging)
+     * @return string Fecha en formato Y-m-d H:i:s
+     */
+    private function validateAndFormatDate(string $dateString, string $fieldName = 'date'): string
+    {
+        try {
+            // Intentar con formatos comunes primero
+            $formats = [
+                'Y-m-d H:i:s',      // Ya en formato SuiteCRM
+                'Y-m-d\TH:i',       // ISO datetime-local
+                'Y-m-d H:i',        // Datetime sin segundos
+                'Y-m-d',            // Solo fecha
+            ];
+
+            $dateObj = null;
+            foreach ($formats as $format) {
+                $dateObj = \DateTime::createFromFormat($format, $dateString);
+                if ($dateObj) {
+                    break;
                 }
             }
+
+            // Si ningún formato coincide, intentar parseado automático
+            if (!$dateObj) {
+                $dateObj = new \DateTime($dateString);
+            }
+
+            $formatted = $dateObj->format('Y-m-d H:i:s');
+
+            if ($formatted !== $dateString) {
+                Log::info('Date formatted for SuiteCRM', [
+                    'field' => $fieldName,
+                    'original' => $dateString,
+                    'formatted' => $formatted
+                ]);
+            }
+
+            return $formatted;
+
+        } catch (\Exception $e) {
+            Log::error('Error formatting date for SuiteCRM', [
+                'field' => $fieldName,
+                'date' => $dateString,
+                'error' => $e->getMessage()
+            ]);
+
+            // Devolver tal cual si no se puede parsear
+            return $dateString;
         }
-
-        $task = Task::create($validated);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Tarea creada exitosamente',
-            'data' => $task->load(['flow', 'assignee', 'crmCase', 'opportunity']),
-        ], 201);
     }
 
     /**
@@ -798,6 +1012,61 @@ public function addUpdate(Request $request, $id)
             return response()->json([
                 'message' => 'Error al completar tarea: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Validar y encontrar registro parent (Case u Opportunity)
+     * Soporta búsqueda por ID local o sweetcrm_id para máxima compatibilidad
+     *
+     * @param string $parentType Tipo de parent: 'Cases' o 'Opportunities'
+     * @param string $parentId ID del parent (local o SuiteCRM)
+     * @return Model|null Modelo encontrado o null si no existe
+     */
+    private function validateAndFindParentRecord(string $parentType, string $parentId)
+    {
+        try {
+            if ($parentType === 'Cases') {
+                $record = CrmCase::where('id', $parentId)
+                    ->orWhere('sweetcrm_id', $parentId)
+                    ->first();
+
+                if ($record) {
+                    Log::info('Parent Case found', [
+                        'parent_id' => $parentId,
+                        'local_id' => $record->id,
+                        'sweetcrm_id' => $record->sweetcrm_id
+                    ]);
+                    return $record;
+                }
+            } else {
+                $record = Opportunity::where('id', $parentId)
+                    ->orWhere('sweetcrm_id', $parentId)
+                    ->first();
+
+                if ($record) {
+                    Log::info('Parent Opportunity found', [
+                        'parent_id' => $parentId,
+                        'local_id' => $record->id,
+                        'sweetcrm_id' => $record->sweetcrm_id
+                    ]);
+                    return $record;
+                }
+            }
+
+            Log::warning('Parent record not found', [
+                'parent_type' => $parentType,
+                'parent_id' => $parentId
+            ]);
+            return null;
+
+        } catch (\Exception $e) {
+            Log::error('Error validating parent record', [
+                'parent_type' => $parentType,
+                'parent_id' => $parentId,
+                'error' => $e->getMessage()
+            ]);
+            return null;
         }
     }
 }
