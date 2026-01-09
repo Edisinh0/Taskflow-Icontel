@@ -201,7 +201,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useTasksStore } from '@/stores/tasksStore'
+import { useTasksStore } from '@/stores/tasks'
 
 const props = defineProps({
   isOpen: {
