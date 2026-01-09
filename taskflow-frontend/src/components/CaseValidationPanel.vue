@@ -49,11 +49,22 @@
     </div>
 
     <!-- Tareas asociadas -->
-    <div v-if="caseData.tasks && caseData.tasks.length > 0" class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-white/10">
-      <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-4">
-        Tareas Asociadas ({{ caseData.tasks.length }})
-      </h4>
-      <div class="space-y-2">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-white/10">
+      <div class="flex items-center justify-between mb-4">
+        <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+          Tareas Asociadas ({{ caseData.tasks?.length || 0 }})
+        </h4>
+        <button
+          @click="showTaskModal = true"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors shadow-md hover:shadow-lg"
+        >
+          <Plus :size="18" />
+          Nueva Tarea
+        </button>
+      </div>
+
+      <!-- Lista de tareas -->
+      <div v-if="caseData.tasks && caseData.tasks.length > 0" class="space-y-2">
         <div
           v-for="task in caseData.tasks"
           :key="task.id"
@@ -66,6 +77,20 @@
             <p class="text-xs text-slate-500 dark:text-slate-400">Estado: {{ task.status }}</p>
           </div>
         </div>
+      </div>
+
+      <!-- Estado sin tareas -->
+      <div v-else class="text-center py-8">
+        <p class="text-slate-500 dark:text-slate-400 mb-4">
+          No hay tareas asociadas a este caso
+        </p>
+        <button
+          @click="showTaskModal = true"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-md hover:shadow-lg"
+        >
+          <Plus :size="18" />
+          Crear Primera Tarea
+        </button>
       </div>
     </div>
 
@@ -144,6 +169,15 @@
     <!-- Historial de workflow -->
     <CaseWorkflowTimeline v-if="showHistory" :case-id="caseData.id" />
   </div>
+
+  <!-- Modal de creación de tarea -->
+  <TaskCreateModal
+    :isOpen="showTaskModal"
+    :parentId="String(caseData?.id)"
+    parentType="Cases"
+    @close="showTaskModal = false"
+    @task-created="handleTaskCreated"
+  />
 </template>
 
 <script setup>
@@ -153,8 +187,10 @@ import {
   CheckCircle2,
   XCircle,
   Circle,
-  Loader2
+  Loader2,
+  Plus
 } from 'lucide-vue-next'
+import TaskCreateModal from './TaskCreateModal.vue'
 import CaseWorkflowTimeline from './CaseWorkflowTimeline.vue'
 
 const props = defineProps({
@@ -174,6 +210,7 @@ const casesStore = useCasesStore()
 const caseData = ref(null)
 const isProcessing = ref(false)
 const rejectionReason = ref('')
+const showTaskModal = ref(false)
 
 onMounted(async () => {
   try {
@@ -225,5 +262,13 @@ const rejectCase = async () => {
   } finally {
     isProcessing.value = false
   }
+}
+
+const handleTaskCreated = (newTask) => {
+  // Agregar tarea a la lista de tareas del caso
+  if (caseData.value && caseData.value.tasks) {
+    caseData.value.tasks.unshift(newTask)
+  }
+  showTaskModal.value = false
 }
 </script>

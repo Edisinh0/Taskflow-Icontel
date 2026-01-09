@@ -264,18 +264,38 @@
 
               <!-- TAB: TAREAS -->
               <div v-else-if="activeTab === 'tasks'" class="space-y-4">
+                <div class="flex items-center justify-between mb-4">
+                  <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300">
+                    Tareas ({{ opportunityDetail?.tasks?.length || 0 }})
+                  </h4>
+                  <button
+                    @click="showTaskModal = true"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors shadow-md hover:shadow-lg"
+                  >
+                    <Plus :size="18" />
+                    Nueva Tarea
+                  </button>
+                </div>
+
                 <div v-if="loadingDetail" class="space-y-3">
                   <div v-for="i in 3" :key="i" class="h-16 bg-slate-50 dark:bg-white/5 rounded-2xl animate-pulse"></div>
                 </div>
 
                 <div v-else-if="!opportunityDetail?.tasks?.length" class="text-center py-12 bg-slate-50 dark:bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-white/10">
                   <ListTodo :size="32" class="text-slate-300 mx-auto mb-3" />
-                  <p class="text-slate-400 dark:text-slate-500 font-bold text-sm">No hay tareas asociadas a esta oportunidad</p>
+                  <p class="text-slate-400 dark:text-slate-500 font-bold text-sm mb-4">No hay tareas asociadas a esta oportunidad</p>
+                  <button
+                    @click="showTaskModal = true"
+                    class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-md hover:shadow-lg"
+                  >
+                    <Plus :size="18" />
+                    Crear Primera Tarea
+                  </button>
                 </div>
 
                 <div v-else class="grid grid-cols-1 gap-3">
-                  <div 
-                    v-for="task in opportunityDetail.tasks" 
+                  <div
+                    v-for="task in opportunityDetail.tasks"
                     :key="task.id"
                     @click="openTaskDetail(task)"
                     class="bg-white dark:bg-slate-700/50 p-4 rounded-2xl border border-slate-100 dark:border-white/10 flex items-center justify-between hover:shadow-md transition-all group cursor-pointer"
@@ -293,7 +313,7 @@
                       </div>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span 
+                      <span
                         :class="taskPriorityBadge(task.priority)"
                         class="px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-md border"
                       >
@@ -365,6 +385,15 @@
         </div>
       </div>
     </Transition>
+
+    <!-- Modal de creación de tarea para oportunidades -->
+    <TaskCreateModal
+      :isOpen="showTaskModal"
+      :parentId="String(selectedOpportunity?.id)"
+      parentType="Opportunities"
+      @close="showTaskModal = false"
+      @task-created="handleTaskCreated"
+    />
 
     <!-- Modal de Detalle de Tarea -->
     <Transition name="modal">
@@ -547,10 +576,11 @@ import { ref, computed, onMounted } from 'vue'
 import { opportunitiesAPI } from '@/services/api'
 import api from '@/services/api'
 import Navbar from '@/components/AppNavbar.vue'
-import { 
-  TrendingUp, Search, RefreshCw, Briefcase, User, 
+import TaskCreateModal from '@/components/TaskCreateModal.vue'
+import {
+  TrendingUp, Search, RefreshCw, Briefcase, User,
   Rocket, PackageOpen, CheckCircle, Clock, TrendingDown,
-  Eye, X, ListTodo, Building2, History, MessageCircle, Send, Loader2
+  Eye, X, ListTodo, Building2, History, MessageCircle, Send, Loader2, Plus
 } from 'lucide-vue-next'
 
 const opportunities = ref([])
@@ -575,6 +605,9 @@ const sendingUpdate = ref(false)
 const newTaskUpdateContent = ref('')
 const sendingTaskUpdate = ref(false)
 const updatingTask = ref(false)
+
+// Task creation modal state
+const showTaskModal = ref(false)
 
 const fetchOpportunities = async () => {
   loading.value = true
@@ -619,6 +652,14 @@ const showOpportunityDetail = async (opp) => {
 const openTaskDetail = (task) => {
   selectedTask.value = { ...task }
   taskActiveTab.value = 'details'
+}
+
+const handleTaskCreated = (newTask) => {
+  // Agregar tarea a la lista de tareas de la oportunidad
+  if (opportunityDetail.value && opportunityDetail.value.tasks) {
+    opportunityDetail.value.tasks.unshift(newTask)
+  }
+  showTaskModal.value = false
 }
 
 const updateTask = async (updates) => {
