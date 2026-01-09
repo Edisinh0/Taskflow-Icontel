@@ -146,25 +146,6 @@
                   </p>
                 </div>
 
-                <!-- Porcentaje de Completitud (opcional) -->
-                <div>
-                  <label for="completion" class="block text-sm font-medium text-gray-700">
-                    Porcentaje de Completitud (%)
-                  </label>
-                  <div class="mt-1 flex items-center gap-2">
-                    <input
-                      id="completion"
-                      v-model.number="formData.completionPercentage"
-                      type="range"
-                      min="0"
-                      max="100"
-                      class="flex-1"
-                    />
-                    <span class="w-12 text-center text-sm font-medium">
-                      {{ formData.completionPercentage }}%
-                    </span>
-                  </div>
-                </div>
               </div>
 
               <!-- Error general -->
@@ -231,7 +212,6 @@ const formData = ref({
   priority: 'Medium',
   dateStart: '',
   dateDue: '',
-  completionPercentage: 0,
 })
 
 // Inicializar fechas por defecto (hoy y mañana a las 12:00)
@@ -333,7 +313,6 @@ async function submitForm() {
       date_due: formatDateForBackend(formData.value.dateDue),
       parent_type: props.parentType,
       parent_id: props.parentId,
-      completion_percentage: formData.value.completionPercentage,
     }
 
     // Llamar acción del store
@@ -357,7 +336,6 @@ async function submitForm() {
         priority: 'Medium',
         dateStart: '',
         dateDue: '',
-        completionPercentage: 0,
       }
     } else {
       errors.value.general = response?.message || 'Error al crear la tarea'
