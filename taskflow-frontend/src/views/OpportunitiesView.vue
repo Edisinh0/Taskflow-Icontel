@@ -391,6 +391,7 @@
       :isOpen="showTaskModal"
       :parentId="String(selectedOpportunity?.id)"
       :parentName="opportunityDetail?.subject || selectedOpportunity?.name || null"
+      :users="availableUsers"
       parentType="Opportunities"
       @close="showTaskModal = false"
       @task-created="handleTaskCreated"
@@ -610,6 +611,7 @@ const updatingTask = ref(false)
 
 // Task creation modal state
 const showTaskModal = ref(false)
+const availableUsers = ref([])
 
 const fetchOpportunities = async () => {
   loading.value = true
@@ -873,8 +875,15 @@ const taskPriorityBadge = (priority) => {
   return map[priority] || 'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/30'
 }
 
-onMounted(() => {
-  fetchOpportunities()
+onMounted(async () => {
+  await Promise.all([
+    fetchOpportunities(),
+    api.get('/users').then(res => {
+      availableUsers.value = res.data.data || []
+    }).catch(err => {
+      console.error('Error fetching users:', err)
+    })
+  ])
 })
 </script>
 

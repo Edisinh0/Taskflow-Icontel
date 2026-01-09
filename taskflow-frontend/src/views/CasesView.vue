@@ -882,6 +882,7 @@
       :isOpen="showTaskModal"
       :parentId="String(selectedCase?.id)"
       :parentName="caseDetail?.subject || selectedCase?.name || null"
+      :users="availableUsers"
       parentType="Cases"
       @close="showTaskModal = false"
       @task-created="handleTaskCreated"
@@ -951,6 +952,7 @@ const updatingTask = ref(false)
 const updateAttachments = ref([])
 const taskUpdateAttachments = ref([])
 const showTaskModal = ref(false)
+const availableUsers = ref([])
 
 // Agrupar casos por área
 const groupedCases = computed(() => {
@@ -1458,7 +1460,10 @@ onMounted(async () => {
   await Promise.all([
     casesStore.fetchCases(),
     casesStore.fetchStats(),
-    api.get('/users').then(res => users.value = res.data.data)
+    api.get('/users').then(res => {
+      users.value = res.data.data
+      availableUsers.value = res.data.data // Para TaskCreateModal
+    })
   ])
   
   // Setup infinite scroll después de montar

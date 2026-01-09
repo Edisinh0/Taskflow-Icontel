@@ -126,7 +126,7 @@
                 </div>
               </div>
 
-              <!-- 4. Prioridad (Último campo) -->
+              <!-- 4. Prioridad -->
               <div>
                 <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                   Prioridad <span class="text-red-500">*</span>
@@ -143,6 +143,25 @@
                 </select>
                 <p v-if="errors.priority" class="mt-1 text-sm text-red-500">
                   {{ errors.priority }}
+                </p>
+              </div>
+
+              <!-- 5. Asignado A (Opcional) -->
+              <div>
+                <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                  Asignado A
+                </label>
+                <select
+                  v-model="formData.assignedUserId"
+                  class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                >
+                  <option value="">Sin asignar (Asignaré después)</option>
+                  <option v-for="user in users" :key="user.id" :value="String(user.id)">
+                    👤 {{ user.name }}
+                  </option>
+                </select>
+                <p v-if="errors.assigned_user_id" class="mt-1 text-sm text-red-500">
+                  {{ errors.assigned_user_id }}
                 </p>
               </div>
 
@@ -213,6 +232,11 @@ const props = defineProps({
     default: null,
     description: 'Nombre del caso u oportunidad padre para mostrar en el badge',
   },
+  users: {
+    type: Array,
+    default: () => [],
+    description: 'Lista de usuarios disponibles para asignar la tarea',
+  },
 })
 
 const emit = defineEmits(['close', 'task-created', 'success'])
@@ -227,6 +251,7 @@ const formData = ref({
   priority: 'Medium',
   dateStart: '',
   dateDue: '',
+  assignedUserId: '', // Nuevo campo para asignar usuario
 })
 
 // Validación computed
@@ -342,6 +367,7 @@ async function submitForm() {
       date_due: formatDateForBackend(formData.value.dateDue),
       parent_type: props.parentType,
       parent_id: String(props.parentId),
+      assigned_user_id: formData.value.assignedUserId ? parseInt(formData.value.assignedUserId) : null,
     }
 
     // Llamar acción del store
@@ -369,6 +395,7 @@ async function submitForm() {
         priority: 'Medium',
         dateStart: '',
         dateDue: '',
+        assignedUserId: '',
       }
     } else {
       errors.value.general = response?.message || 'Error al crear la tarea'
@@ -401,6 +428,7 @@ function closeModal() {
     priority: 'Medium',
     dateStart: '',
     dateDue: '',
+    assignedUserId: '',
   }
 }
 
