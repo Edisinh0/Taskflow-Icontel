@@ -430,18 +430,42 @@
 
                         <!-- TAB: TAREAS -->
                         <div v-else-if="activeTab === 'tasks'" class="space-y-4">
+                            <!-- Header con contador y botón Nueva Tarea -->
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                    Tareas ({{ caseDetail?.tasks?.length || 0 }})
+                                </h4>
+                                <button
+                                    @click="showTaskModal = true"
+                                    class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors shadow-md hover:shadow-lg"
+                                >
+                                    <Plus :size="18" />
+                                    Nueva Tarea
+                                </button>
+                            </div>
+
+                            <!-- Loading skeleton -->
                             <div v-if="loadingDetail" class="space-y-3">
                                 <div v-for="i in 3" :key="i" class="h-16 bg-slate-50 dark:bg-white/5 rounded-2xl animate-pulse"></div>
                             </div>
 
+                            <!-- Empty state con botón -->
                             <div v-else-if="!caseDetail?.tasks?.length" class="text-center py-12 bg-slate-50 dark:bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-white/10">
                                 <ListTodo :size="32" class="text-slate-300 mx-auto mb-3" />
-                                <p class="text-slate-400 dark:text-slate-500 font-bold text-sm">No hay tareas asociadas a este caso</p>
+                                <p class="text-slate-400 dark:text-slate-500 font-bold text-sm mb-4">No hay tareas asociadas a este caso</p>
+                                <button
+                                    @click="showTaskModal = true"
+                                    class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-md hover:shadow-lg"
+                                >
+                                    <Plus :size="18" />
+                                    Crear Primera Tarea
+                                </button>
                             </div>
 
+                            <!-- Lista de tareas -->
                             <div v-else class="grid grid-cols-1 gap-3">
-                                <div 
-                                    v-for="task in caseDetail.tasks" 
+                                <div
+                                    v-for="task in caseDetail.tasks"
                                     :key="task.id"
                                     @click="openTaskDetail(task)"
                                     class="bg-white dark:bg-slate-700/50 p-4 rounded-2xl border border-slate-100 dark:border-white/10 flex items-center justify-between hover:shadow-md transition-all group cursor-pointer"
@@ -459,7 +483,7 @@
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                      <span 
+                                      <span
                                             :class="taskPriorityBadge(task.priority)"
                                             class="px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-md border"
                                         >
@@ -853,6 +877,14 @@
         </div>
     </Transition>
 
+    <!-- Modal de creación de tarea para casos -->
+    <TaskCreateModal
+      :isOpen="showTaskModal"
+      :parentId="String(selectedCase?.id)"
+      parentType="Cases"
+      @close="showTaskModal = false"
+      @task-created="handleTaskCreated"
+    />
   </div>
 </template>
 
@@ -863,14 +895,15 @@ import { useCasesStore } from '@/stores/cases'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/services/api'
 import AppNavbar from '@/components/AppNavbar.vue'
-import { 
-  Search, 
-  Filter, 
-  Building2, 
-  Inbox, 
-  ExternalLink, 
-  X, 
-  ListTodo, 
+import TaskCreateModal from '@/components/TaskCreateModal.vue'
+import {
+  Search,
+  Filter,
+  Building2,
+  Inbox,
+  ExternalLink,
+  X,
+  ListTodo,
   User,
   Loader2,
   ChevronLeft,
@@ -885,7 +918,8 @@ import {
   AlertCircle,
   Paperclip,
   Trash2,
-  FileIcon
+  FileIcon,
+  Plus
 } from 'lucide-vue-next'
 
 // Store
@@ -914,6 +948,7 @@ const sendingTaskUpdate = ref(false)
 const updatingTask = ref(false)
 const updateAttachments = ref([])
 const taskUpdateAttachments = ref([])
+const showTaskModal = ref(false)
 
 // Agrupar casos por área
 const groupedCases = computed(() => {
@@ -1036,7 +1071,7 @@ const openTaskDetail = async (task) => {
   selectedTask.value = task
   loadingTask.value = true
   taskActiveTab.value = 'details'
-  
+
   try {
     const res = await api.get(`/tasks/${task.id}`)
     selectedTask.value = res.data.data || res.data
@@ -1045,6 +1080,28 @@ const openTaskDetail = async (task) => {
   } finally {
     loadingTask.value = false
   }
+}
+
+const handleTaskCreated = (newTask) => {
+  // Validar que newTask es válido y contiene datos
+  if (!newTask || typeof newTask !== 'object' || !newTask.id) {
+    console.error('Invalid task data received:', newTask)
+    return
+  }
+
+  // Agregar tarea a la lista de tareas del caso
+  if (caseDetail.value) {
+    // Inicializar tasks array si no existe
+    if (!Array.isArray(caseDetail.value.tasks)) {
+      caseDetail.value.tasks = []
+    }
+    // Verificar que no sea un duplicado
+    const isDuplicate = caseDetail.value.tasks.some(t => t.id === newTask.id)
+    if (!isDuplicate) {
+      caseDetail.value.tasks.unshift(newTask)
+    }
+  }
+  showTaskModal.value = false
 }
 
 // Detalle de caso
