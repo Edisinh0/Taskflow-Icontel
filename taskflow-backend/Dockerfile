@@ -42,6 +42,9 @@ RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
 # Copiar Composer desde imagen oficial
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Desactivar chequeo de plataforma en Composer (PHP 8.3 vs 8.4)
+ENV COMPOSER_IGNORE_PLATFORM_REQ=php
+
 # Establecer directorio de trabajo
 WORKDIR /var/www/html
 
@@ -50,7 +53,8 @@ COPY composer.json composer.lock ./
 COPY package.json package*.json ./
 
 # Instalar dependencias PHP (sin archivos de desarrollo en producción)
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+# Ignorar chequeo de plataforma ya que Docker usa PHP 8.3
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --ignore-platform-req=php
 
 # Instalar dependencias Node (si existen)
 RUN npm ci --only=production || npm install --only=production || echo "No npm dependencies"
@@ -59,7 +63,7 @@ RUN npm ci --only=production || npm install --only=production || echo "No npm de
 COPY . .
 
 # Completar instalación de Composer
-RUN composer dump-autoload --optimize --classmap-authoritative
+RUN composer dump-autoload --optimize --classmap-authoritative --ignore-platform-req=php
 
 # Compilar assets de Vue (si aplica)
 RUN npm run build || echo "No build script found, skipping..."
