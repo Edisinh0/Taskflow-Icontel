@@ -881,9 +881,11 @@
     <TaskCreateModal
       :isOpen="showTaskModal"
       :parentId="String(selectedCase?.id)"
+      :parentName="caseDetail?.subject || selectedCase?.name || null"
       parentType="Cases"
       @close="showTaskModal = false"
       @task-created="handleTaskCreated"
+      @success="handleTaskCreationSuccess"
     />
   </div>
 </template>
@@ -1102,6 +1104,17 @@ const handleTaskCreated = (newTask) => {
     }
   }
   showTaskModal.value = false
+}
+
+/**
+ * Handler para evento 'success' emitido por TaskCreateModal
+ * Dispara un toast de éxito y opcionalmente refresca la lista
+ */
+const handleTaskCreationSuccess = (successData) => {
+  console.log('Task created successfully:', successData)
+  // Aquí se puede agregar lógica para mostrar un toast de éxito
+  // O disparar eventos de analytics
+  // Por ahora solo registramos en consola
 }
 
 // Detalle de caso

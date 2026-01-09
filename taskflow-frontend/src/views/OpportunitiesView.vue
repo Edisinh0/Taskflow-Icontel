@@ -390,9 +390,11 @@
     <TaskCreateModal
       :isOpen="showTaskModal"
       :parentId="String(selectedOpportunity?.id)"
+      :parentName="opportunityDetail?.subject || selectedOpportunity?.name || null"
       parentType="Opportunities"
       @close="showTaskModal = false"
       @task-created="handleTaskCreated"
+      @success="handleTaskCreationSuccess"
     />
 
     <!-- Modal de Detalle de Tarea -->
@@ -674,6 +676,17 @@ const handleTaskCreated = (newTask) => {
     }
   }
   showTaskModal.value = false
+}
+
+/**
+ * Handler para evento 'success' emitido por TaskCreateModal
+ * Dispara un toast de éxito y opcionalmente refresca la lista
+ */
+const handleTaskCreationSuccess = (successData) => {
+  console.log('Task created successfully:', successData)
+  // Aquí se puede agregar lógica para mostrar un toast de éxito
+  // O disparar eventos de analytics
+  // Por ahora solo registramos en consola
 }
 
 const updateTask = async (updates) => {
