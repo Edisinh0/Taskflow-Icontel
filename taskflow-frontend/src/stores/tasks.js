@@ -317,6 +317,37 @@ export const useTasksStore = defineStore('tasks', () => {
     }
   }
 
+  /**
+   * Search for Cases or Opportunities in SuiteCRM
+   * @param {string} module - 'Cases' or 'Opportunities'
+   * @param {string} query - Search term (min 2 chars)
+   * @param {number} limit - Max results (default 10)
+   * @returns {Promise<Array>} Search results
+   */
+  async function searchCrmEntities(module, query, limit = 10) {
+    // Don't search if query is too short
+    if (!query || query.trim().length < 2) {
+      return []
+    }
+
+    loading.value = true
+    error.value = null
+
+    try {
+      const response = await api.get('crm/search-entities', {
+        params: { module, query: query.trim(), limit }
+      })
+
+      return response.data.data || []
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Error al buscar en CRM'
+      console.error('Error searching CRM:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     // State
     tasks,
@@ -354,6 +385,8 @@ export const useTasksStore = defineStore('tasks', () => {
     // Delegation actions
     delegateTask,
     getDelegatedTasks,
-    completeDelegatedTask
+    completeDelegatedTask,
+    // CRM search
+    searchCrmEntities
   }
 })

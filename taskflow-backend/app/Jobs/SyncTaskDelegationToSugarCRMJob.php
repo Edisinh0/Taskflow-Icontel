@@ -45,21 +45,31 @@ class SyncTaskDelegationToSugarCRMJob implements ShouldQueue
 
             // Validar que la sesión aún sea válida
             if (!$sweetCrmService->validateSession($this->sessionId)) {
-                Log::warning('SugarCRM session expired, attempting to refresh', [
+                Log::warning('SugarCRM session validation failed', [
                     'task_id' => $this->taskId,
+                    'session_id' => substr($this->sessionId, 0, 10) . '***',
+                    'attempt' => $this->attempts(),
                 ]);
 
-                // Intentar obtener nueva sesión
-                $username = config('services.sweetcrm.username');
-                $password = config('services.sweetcrm.password');
-                $sessionResult = $sweetCrmService->getCachedSession($username, $password);
+                // Intentar refrescar sesión
+                $sessionRefreshResult = $this->refreshSugarCRMSession($sweetCrmService);
 
-                if (!$sessionResult['success']) {
-                    $this->fail(new \Exception('Unable to refresh SugarCRM session'));
+                if (!$sessionRefreshResult['success']) {
+                    Log::error('Session refresh failed, will retry', [
+                        'task_id' => $this->taskId,
+                        'reason' => $sessionRefreshResult['error'],
+                        'attempt' => $this->attempts(),
+                    ]);
+
+                    $this->fail(new \Exception($sessionRefreshResult['error']));
                     return;
                 }
 
-                $this->sessionId = $sessionResult['session_id'];
+                $this->sessionId = $sessionRefreshResult['session_id'];
+                Log::info('SugarCRM session refreshed successfully', [
+                    'task_id' => $this->taskId,
+                    'new_session_id' => substr($sessionRefreshResult['session_id'], 0, 10) . '***',
+                ]);
             }
 
             // TODO: Implementar actualización de tarea en SugarCRM v4_1
@@ -96,18 +106,103 @@ class SyncTaskDelegationToSugarCRMJob implements ShouldQueue
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error syncing task delegation to SugarCRM', [
+            $this->handleJobException($e);
+        }
+    }
+
+    /**
+     * Refrescar sesión de SugarCRM con reintentos
+     *
+     * @param SweetCrmService $sweetCrmService
+     * @return array ['success' => bool, 'session_id' => string|null, 'error' => string|null]
+     */
+    private function refreshSugarCRMSession(SweetCrmService $sweetCrmService): array
+    {
+        try {
+            $username = config('services.sweetcrm.username');
+            $password = config('services.sweetcrm.password');
+
+            if (!$username || !$password) {
+                return [
+                    'success' => false,
+                    'session_id' => null,
+                    'error' => 'SugarCRM credentials not configured',
+                ];
+            }
+
+            Log::info('Attempting to refresh SugarCRM session', [
+                'task_id' => $this->taskId,
+                'username' => $username,
+            ]);
+
+            $sessionResult = $sweetCrmService->getCachedSession($username, $password);
+
+            if ($sessionResult && !empty($sessionResult['session_id'])) {
+                Log::info('SugarCRM session refresh successful', [
+                    'task_id' => $this->taskId,
+                    'session_id' => substr($sessionResult['session_id'], 0, 10) . '***',
+                ]);
+
+                return [
+                    'success' => true,
+                    'session_id' => $sessionResult['session_id'],
+                    'error' => null,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'session_id' => null,
+                'error' => 'Failed to obtain new SugarCRM session',
+            ];
+        } catch (\Exception $e) {
+            Log::error('Exception during SugarCRM session refresh', [
                 'task_id' => $this->taskId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            // Reintentar o fallar
-            if ($this->attempts() < $this->tries) {
-                $this->release(delay: 300); // Esperar 5 minutos antes de reintentar
-            } else {
-                $this->fail($e);
-            }
+            return [
+                'success' => false,
+                'session_id' => null,
+                'error' => 'Session refresh exception: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Manejar excepciones del Job con logging robusto
+     *
+     * @param \Exception $exception
+     * @return void
+     */
+    private function handleJobException(\Exception $exception): void
+    {
+        Log::error('Error syncing task delegation to SugarCRM', [
+            'task_id' => $this->taskId,
+            'delegated_to_user_id' => $this->delegatedToUserId,
+            'error' => $exception->getMessage(),
+            'error_class' => get_class($exception),
+            'attempt' => $this->attempts(),
+            'max_tries' => $this->tries,
+            'trace' => $exception->getTraceAsString(),
+        ]);
+
+        // Reintentar o fallar
+        if ($this->attempts() < $this->tries) {
+            Log::info('Job will be retried', [
+                'task_id' => $this->taskId,
+                'attempt' => $this->attempts(),
+                'next_retry_delay' => 300,
+            ]);
+            $this->release(delay: 300); // Esperar 5 minutos antes de reintentar
+        } else {
+            Log::critical('Job failed after all retries', [
+                'task_id' => $this->taskId,
+                'total_attempts' => $this->attempts(),
+                'error' => $exception->getMessage(),
+            ]);
+            $this->fail($exception);
         }
     }
 }

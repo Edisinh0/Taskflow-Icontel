@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\CaseValidationController;
 use App\Http\Controllers\Api\ClientAttachmentController;
 use App\Http\Controllers\Api\ClientContactController;
 use App\Http\Controllers\Api\ClientController;
+use App\Http\Controllers\Api\CrmSearchController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FlowController;
 use App\Http\Controllers\Api\IndustryController;
@@ -97,5 +98,8 @@ Route::prefix('v1')->group(function () {
 
         // Usuarios
         Route::get('/users', [UserController::class, 'index']);
+
+        // CRM Search (for task creation linking)
+        Route::get('/crm/search-entities', [CrmSearchController::class, 'searchEntities']);
     });
 });

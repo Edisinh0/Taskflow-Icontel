@@ -3,10 +3,19 @@
     <Navbar />
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Título -->
-      <div class="mb-8">
-        <h2 class="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">Dashboard</h2>
-        <p class="text-slate-500 dark:text-slate-400 mt-1 text-lg">Bienvenido de nuevo, <span class="text-blue-500 dark:text-blue-400 font-semibold">{{ authStore.currentUser?.name }}</span></p>
+      <!-- Título y Botón Nueva Tarea -->
+      <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h2 class="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">Dashboard</h2>
+          <p class="text-slate-500 dark:text-slate-400 mt-1 text-lg">Bienvenido de nuevo, <span class="text-blue-500 dark:text-blue-400 font-semibold">{{ authStore.currentUser?.name }}</span></p>
+        </div>
+        <button
+          @click="openTaskCreationModal"
+          class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl hover:from-blue-700 hover:to-indigo-700 font-bold transition-all shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20 hover:scale-105 active:scale-95 whitespace-nowrap"
+        >
+          <Plus class="w-5 h-5 mr-2" />
+          Nueva Tarea
+        </button>
       </div>
 
       <!-- Estadísticas Principales -->
@@ -671,6 +680,14 @@
         </div>
       </div>
     </main>
+
+    <!-- Task Creation Modal -->
+    <TaskCreationModal
+      :isOpen="showTaskCreationModal"
+      :users="users"
+      @close="showTaskCreationModal = false"
+      @created="handleTaskCreated"
+    />
   </div>
 </template>
 
@@ -678,6 +695,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import TaskCreationModal from '@/components/TaskCreationModal.vue'
+import { Plus } from 'lucide-vue-next'
 import { useDashboardStore } from '@/stores/dashboard'
 import { flowsAPI, tasksAPI } from '@/services/api'
 import { Line, Doughnut } from 'vue-chartjs'
@@ -702,6 +721,8 @@ const dashboardStore = useDashboardStore()
 const router = useRouter()
 
 const delegatedSection = ref(null)
+const showTaskCreationModal = ref(false)
+const users = ref([])
 
 const stats = computed(() => {
     // Determine what data to use based on user area
@@ -1273,10 +1294,37 @@ const isThisWeek = (date) => {
   const today = new Date()
   const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
   return d >= weekAgo && d <= today
+}
 
+const openTaskCreationModal = () => {
+  showTaskCreationModal.value = true
+}
+
+const handleTaskCreated = async () => {
+  // Reload dashboard data after task creation
+  showTaskCreationModal.value = false
+  await loadData()
+}
+
+const loadUsers = async () => {
+  try {
+    const response = await fetch('/api/v1/users', {
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`,
+        'Accept': 'application/json'
+      }
+    })
+    if (response.ok) {
+      const data = await response.json()
+      users.value = data.data || []
+    }
+  } catch (error) {
+    console.error('Error loading users:', error)
+  }
 }
 
 onMounted(async () => {
   await loadData()
+  await loadUsers()
 })
 </script>

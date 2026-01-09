@@ -233,29 +233,65 @@ class TaskController extends Controller
      */
     public function store(Request $request)
     {
-        // Autorización: Solo PM/Admin pueden crear tareas (modificar estructura)
-        \Illuminate\Support\Facades\Gate::authorize('create', Task::class);
+        // ✅ REMOVED Gate authorization - all users can now create tasks
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'flow_id' => 'required|exists:flows,id',
+            'assignee_id' => 'required|exists:users,id', // NOW REQUIRED
+            'priority' => 'required|in:low,medium,high,urgent', // NOW REQUIRED
+
+            // Parent linking to CRM (REQUIRED for new task creation flow)
+            'sweetcrm_parent_type' => 'required|in:Cases,Opportunities',
+            'sweetcrm_parent_id' => 'required|string',
+
+            // Optional fields (were previously required)
+            'flow_id' => 'nullable|exists:flows,id',
             'parent_task_id' => 'nullable|exists:tasks,id',
-            'assignee_id' => 'nullable|exists:users,id',
-            'priority' => 'nullable|in:low,medium,high,urgent',
             'status' => 'nullable|in:pending,blocked,in_progress,paused,completed,cancelled',
             'is_milestone' => 'nullable|boolean',
-            'allow_attachments' => 'nullable|boolean', // <-- Permitir adjuntos
+            'allow_attachments' => 'nullable|boolean',
             'estimated_start_at' => 'nullable|date',
             'estimated_end_at' => 'nullable|date',
-            // ⚠️ NO permitir que el frontend controle is_blocked
-            // Este campo se calcula automáticamente en el Observer
             'depends_on_task_id' => 'nullable|exists:tasks,id',
             'depends_on_milestone_id' => 'nullable|exists:tasks,id',
+            'notes' => 'nullable|string',
         ]);
+
+        // Validate parent exists using TaskParentValidationService
+        $parentValidation = app(\App\Services\TaskParentValidationService::class)
+            ->validateParentId(
+                $validated['sweetcrm_parent_id'],
+                $validated['sweetcrm_parent_type']
+            );
+
+        if (!$parentValidation['valid']) {
+            \Illuminate\Support\Facades\Log::warning('Invalid parent for task creation', [
+                'parent_id' => $validated['sweetcrm_parent_id'],
+                'parent_type' => $validated['sweetcrm_parent_type'],
+                'error' => $parentValidation['error']
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $parentValidation['error'],
+            ], 422);
+        }
+
+        // Link to local Case or Opportunity if exists
+        if ($parentValidation['parent']) {
+            if ($validated['sweetcrm_parent_type'] === 'Cases') {
+                $validated['case_id'] = $parentValidation['parent']->id;
+            } elseif ($validated['sweetcrm_parent_type'] === 'Opportunities') {
+                $validated['opportunity_id'] = $parentValidation['parent']->id;
+            }
+        }
+
+        // Set created_by to current user
+        $validated['created_by'] = auth()->id();
 
         // Validar dependencias circulares y auto-referencia
         if (isset($validated['depends_on_task_id'])) {
-            // Verificar que no sea la misma tarea (aunque aún no tiene ID, prevenir en updates)
             if (isset($validated['depends_on_milestone_id']) &&
                 $validated['depends_on_task_id'] === $validated['depends_on_milestone_id']) {
                 return response()->json([
@@ -265,8 +301,10 @@ class TaskController extends Controller
             }
         }
 
-        // ✅ NO establecer is_blocked aquí - el Observer lo maneja automáticamente
-        // El Observer::creating() verificará las dependencias y establecerá is_blocked correctamente
+        // Set default status if not provided
+        if (!isset($validated['status'])) {
+            $validated['status'] = 'pending';
+        }
 
         // 🔧 Lógica especial para subtareas de milestones
         if (isset($validated['parent_task_id'])) {
@@ -283,22 +321,19 @@ class TaskController extends Controller
                 }
             } else {
                 // Si no es la primera, debe depender de la última subtarea creada
-                // (solo si no se especificó otra dependencia manualmente)
                 if (!isset($validated['depends_on_task_id'])) {
                     $lastSubtask = $siblingSubtasks->last();
                     $validated['depends_on_task_id'] = $lastSubtask->id;
                 }
-                // Si no se especificó estado, dejarla en "pending" (por defecto)
             }
         }
 
         $task = Task::create($validated);
 
-
         return response()->json([
             'success' => true,
             'message' => 'Tarea creada exitosamente',
-            'data' => $task->load(['flow', 'assignee']),
+            'data' => $task->load(['flow', 'assignee', 'crmCase', 'opportunity']),
         ], 201);
     }
 

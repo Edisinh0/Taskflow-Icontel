@@ -14,10 +14,12 @@ use App\Jobs\SyncTaskDelegationToSugarCRMJob;
 class SugarCRMWorkflowService
 {
     private SweetCrmService $sweetCrmService;
+    private UserCacheService $userCache;
 
-    public function __construct(SweetCrmService $sweetCrmService)
+    public function __construct(SweetCrmService $sweetCrmService, UserCacheService $userCache)
     {
         $this->sweetCrmService = $sweetCrmService;
+        $this->userCache = $userCache;
     }
 
     /**
@@ -472,5 +474,60 @@ class SugarCRMWorkflowService
                 'message' => 'Error al completar tarea: ' . $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Obtener usuarios de Operaciones usando caché
+     * OPTIMIZACIÓN: Caché de 1 hora para evitar queries repetidas
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getOperationsUsersOptimized()
+    {
+        return $this->userCache->getUsersByDepartment('Operaciones');
+    }
+
+    /**
+     * Obtener usuario de Operaciones por ID usando caché
+     *
+     * @param int $userId
+     * @return User|null
+     */
+    public function getOperationsUserOptimized(int $userId): ?User
+    {
+        return $this->userCache->getOperationsUser($userId);
+    }
+
+    /**
+     * Obtener mapeo de SuiteCRM IDs a usuarios de Operaciones
+     * Útil para búsquedas rápidas sin hacer queries
+     *
+     * @return array
+     */
+    public function getOperationsSweetCrmMap(): array
+    {
+        return $this->userCache->getSweetCrmIdMap('Operaciones');
+    }
+
+    /**
+     * Invalidar caché de usuario cuando se actualice
+     *
+     * @param int $userId
+     * @return void
+     */
+    public function invalidateUserCache(int $userId): void
+    {
+        $this->userCache->invalidateUserCache($userId);
+    }
+
+    /**
+     * Invalidar caché de departamento completo
+     *
+     * @param string $department
+     * @return void
+     */
+    public function invalidateDepartmentCache(string $department): void
+    {
+        $this->userCache->invalidateDepartmentCache($department);
     }
 }

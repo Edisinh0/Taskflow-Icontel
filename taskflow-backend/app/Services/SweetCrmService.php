@@ -936,4 +936,112 @@ class SweetCrmService
             return [];
         }
     }
+
+    /**
+     * Search for Cases or Opportunities by name
+     * Uses get_entry_list with LIKE query for real-time search
+     *
+     * @param string $sessionId
+     * @param string $module 'Cases' or 'Opportunities'
+     * @param string $query Search term (will be used in LIKE '%query%')
+     * @param int $maxResults Default 10 for dropdown performance
+     * @return array Parsed entities with id, name, status/sales_stage
+     */
+    public function searchEntities(string $sessionId, string $module, string $query, int $maxResults = 10): array
+    {
+        try {
+            // Validate module
+            if (!in_array($module, ['Cases', 'Opportunities'])) {
+                Log::warning('Invalid module for search', ['module' => $module]);
+                return [];
+            }
+
+            // Build SQL WHERE clause for SuiteCRM v4.1
+            $escapedQuery = str_replace("'", "\'", $query);
+            $sqlQuery = "{$module}.name LIKE '%{$escapedQuery}%' AND {$module}.deleted = 0";
+
+            // Different fields per module
+            $selectFields = $module === 'Cases'
+                ? ['id', 'case_number', 'name', 'state', 'priority', 'account_id']
+                : ['id', 'name', 'sales_stage', 'amount', 'probability', 'account_id'];
+
+            Log::info('🔍 SweetCRM searchEntities Request', [
+                'module' => $module,
+                'query' => $query,
+                'sql' => $sqlQuery
+            ]);
+
+            $response = Http::timeout($this->timeout)
+                ->asForm()
+                ->post("{$this->baseUrl}/service/v4_1/rest.php", [
+                    'method' => 'get_entry_list',
+                    'input_type' => 'JSON',
+                    'response_type' => 'JSON',
+                    'rest_data' => json_encode([
+                        'session' => $sessionId,
+                        'module_name' => $module,
+                        'query' => $sqlQuery,
+                        'order_by' => 'date_modified DESC',
+                        'offset' => 0,
+                        'select_fields' => $selectFields,
+                        'link_name_to_fields_array' => [],
+                        'max_results' => $maxResults,
+                        'deleted' => 0,
+                    ]),
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                // Check for session error
+                if (isset($data['name']) && $data['name'] === 'Invalid Session ID') {
+                    Log::warning('Session expired during search');
+                    return [];
+                }
+
+                $results = $data['entry_list'] ?? [];
+
+                Log::info('✅ SweetCRM searchEntities Response', [
+                    'count' => count($results)
+                ]);
+
+                // Parse name_value_list format
+                return array_map(function ($entry) use ($module) {
+                    $nvl = $entry['name_value_list'] ?? [];
+
+                    if ($module === 'Cases') {
+                        return [
+                            'id' => $entry['id'],
+                            'name' => $nvl['name']['value'] ?? 'Sin nombre',
+                            'case_number' => $nvl['case_number']['value'] ?? null,
+                            'status' => $nvl['state']['value'] ?? 'Unknown',
+                            'priority' => $nvl['priority']['value'] ?? null,
+                        ];
+                    } else {
+                        return [
+                            'id' => $entry['id'],
+                            'name' => $nvl['name']['value'] ?? 'Sin nombre',
+                            'sales_stage' => $nvl['sales_stage']['value'] ?? 'Unknown',
+                            'amount' => $nvl['amount']['value'] ?? null,
+                            'probability' => $nvl['probability']['value'] ?? null,
+                        ];
+                    }
+                }, $results);
+            }
+
+            Log::warning('❌ SweetCRM searchEntities HTTP Error', [
+                'status' => $response->status(),
+                'module' => $module
+            ]);
+
+            return [];
+        } catch (\Exception $e) {
+            Log::error('SugarCRM v4_1 search error', [
+                'module' => $module,
+                'query' => $query,
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
+    }
 }

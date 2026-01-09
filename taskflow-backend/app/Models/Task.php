@@ -42,6 +42,7 @@ class Task extends Model implements Auditable
         'notes',
         'last_updated_by',
         'case_id',
+        'opportunity_id',
         'sweetcrm_id',
         'sweetcrm_synced_at',
         // SLA fields
