@@ -567,7 +567,7 @@ public function addUpdate(Request $request, $id)
     public function move(Request $request, $id)
     {
         $task = Task::findOrFail($id);
-        
+
         // Autorización: Mover es cambio estructural
         \Illuminate\Support\Facades\Gate::authorize('updateStructure', $task);
 
@@ -592,6 +592,176 @@ public function addUpdate(Request $request, $id)
             return response()->json([
                 'success' => false,
                 'message' => 'Error al mover tarea: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Delegar tarea a Operaciones
+     * POST /api/v1/tasks/{id}/delegate
+     */
+    public function delegate(Request $request, Task $task)
+    {
+        // Solo usuarios de Ventas pueden delegar
+        $user = auth()->user();
+        if (!$user || $user->department !== 'Ventas') {
+            return response()->json([
+                'message' => 'Solo usuarios de Ventas pueden delegar tareas'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'delegated_to_user_id' => 'required|exists:users,id',
+            'reason' => 'required|string|max:500'
+        ]);
+
+        try {
+            $delegatedTo = \App\Models\User::findOrFail($validated['delegated_to_user_id']);
+
+            // Obtener sesión de SugarCRM
+            $username = config('services.sweetcrm.username');
+            $password = config('services.sweetcrm.password');
+            $sessionResult = $this->sweetCrmService->getCachedSession($username, $password);
+
+            if (!$sessionResult['success']) {
+                return response()->json([
+                    'message' => 'No se pudo conectar con SugarCRM'
+                ], 500);
+            }
+
+            // Usar el servicio de workflow
+            $workflowService = app(\App\Services\SugarCRMWorkflowService::class);
+            $result = $workflowService->delegateTaskToOperations(
+                $task,
+                $delegatedTo,
+                $sessionResult['session_id'],
+                $validated['reason']
+            );
+
+            if (!$result['success']) {
+                return response()->json([
+                    'message' => $result['message']
+                ], 400);
+            }
+
+            // Recargar la tarea
+            $task->refresh();
+
+            return response()->json([
+                'success' => true,
+                'message' => $result['message'],
+                'data' => $task->load(['assignee', 'delegatedToUser', 'originalSalesUser'])
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error delegating task', [
+                'task_id' => $task->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'message' => 'Error al delegar tarea: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener tareas delegadas pendientes para el usuario actual
+     * GET /api/v1/tasks/delegated
+     */
+    public function getDelegatedTasks(Request $request)
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'No autenticado'
+            ], 401);
+        }
+
+        // Solo Operaciones ve tareas delegadas
+        if ($user->department !== 'Operaciones') {
+            return response()->json([
+                'data' => [],
+                'total' => 0
+            ]);
+        }
+
+        $workflowService = app(\App\Services\SugarCRMWorkflowService::class);
+        $tasks = $workflowService->getPendingDelegatedTasks($user);
+
+        return response()->json([
+            'data' => $tasks->map(function ($task) {
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'status' => $task->status,
+                    'priority' => $task->priority,
+                    'delegation_reason' => $task->delegation_reason,
+                    'delegated_at' => $task->delegated_to_ops_at,
+                    'case' => $task->crmCase ? [
+                        'id' => $task->crmCase->id,
+                        'case_number' => $task->crmCase->case_number,
+                        'subject' => $task->crmCase->subject,
+                    ] : null,
+                    'original_sales_user' => $task->originalSalesUser ? [
+                        'id' => $task->originalSalesUser->id,
+                        'name' => $task->originalSalesUser->name,
+                        'email' => $task->originalSalesUser->email,
+                    ] : null,
+                ];
+            }),
+            'total' => $tasks->count()
+        ]);
+    }
+
+    /**
+     * Marcar tarea delegada como completada
+     * POST /api/v1/tasks/{id}/complete-delegation
+     */
+    public function completeDelegation(Task $task)
+    {
+        $user = auth()->user();
+
+        if (!$user || $user->department !== 'Operaciones') {
+            return response()->json([
+                'message' => 'Solo usuarios de Operaciones pueden completar tareas delegadas'
+            ], 403);
+        }
+
+        if ($task->delegation_status !== 'delegated') {
+            return response()->json([
+                'message' => 'La tarea no está delegada o ya fue completada'
+            ], 400);
+        }
+
+        try {
+            $workflowService = app(\App\Services\SugarCRMWorkflowService::class);
+            $result = $workflowService->completeDelegatedTask($task);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'message' => $result['message']
+                ], 400);
+            }
+
+            $task->refresh();
+
+            return response()->json([
+                'success' => true,
+                'message' => $result['message'],
+                'data' => $task
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error completing delegated task', [
+                'task_id' => $task->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'message' => 'Error al completar tarea: ' . $e->getMessage()
             ], 500);
         }
     }

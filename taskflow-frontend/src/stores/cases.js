@@ -243,6 +243,115 @@ export const useCasesStore = defineStore('cases', () => {
         error.value = null
     }
 
+    /**
+     * Enviar caso a validación
+     */
+    async function handoverToValidation(caseId) {
+        loading.value = true
+        error.value = null
+
+        try {
+            const response = await api.post(`cases/${caseId}/handover-to-validation`)
+
+            // Actualizar el caso en el state
+            const index = cases.value.findIndex(c => c.id === caseId)
+            if (index !== -1) {
+                cases.value[index] = response.data.data
+            }
+
+            return response.data
+        } catch (err) {
+            error.value = err.response?.data?.message || 'Error al enviar caso a validación'
+            throw err
+        } finally {
+            loading.value = false
+        }
+    }
+
+    /**
+     * Obtener historial de workflow de un caso
+     */
+    async function getWorkflowHistory(caseId) {
+        try {
+            const response = await api.get(`cases/${caseId}/workflow-history`)
+            return response.data
+        } catch (err) {
+            console.error('Error fetching workflow history:', err)
+            throw err
+        }
+    }
+
+    /**
+     * Obtener casos pendientes de validación
+     */
+    async function getPendingValidationCases() {
+        loading.value = true
+        error.value = null
+
+        try {
+            const response = await api.get('cases/validation/pending')
+            cases.value = response.data.data || []
+            return response.data
+        } catch (err) {
+            error.value = err.response?.data?.message || 'Error al cargar casos pendientes'
+            throw err
+        } finally {
+            loading.value = false
+        }
+    }
+
+    /**
+     * Aprobar validación de un caso
+     */
+    async function approveCaseValidation(caseId) {
+        loading.value = true
+        error.value = null
+
+        try {
+            const response = await api.post(`cases/${caseId}/validate/approve`)
+
+            // Actualizar el caso en el state
+            const index = cases.value.findIndex(c => c.id === caseId)
+            if (index !== -1) {
+                cases.value[index] = response.data.data
+            }
+
+            return response.data
+        } catch (err) {
+            error.value = err.response?.data?.message || 'Error al aprobar caso'
+            throw err
+        } finally {
+            loading.value = false
+        }
+    }
+
+    /**
+     * Rechazar validación de un caso
+     */
+    async function rejectCaseValidation(caseId, reason) {
+        loading.value = true
+        error.value = null
+
+        try {
+            const response = await api.post(`cases/${caseId}/validate/reject`, {
+                reason
+            })
+
+            // Actualizar el caso en el state
+            const index = cases.value.findIndex(c => c.id === caseId)
+            if (index !== -1) {
+                cases.value[index] = response.data.data
+            }
+
+            return response.data
+        } catch (err) {
+            error.value = err.response?.data?.message || 'Error al rechazar caso'
+            throw err
+        } finally {
+            loading.value = false
+        }
+    }
+
     return {
         // Estado
         cases,
@@ -264,6 +373,12 @@ export const useCasesStore = defineStore('cases', () => {
         fetchStats,
         setFilter,
         clearFilters,
-        reset
+        reset,
+        // Workflow actions
+        handoverToValidation,
+        getWorkflowHistory,
+        getPendingValidationCases,
+        approveCaseValidation,
+        rejectCaseValidation
     }
 })

@@ -60,6 +60,13 @@ class Task extends Model implements Auditable
         'date_modified',
         'sequence',
         'created_by_id',
+        // Delegation fields
+        'original_sales_user_id',
+        'delegated_to_ops_at',
+        'delegated_to_user_id',
+        'delegation_status',
+        'delegation_reason',
+        'delegation_completed_at',
     ];
 
     protected $casts = [
@@ -91,6 +98,9 @@ class Task extends Model implements Auditable
         'date_entered' => 'datetime',
         'date_modified' => 'datetime',
         'sequence' => 'integer',
+        // Delegation casts
+        'delegated_to_ops_at' => 'datetime',
+        'delegation_completed_at' => 'datetime',
     ];
 
     /**
@@ -371,5 +381,48 @@ class Task extends Model implements Auditable
                     ->where('sla_days_overdue', '>=', 2)
                     ->where('sla_escalated', false)
                     ->whereNotIn('status', ['completed', 'cancelled']);
+    }
+
+    /**
+     * Relación: Usuario original de ventas
+     */
+    public function originalSalesUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'original_sales_user_id');
+    }
+
+    /**
+     * Relación: Usuario al que se delegó la tarea
+     */
+    public function delegatedToUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'delegated_to_user_id');
+    }
+
+    /**
+     * Scope: Tareas delegadas
+     */
+    public function scopeDelegated($query)
+    {
+        return $query->where('delegation_status', 'delegated')
+                    ->whereNotNull('delegated_to_user_id');
+    }
+
+    /**
+     * Scope: Tareas delegadas pendientes
+     */
+    public function scopePendingDelegation($query)
+    {
+        return $query->where('delegation_status', 'pending')
+                    ->whereNotNull('delegated_to_user_id');
+    }
+
+    /**
+     * Scope: Tareas delegadas completadas
+     */
+    public function scopeDelegationCompleted($query)
+    {
+        return $query->where('delegation_status', 'completed')
+                    ->whereNotNull('delegation_completed_at');
     }
 }

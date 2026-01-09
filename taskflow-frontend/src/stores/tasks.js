@@ -238,6 +238,85 @@ export const useTasksStore = defineStore('tasks', () => {
     }
   }
 
+  /**
+   * Delegar tarea a Operaciones
+   */
+  async function delegateTask(taskId, delegatedToUserId, reason) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const response = await api.post(`tasks/${taskId}/delegate`, {
+        delegated_to_user_id: delegatedToUserId,
+        reason
+      })
+
+      // Actualizar la tarea en el state
+      const index = tasks.value.findIndex(t => t.id === taskId)
+      if (index !== -1) {
+        tasks.value[index] = response.data.data
+      }
+
+      if (currentTask.value?.id === taskId) {
+        currentTask.value = response.data.data
+      }
+
+      return response.data
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Error al delegar tarea'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Obtener tareas delegadas pendientes para el usuario actual
+   */
+  async function getDelegatedTasks() {
+    loading.value = true
+    error.value = null
+
+    try {
+      const response = await api.get('tasks/delegated')
+      return response.data
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Error al cargar tareas delegadas'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Marcar tarea delegada como completada
+   */
+  async function completeDelegatedTask(taskId) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const response = await api.post(`tasks/${taskId}/complete-delegation`)
+
+      // Actualizar la tarea en el state
+      const index = tasks.value.findIndex(t => t.id === taskId)
+      if (index !== -1) {
+        tasks.value[index] = response.data.data
+      }
+
+      if (currentTask.value?.id === taskId) {
+        currentTask.value = response.data.data
+      }
+
+      return response.data
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Error al completar tarea delegada'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     // State
     tasks,
@@ -271,6 +350,10 @@ export const useTasksStore = defineStore('tasks', () => {
     setCurrentTask,
     clearCurrentTask,
     clearError,
-    resetState
+    resetState,
+    // Delegation actions
+    delegateTask,
+    getDelegatedTasks,
+    completeDelegatedTask
   }
 })

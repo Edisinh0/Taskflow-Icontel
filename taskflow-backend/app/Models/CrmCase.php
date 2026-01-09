@@ -43,6 +43,16 @@ class CrmCase extends Model
         'account_number',
         'sla_status',
         'sla_due_date',
+        // Workflow fields
+        'workflow_status',
+        'original_sales_user_id',
+        'pending_validation_at',
+        'validation_initiated_by_id',
+        'approved_at',
+        'approved_by_id',
+        'validation_rejection_reason',
+        'rejected_at',
+        'rejected_by_id',
     ];
 
     protected $casts = [
@@ -52,6 +62,10 @@ class CrmCase extends Model
         'closure_requested' => 'boolean',
         'last_activity_at' => 'datetime',
         'sla_due_date' => 'datetime',
+        // Workflow casts
+        'pending_validation_at' => 'datetime',
+        'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
     ];
 
     /**
@@ -132,5 +146,45 @@ class CrmCase extends Model
     public function closureApprovedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'closure_approved_by_id');
+    }
+
+    /**
+     * Relación: Usuario original de ventas
+     */
+    public function originalSalesUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'original_sales_user_id');
+    }
+
+    /**
+     * Relación: Usuario que inició la validación
+     */
+    public function validationInitiatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'validation_initiated_by_id');
+    }
+
+    /**
+     * Relación: Usuario que aprobó la validación
+     */
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by_id');
+    }
+
+    /**
+     * Relación: Usuario que rechazó la validación
+     */
+    public function rejectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by_id');
+    }
+
+    /**
+     * Relación: Historial de workflow del caso
+     */
+    public function workflowHistory(): HasMany
+    {
+        return $this->hasMany(CaseWorkflowHistory::class, 'case_id')->orderBy('created_at', 'desc');
     }
 }

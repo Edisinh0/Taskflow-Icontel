@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CaseClosureRequestController;
 use App\Http\Controllers\Api\CaseController;
+use App\Http\Controllers\Api\CaseValidationController;
 use App\Http\Controllers\Api\ClientAttachmentController;
 use App\Http\Controllers\Api\ClientContactController;
 use App\Http\Controllers\Api\ClientController;
@@ -71,6 +72,22 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('cases', CaseController::class);
         Route::post('cases/{id}/updates', [CaseController::class, 'addUpdate']);
         Route::delete('updates/{id}', [CaseController::class, 'deleteUpdate']);
+
+        // Workflow: Case Validation (Operaciones)
+        Route::prefix('cases')->group(function () {
+            Route::get('/validation/pending', [CaseValidationController::class, 'pendingValidation']);
+            Route::get('{case}/workflow-history', [CaseValidationController::class, 'getWorkflowHistory']);
+            Route::post('{case}/handover-to-validation', [CaseValidationController::class, 'handoverToValidation']);
+            Route::post('{case}/validate/approve', [CaseValidationController::class, 'approve']);
+            Route::post('{case}/validate/reject', [CaseValidationController::class, 'reject']);
+        });
+
+        // Workflow: Task Delegation (Operaciones)
+        Route::prefix('tasks')->group(function () {
+            Route::get('/delegated', [TaskController::class, 'getDelegatedTasks']);
+            Route::post('{task}/delegate', [TaskController::class, 'delegate']);
+            Route::post('{task}/complete-delegation', [TaskController::class, 'completeDelegation']);
+        });
 
         // Oportunidades y Flujo de Ventas a Operaciones
         Route::get('opportunities/stats', [OpportunityController::class, 'stats']);
