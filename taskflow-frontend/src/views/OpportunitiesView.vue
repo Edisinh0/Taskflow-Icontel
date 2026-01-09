@@ -655,9 +655,23 @@ const openTaskDetail = (task) => {
 }
 
 const handleTaskCreated = (newTask) => {
+  // Validar que newTask es válido y contiene datos
+  if (!newTask || typeof newTask !== 'object' || !newTask.id) {
+    console.error('Invalid task data received:', newTask)
+    return
+  }
+
   // Agregar tarea a la lista de tareas de la oportunidad
-  if (opportunityDetail.value && opportunityDetail.value.tasks) {
-    opportunityDetail.value.tasks.unshift(newTask)
+  if (opportunityDetail.value) {
+    // Inicializar tasks array si no existe
+    if (!Array.isArray(opportunityDetail.value.tasks)) {
+      opportunityDetail.value.tasks = []
+    }
+    // Verificar que no sea un duplicado
+    const isDuplicate = opportunityDetail.value.tasks.some(t => t.id === newTask.id)
+    if (!isDuplicate) {
+      opportunityDetail.value.tasks.unshift(newTask)
+    }
   }
   showTaskModal.value = false
 }

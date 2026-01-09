@@ -112,14 +112,19 @@ export const useTasksStore = defineStore('tasks', () => {
 
     try {
       const response = await api.post('tasks', taskData)
-      
-      // Manejar respuesta estructura: { success: true, data: {...} } o { success: false, message: "..." }
-      if (!response.data.success) {
-        error.value = response.data.message || 'Error al crear tarea'
-        return {
-          success: false,
-          message: error.value
-        }
+
+      // Validar estructura de respuesta antes de procesar
+      if (!response.data?.success) {
+        const message = response.data?.message || 'Error al crear tarea'
+        error.value = message
+        throw new Error(message)
+      }
+
+      // Validar que la respuesta contiene datos válidos
+      if (!response.data?.data || !response.data.data.id) {
+        const message = 'Respuesta inválida del servidor'
+        error.value = message
+        throw new Error(message)
       }
 
       const newTask = response.data.data
@@ -137,10 +142,7 @@ export const useTasksStore = defineStore('tasks', () => {
       const message = err.response?.data?.message || err.message || 'Error al crear tarea'
       error.value = message
       console.error('Error creating task:', err)
-      return {
-        success: false,
-        message: message
-      }
+      throw err
     } finally {
       loading.value = false
     }

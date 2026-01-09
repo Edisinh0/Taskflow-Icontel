@@ -265,9 +265,23 @@ const rejectCase = async () => {
 }
 
 const handleTaskCreated = (newTask) => {
+  // Validar que newTask es válido y contiene datos
+  if (!newTask || typeof newTask !== 'object' || !newTask.id) {
+    console.error('Invalid task data received:', newTask)
+    return
+  }
+
   // Agregar tarea a la lista de tareas del caso
-  if (caseData.value && caseData.value.tasks) {
-    caseData.value.tasks.unshift(newTask)
+  if (caseData.value) {
+    // Inicializar tasks array si no existe
+    if (!Array.isArray(caseData.value.tasks)) {
+      caseData.value.tasks = []
+    }
+    // Verificar que no sea un duplicado
+    const isDuplicate = caseData.value.tasks.some(t => t.id === newTask.id)
+    if (!isDuplicate) {
+      caseData.value.tasks.unshift(newTask)
+    }
   }
   showTaskModal.value = false
 }

@@ -277,8 +277,19 @@ function formatDateForBackend(dateTimeLocalString) {
 }
 
 async function submitForm() {
+  // Prevenir doble submit
+  if (isLoading.value) {
+    return
+  }
+
   // Limpiar errores previos
   errors.value = {}
+
+  // Validación crítica: Parent ID debe existir y ser válido
+  if (!props.parentId || props.parentId === 'undefined' || props.parentId === 'null') {
+    errors.value.general = 'No se puede crear tarea sin entidad padre asociada. Por favor recarga la página.'
+    return
+  }
 
   // Validaciones básicas del cliente
   if (!formData.value.title.trim()) {
@@ -328,11 +339,17 @@ async function submitForm() {
     // Llamar acción del store
     const response = await tasksStore.createTask(payload)
 
-    if (response.success) {
+    if (response?.success && response?.data) {
+      // Validar que la respuesta contiene datos válidos
+      if (!response.data.id) {
+        errors.value.general = 'Respuesta inválida del servidor. Por favor intenta de nuevo.'
+        return
+      }
+
       // Emitir evento para refrescar lista
       emit('task-created', response.data)
       closeModal()
-      
+
       // Resetear formulario
       formData.value = {
         title: '',
@@ -343,11 +360,22 @@ async function submitForm() {
         completionPercentage: 0,
       }
     } else {
-      errors.value.general = response.message || 'Error al crear la tarea'
+      errors.value.general = response?.message || 'Error al crear la tarea'
     }
   } catch (error) {
     console.error('Error creating task:', error)
-    errors.value.general = error.message || 'Error al crear la tarea'
+    // Mejor manejo de errores diferenciando tipos
+    if (error.response?.status === 422) {
+      errors.value.general = error.response?.data?.message || 'Validación fallida. Verifica los datos.'
+    } else if (error.response?.status === 404) {
+      errors.value.general = 'La entidad padre no existe. Por favor recarga la página.'
+    } else if (error.response?.status >= 500) {
+      errors.value.general = 'Error del servidor. Por favor intenta de nuevo más tarde.'
+    } else if (!error.response) {
+      errors.value.general = 'Error de conexión. Verifica tu conexión a internet.'
+    } else {
+      errors.value.general = error.message || 'Error al crear la tarea'
+    }
   } finally {
     isLoading.value = false
   }
