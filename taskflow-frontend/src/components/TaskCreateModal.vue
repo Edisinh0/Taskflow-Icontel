@@ -1,179 +1,164 @@
 <template>
   <Teleport to="body">
-    <Transition name="modal">
-      <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto">
-        <!-- Backdrop -->
-        <div
-          class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-          @click="closeModal"
-        ></div>
-
-        <!-- Modal -->
-        <div class="flex min-h-screen items-center justify-center p-4">
-          <div
-            class="relative w-full max-w-md transform rounded-lg bg-white shadow-xl transition-all"
-          >
-            <!-- Header -->
-            <div class="border-b border-gray-200 px-6 py-4">
-              <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-900">
-                  Nueva Tarea
-                </h3>
-                <button
-                  type="button"
-                  @click="closeModal"
-                  class="text-gray-400 hover:text-gray-500"
-                >
-                  <span class="sr-only">Cerrar</span>
-                  <svg
-                    class="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
+    <Transition
+      name="modal"
+      @enter="onEnter"
+      @leave="onLeave"
+    >
+      <div
+        v-if="isOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 dark:bg-slate-900/80 backdrop-blur-sm p-4"
+        @click.self="closeModal"
+      >
+        <!-- Modal Card -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-white/10">
+          <!-- Header -->
+          <div class="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-white/5 px-6 py-4 flex justify-between items-center z-10">
+            <div>
+              <h2 class="text-2xl font-bold text-slate-800 dark:text-white">
+                Nueva Tarea
+              </h2>
+              <!-- Parent Context Badge -->
+              <div class="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 rounded-full border border-blue-200 dark:border-blue-500/30">
+                <span class="text-xs font-bold text-blue-600 dark:text-blue-400">
+                  📌 Vinculado a: <span class="font-black">{{ parentType === 'Cases' ? `Caso #${parentId}` : `Oportunidad #${parentId}` }}</span>
+                </span>
               </div>
-              <p v-if="parentType === 'Cases'" class="mt-1 text-sm text-gray-600">
-                Para caso #{{ parentId }}
-              </p>
-              <p v-else-if="parentType === 'Opportunities'" class="mt-1 text-sm text-gray-600">
-                Para oportunidad #{{ parentId }}
-              </p>
             </div>
+            <button
+              @click="closeModal"
+              class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+              aria-label="Cerrar modal"
+            >
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
 
-            <!-- Form -->
-            <form @submit.prevent="submitForm" class="px-6 py-4">
-              <div class="space-y-4">
-                <!-- Nombre de la tarea -->
-                <div>
-                  <label for="title" class="block text-sm font-medium text-gray-700">
-                    Nombre de la Tarea *
-                  </label>
-                  <input
-                    id="title"
-                    v-model="formData.title"
-                    type="text"
-                    required
-                    maxlength="255"
-                    placeholder="Ej: Contactar cliente"
-                    class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-                  />
-                  <p v-if="errors.title" class="mt-1 text-sm text-red-600">
-                    {{ errors.title }}
-                  </p>
-                </div>
+          <!-- Form -->
+          <form @submit.prevent="submitForm" class="px-6 py-6">
+            <div class="space-y-5">
+              <!-- Título -->
+              <div>
+                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  Título <span class="text-rose-500">*</span>
+                </label>
+                <input
+                  v-model="formData.title"
+                  type="text"
+                  required
+                  maxlength="255"
+                  placeholder="Nombre de la tarea"
+                  class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                />
+                <p v-if="errors.title" class="mt-1 text-sm text-rose-500">
+                  {{ errors.title }}
+                </p>
+              </div>
 
-                <!-- Prioridad -->
-                <div>
-                  <label for="priority" class="block text-sm font-medium text-gray-700">
-                    Prioridad *
-                  </label>
-                  <select
-                    id="priority"
-                    v-model="formData.priority"
-                    required
-                    class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-                  >
-                    <option value="">Selecciona una prioridad</option>
-                    <option value="High">Alta</option>
-                    <option value="Medium">Media</option>
-                    <option value="Low">Baja</option>
-                  </select>
-                  <p v-if="errors.priority" class="mt-1 text-sm text-red-600">
-                    {{ errors.priority }}
-                  </p>
-                </div>
+              <!-- Prioridad -->
+              <div>
+                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  Prioridad <span class="text-rose-500">*</span>
+                </label>
+                <select
+                  v-model="formData.priority"
+                  required
+                  class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                >
+                  <option value="">Selecciona una prioridad</option>
+                  <option value="High">🔴 Alta</option>
+                  <option value="Medium">🟡 Media</option>
+                  <option value="Low">🟢 Baja</option>
+                </select>
+                <p v-if="errors.priority" class="mt-1 text-sm text-rose-500">
+                  {{ errors.priority }}
+                </p>
+              </div>
 
-                <!-- Fecha de Inicio -->
-                <div>
-                  <label for="dateStart" class="block text-sm font-medium text-gray-700">
-                    Fecha de Inicio *
-                  </label>
-                  <input
-                    id="dateStart"
-                    v-model="formData.dateStart"
-                    type="datetime-local"
-                    required
-                    class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-                  />
-                  <p v-if="errors.date_start" class="mt-1 text-sm text-red-600">
-                    {{ errors.date_start }}
-                  </p>
-                </div>
+              <!-- Fecha de Inicio -->
+              <div>
+                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  Fecha de Inicio <span class="text-rose-500">*</span>
+                </label>
+                <input
+                  v-model="formData.dateStart"
+                  type="datetime-local"
+                  required
+                  class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                />
+                <p v-if="errors.date_start" class="mt-1 text-sm text-rose-500">
+                  {{ errors.date_start }}
+                </p>
+              </div>
 
-                <!-- Fecha de Término -->
-                <div>
-                  <label for="dateDue" class="block text-sm font-medium text-gray-700">
-                    Fecha de Término *
-                  </label>
-                  <input
-                    id="dateDue"
-                    v-model="formData.dateDue"
-                    type="datetime-local"
-                    required
-                    class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-                  />
-                  <p v-if="errors.date_due" class="mt-1 text-sm text-red-600">
-                    {{ errors.date_due }}
-                  </p>
-                </div>
+              <!-- Fecha de Término -->
+              <div>
+                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  Fecha de Término <span class="text-rose-500">*</span>
+                </label>
+                <input
+                  v-model="formData.dateDue"
+                  type="datetime-local"
+                  required
+                  class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                />
+                <p v-if="errors.date_due" class="mt-1 text-sm text-rose-500">
+                  {{ errors.date_due }}
+                </p>
+              </div>
 
-                <!-- Descripción -->
-                <div>
-                  <label for="description" class="block text-sm font-medium text-gray-700">
-                    Descripción
-                  </label>
-                  <textarea
-                    id="description"
-                    v-model="formData.description"
-                    rows="3"
-                    maxlength="2000"
-                    placeholder="Describe los detalles de la tarea..."
-                    class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-                  ></textarea>
-                  <p class="mt-1 text-xs text-gray-500">
+              <!-- Descripción -->
+              <div>
+                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  Descripción
+                </label>
+                <textarea
+                  v-model="formData.description"
+                  rows="4"
+                  maxlength="2000"
+                  placeholder="Describe los detalles de la tarea..."
+                  class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none resize-none"
+                ></textarea>
+                <div class="mt-1 flex justify-between items-center">
+                  <p class="text-xs text-slate-500 dark:text-slate-400">
                     {{ formData.description?.length || 0 }}/2000 caracteres
                   </p>
-                  <p v-if="errors.description" class="mt-1 text-sm text-red-600">
+                  <p v-if="errors.description" class="text-sm text-rose-500">
                     {{ errors.description }}
                   </p>
                 </div>
-
               </div>
 
-              <!-- Error general -->
-              <p v-if="errors.general" class="mt-4 text-sm text-red-600">
-                {{ errors.general }}
-              </p>
-
-              <!-- Buttons -->
-              <div class="mt-6 flex justify-end gap-3 border-t border-gray-200 pt-4">
-                <button
-                  type="button"
-                  @click="closeModal"
-                  :disabled="isLoading"
-                  class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  :disabled="isLoading"
-                  class="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                >
-                  <span v-if="isLoading" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                  {{ isLoading ? 'Guardando...' : 'Crear Tarea' }}
-                </button>
+              <!-- Error General -->
+              <div v-if="errors.general" class="p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-500/30 rounded-xl">
+                <p class="text-sm font-bold text-rose-600 dark:text-rose-400">
+                  ⚠️ {{ errors.general }}
+                </p>
               </div>
-            </form>
-          </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                @click="closeModal"
+                :disabled="isLoading"
+                class="px-6 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                :disabled="isLoading || !isFormValid"
+                class="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 dark:disabled:bg-slate-600 rounded-xl transition-colors shadow-md hover:shadow-lg disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <span v-if="isLoading" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                {{ isLoading ? 'Creando...' : 'Crear Tarea' }}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </Transition>
@@ -190,7 +175,7 @@ const props = defineProps({
     required: true,
   },
   parentId: {
-    type: String,
+    type: [String, Number],
     required: true,
   },
   parentType: {
@@ -214,6 +199,19 @@ const formData = ref({
   dateDue: '',
 })
 
+// Validación computed
+const isFormValid = computed(() => {
+  return (
+    formData.value.title.trim() !== '' &&
+    formData.value.priority !== '' &&
+    formData.value.dateStart !== '' &&
+    formData.value.dateDue !== '' &&
+    props.parentId &&
+    props.parentId !== 'undefined' &&
+    props.parentId !== 'null'
+  )
+})
+
 // Inicializar fechas por defecto (hoy y mañana a las 12:00)
 watch(
   () => props.isOpen,
@@ -222,6 +220,8 @@ watch(
       const today = new Date()
       const tomorrow = new Date(today)
       tomorrow.setDate(tomorrow.getDate() + 1)
+      today.setHours(9, 0, 0, 0)
+      tomorrow.setHours(9, 0, 0, 0)
 
       formData.value.dateStart = formatDateTimeLocal(today)
       formData.value.dateDue = formatDateTimeLocal(tomorrow)
@@ -249,7 +249,6 @@ function formatDateTimeLocal(date) {
 function formatDateForBackend(dateTimeLocalString) {
   if (!dateTimeLocalString) return null
 
-  // dateTimeLocalString está en formato: 2026-01-09T14:30
   const [date, time] = dateTimeLocalString.split('T')
   const [hours, minutes] = time.split(':')
 
@@ -264,12 +263,6 @@ async function submitForm() {
 
   // Limpiar errores previos
   errors.value = {}
-
-  // Validación crítica: Parent ID debe existir y ser válido
-  if (!props.parentId || props.parentId === 'undefined' || props.parentId === 'null') {
-    errors.value.general = 'No se puede crear tarea sin entidad padre asociada. Por favor recarga la página.'
-    return
-  }
 
   // Validaciones básicas del cliente
   if (!formData.value.title.trim()) {
@@ -301,6 +294,12 @@ async function submitForm() {
     return
   }
 
+  // Validación crítica: Parent ID debe existir y ser válido
+  if (!props.parentId || props.parentId === 'undefined' || props.parentId === 'null') {
+    errors.value.general = 'Error: No se puede crear tarea sin entidad padre asociada. Por favor recarga la página.'
+    return
+  }
+
   isLoading.value = true
 
   try {
@@ -312,7 +311,7 @@ async function submitForm() {
       date_start: formatDateForBackend(formData.value.dateStart),
       date_due: formatDateForBackend(formData.value.dateDue),
       parent_type: props.parentType,
-      parent_id: props.parentId,
+      parent_id: String(props.parentId),
     }
 
     // Llamar acción del store
@@ -362,17 +361,54 @@ async function submitForm() {
 function closeModal() {
   emit('close')
   errors.value = {}
+  formData.value = {
+    title: '',
+    description: '',
+    priority: 'Medium',
+    dateStart: '',
+    dateDue: '',
+  }
+}
+
+function onEnter(el) {
+  el.style.animation = 'none'
+  el.offsetHeight
+  el.style.animation = ''
+}
+
+function onLeave(el) {
+  el.style.animation = ''
 }
 </script>
 
 <style scoped>
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.3s ease;
+.modal-enter-active {
+  animation: modalFadeIn 0.3s ease-out;
 }
 
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
+.modal-leave-active {
+  animation: modalFadeOut 0.2s ease-in;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes modalFadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
 }
 </style>
