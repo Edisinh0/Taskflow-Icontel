@@ -44,6 +44,8 @@ Route::prefix('v1')->group(function () {
 
         // Clientes y CRM
         Route::apiResource('clients', ClientController::class);
+        Route::get('clients/{client}/full-history', [ClientController::class, 'getFullHistory']);
+        Route::get('clients/{client}/recommended-templates', [ClientController::class, 'recommendedTemplates']);
         Route::apiResource('client-contacts', ClientContactController::class);
         Route::apiResource('client-attachments', ClientAttachmentController::class);
         Route::apiResource('industries', IndustryController::class);

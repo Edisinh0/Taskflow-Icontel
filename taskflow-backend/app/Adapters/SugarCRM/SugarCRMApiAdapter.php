@@ -325,6 +325,200 @@ class SugarCRMApiAdapter
     }
 
     /**
+     * Obtener historial completo de una cuenta (Account) con todas sus relaciones
+     *
+     * Orquesta múltiples llamadas get_entry_list para obtener:
+     * - Oportunidades (account_id = {clientId})
+     * - Casos (account_id = {clientId})
+     * - Cotizaciones (billing_account_id = {clientId})
+     * - Contactos (account_id = {clientId})
+     * - Tareas (parent_id en casos y oportunidades encontrados)
+     *
+     * Jerarquía SuiteCRM: Cuenta > Oportunidades/Casos > Tareas
+     */
+    public function getAccountFullHistory(string $sessionId, string $accountId): array
+    {
+        try {
+            Log::info('Iniciando getAccountFullHistory', ['account_id' => $accountId]);
+
+            // 1. Obtener Oportunidades de la Cuenta
+            $opportunities = $this->getOpportunitiesByAccount($sessionId, $accountId);
+
+            // 2. Obtener Casos de la Cuenta
+            $cases = $this->getCasesByAccount($sessionId, $accountId);
+
+            // 3. Obtener Cotizaciones de la Cuenta
+            $quotes = $this->getQuotesByAccount($sessionId, $accountId);
+
+            // 4. Obtener Contactos de la Cuenta
+            $contacts = $this->getContactsByAccount($sessionId, $accountId);
+
+            // 5. Obtener Tareas recursivamente (parent_id en casos y oportunidades)
+            $opportunityIds = array_map(fn($opp) => $opp['id'], $opportunities);
+            $caseIds = array_map(fn($case) => $case['id'], $cases);
+            $allParentIds = array_merge($opportunityIds, $caseIds);
+
+            $tasks = [];
+            if (!empty($allParentIds)) {
+                $tasks = $this->getTasksByParentIds($sessionId, $allParentIds);
+            }
+
+            $result = [
+                'account_id' => $accountId,
+                'opportunities' => $opportunities,
+                'cases' => $cases,
+                'quotes' => $quotes,
+                'contacts' => $contacts,
+                'tasks' => $tasks,
+                'summary' => [
+                    'total_opportunities' => count($opportunities),
+                    'total_cases' => count($cases),
+                    'total_quotes' => count($quotes),
+                    'total_contacts' => count($contacts),
+                    'total_tasks' => count($tasks),
+                ]
+            ];
+
+            Log::info('getAccountFullHistory completado', [
+                'account_id' => $accountId,
+                'summary' => $result['summary']
+            ]);
+
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::error('getAccountFullHistory error', [
+                'account_id' => $accountId,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Obtener oportunidades de una cuenta específica
+     */
+    private function getOpportunitiesByAccount(string $sessionId, string $accountId): array
+    {
+        $query = "opportunities.account_id = '{$accountId}' AND opportunities.deleted = 0";
+        $selectFields = [
+            'id', 'name', 'sales_stage', 'amount', 'currency_id', 'probability',
+            'date_closed', 'date_entered', 'assigned_user_name', 'account_id'
+        ];
+
+        try {
+            $result = $this->getEntriesByModule($sessionId, 'Opportunities', $query, $selectFields, ['max_results' => 100]);
+            return $result['entry_list'] ?? [];
+        } catch (\Exception $e) {
+            Log::warning('Error fetching opportunities for account', [
+                'account_id' => $accountId,
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Obtener casos de una cuenta específica
+     */
+    private function getCasesByAccount(string $sessionId, string $accountId): array
+    {
+        $query = "cases.account_id = '{$accountId}' AND cases.deleted = 0";
+        $selectFields = [
+            'id', 'name', 'case_number', 'status', 'priority', 'type',
+            'date_entered', 'assigned_user_name', 'account_id'
+        ];
+
+        try {
+            $result = $this->getEntriesByModule($sessionId, 'Cases', $query, $selectFields, ['max_results' => 100]);
+            return $result['entry_list'] ?? [];
+        } catch (\Exception $e) {
+            Log::warning('Error fetching cases for account', [
+                'account_id' => $accountId,
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Obtener cotizaciones de una cuenta específica
+     */
+    private function getQuotesByAccount(string $sessionId, string $accountId): array
+    {
+        $query = "quotes.billing_account_id = '{$accountId}' AND quotes.deleted = 0";
+        $selectFields = [
+            'id', 'name', 'quote_num', 'total', 'currency_id', 'status',
+            'date_entered', 'assigned_user_name', 'billing_account_id'
+        ];
+
+        try {
+            $result = $this->getEntriesByModule($sessionId, 'Quotes', $query, $selectFields, ['max_results' => 100]);
+            return $result['entry_list'] ?? [];
+        } catch (\Exception $e) {
+            Log::warning('Error fetching quotes for account', [
+                'account_id' => $accountId,
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Obtener contactos de una cuenta específica
+     */
+    private function getContactsByAccount(string $sessionId, string $accountId): array
+    {
+        $query = "contacts.account_id = '{$accountId}' AND contacts.deleted = 0";
+        $selectFields = [
+            'id', 'first_name', 'last_name', 'email1', 'phone_mobile',
+            'title', 'date_entered', 'account_id'
+        ];
+
+        try {
+            $result = $this->getEntriesByModule($sessionId, 'Contacts', $query, $selectFields, ['max_results' => 100]);
+            return $result['entry_list'] ?? [];
+        } catch (\Exception $e) {
+            Log::warning('Error fetching contacts for account', [
+                'account_id' => $accountId,
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Obtener tareas por lista de parent_ids (casos y oportunidades)
+     * Filtro: tasks.parent_id IN ({lista_de_ids})
+     */
+    private function getTasksByParentIds(string $sessionId, array $parentIds): array
+    {
+        if (empty($parentIds)) {
+            return [];
+        }
+
+        // Construir query IN para parent_ids
+        $idsList = "'" . implode("','", $parentIds) . "'";
+        $query = "tasks.parent_id IN ({$idsList}) AND tasks.deleted = 0";
+
+        $selectFields = [
+            'id', 'name', 'status', 'priority', 'date_due', 'date_entered',
+            'assigned_user_name', 'parent_type', 'parent_id', 'parent_name', 'description'
+        ];
+
+        try {
+            $result = $this->getEntriesByModule($sessionId, 'Tasks', $query, $selectFields, ['max_results' => 500]);
+            return $result['entry_list'] ?? [];
+        } catch (\Exception $e) {
+            Log::warning('Error fetching tasks for parent_ids', [
+                'parent_ids_count' => count($parentIds),
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
+    }
+
+    /**
      * Verificar si hay conexión con SugarCRM
      */
     public function ping(): bool

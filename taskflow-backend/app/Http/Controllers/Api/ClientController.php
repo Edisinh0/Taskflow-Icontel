@@ -5,10 +5,16 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Template;
+use App\Services\AccountContextService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ClientController extends Controller
 {
+    public function __construct(
+        private AccountContextService $accountContextService
+    ) {}
+
     /**
      * Display a listing of the resource.
      */
@@ -166,5 +172,49 @@ class ClientController extends Controller
                 "Plantillas recomendadas para {$client->industry->name}" :
                 'Todas las plantillas disponibles'
         ]);
+    }
+
+    /**
+     * Get full account context from SuiteCRM
+     * Includes: Opportunities, Cases, Quotes, Contacts, and related Tasks
+     * GET /api/v1/clients/{id}/full-history
+     */
+    public function getFullHistory(Client $client)
+    {
+        try {
+            if (!$client->sweetcrm_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cliente no vinculado a SuiteCRM'
+                ], 400);
+            }
+
+            $context = $this->accountContextService->getFullAccountContext($client->sweetcrm_id);
+
+            return response()->json([
+                'success' => true,
+                'client' => [
+                    'id' => $client->id,
+                    'name' => $client->name,
+                    'sweetcrm_id' => $client->sweetcrm_id,
+                    'email' => $client->email,
+                    'phone' => $client->phone,
+                ],
+                'crm_context' => $context
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('ClientController::getFullHistory Error', [
+                'client_id' => $client->id,
+                'sweetcrm_id' => $client->sweetcrm_id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar contexto del cliente',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 }
