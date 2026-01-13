@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Log;
 
 class TaskController extends Controller
 {
+    // Task Controller for API endpoints with SuiteCRM integration
     protected SweetCrmService $sweetCrmService;
     protected SugarCRMApiAdapter $sugarCRMAdapter;
 
@@ -71,6 +72,7 @@ class TaskController extends Controller
     /**
      * Obtener tareas asignadas al usuario autenticado (activas)
      * GET /api/v1/my-tasks
+     * Incluye tareas ligadas a CASOS Y OPORTUNIDADES
      */
     public function myTasks(Request $request)
     {
@@ -85,7 +87,15 @@ class TaskController extends Controller
         }
 
         // Filtrar tareas asignadas al usuario Y que estén activas (no completadas ni canceladas)
-        $query = Task::with(['flow', 'crmCase', 'crmCase.client', 'parentTask'])
+        // Eager load: casos, oportunidades, y sus relaciones asociadas
+        $query = Task::with([
+            'flow',
+            'crmCase',
+            'crmCase.client',
+            'opportunity',           // ← NUEVO: Cargar datos de oportunidad
+            'opportunity.client',    // ← NUEVO: Cargar cliente de la oportunidad
+            'parentTask'
+        ])
             ->where('assignee_id', $user->id)
             ->whereIn('status', ['pending', 'in_progress', 'blocked', 'paused']);
 
