@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\CrmOpportunity;
 use App\Models\Client;
+use App\Models\Task;
+use App\Models\User;
 use App\Services\SweetCrmService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -70,7 +72,12 @@ class SyncSweetCrmOpportunities extends Command
         $this->syncOpportunities($sessionId, $limitOption);
         $this->newLine();
 
-        $this->info('✅ Sincronización de Oportunidades completada.');
+        // 3. Sincronizar Tareas vinculadas a Oportunidades
+        $this->line('3️⃣  Sincronizando Tareas de Oportunidades...');
+        $this->syncOpportunitiesTasks($sessionId, $limitOption);
+        $this->newLine();
+
+        $this->info('✅ Sincronización de Oportunidades y Tareas completada.');
         return 0;
     }
 
@@ -212,5 +219,154 @@ class SyncSweetCrmOpportunities extends Command
         }
 
         $this->info("   📊 Total oportunidades sincronizadas: $synced");
+    }
+
+    protected function syncOpportunitiesTasks(string $sessionId, int $limit)
+    {
+        $offset = 0;
+        $chunkSize = 250;
+        $synced = 0;
+        $maxToSync = $limit > 0 ? $limit * 10 : 5000; // Sincronizar más tareas que oportunidades
+
+        $this->info('   📋 Obteniendo tareas vinculadas a Oportunidades...');
+
+        // Obtener todas las tareas vinculadas a Oportunidades (parent_type = 'Opportunities')
+        while ($synced < $maxToSync) {
+            $entries = $this->sweetCrmService->getTasks($sessionId, [
+                'query' => "tasks.parent_type = 'Opportunities'",
+                'offset' => $offset,
+                'max_results' => $chunkSize,
+                'order_by' => 'date_modified DESC',
+            ]);
+
+            if (empty($entries)) break;
+
+            $bar = $this->output->createProgressBar(count($entries));
+            $bar->start();
+
+            foreach ($entries as $entry) {
+                try {
+                    $nvl = $entry['name_value_list'];
+                    $sweetId = $entry['id'];
+                    $parentId = $nvl['parent_id']['value'] ?? '';
+                    $parentType = $nvl['parent_type']['value'] ?? 'Opportunities';
+
+                    // Buscar la oportunidad vinculada
+                    $opportunity = CrmOpportunity::where('sweetcrm_id', $parentId)->first();
+                    if (!$opportunity) {
+                        $bar->advance();
+                        continue;
+                    }
+
+                    // Obtener información del usuario asignado y creador
+                    $assignedUserId = $nvl['assigned_user_id']['value'] ?? null;
+                    $createdById = $nvl['created_by']['value'] ?? null;
+
+                    $assignee = $assignedUserId ? User::where('sweetcrm_id', $assignedUserId)->first() : null;
+                    $creator = $createdById ? User::where('sweetcrm_id', $createdById)->first() : null;
+
+                    // Mapear estado de SuiteCRM a estados locales
+                    $status = $this->mapTaskStatus($nvl['status']['value'] ?? 'Not Started');
+
+                    // Mapear prioridad
+                    $priority = $this->mapTaskPriority($nvl['priority']['value'] ?? '');
+
+                    // Validar y limpiar valores de fecha
+                    $dateStartRaw = $nvl['date_start']['value'] ?? null;
+                    $dateStart = (!empty($dateStartRaw) && $dateStartRaw !== '') ? $dateStartRaw : null;
+
+                    $dateDueRaw = $nvl['date_due']['value'] ?? null;
+                    $dateDue = (!empty($dateDueRaw) && $dateDueRaw !== '') ? $dateDueRaw : null;
+
+                    $dateEnteredRaw = $nvl['date_entered']['value'] ?? null;
+                    $dateEntered = (!empty($dateEnteredRaw) && $dateEnteredRaw !== '') ? $dateEnteredRaw : null;
+
+                    $dateModifiedRaw = $nvl['date_modified']['value'] ?? null;
+                    $dateModified = (!empty($dateModifiedRaw) && $dateModifiedRaw !== '') ? $dateModifiedRaw : null;
+
+                    // Actualizar o crear tarea
+                    $task = Task::updateOrCreate(
+                        ['sweetcrm_id' => $sweetId],
+                        [
+                            'title' => $nvl['name']['value'] ?? 'Sin título',
+                            'description' => $nvl['description']['value'] ?? null,
+                            'opportunity_id' => $opportunity->id,
+                            'assignee_id' => $assignee?->id,
+                            'created_by' => $creator?->id,
+                            'status' => $status,
+                            'priority' => $priority,
+                            'estimated_start_at' => $dateStart,
+                            'estimated_end_at' => $dateDue,
+                            'sweetcrm_parent_id' => $parentId,
+                            'sweetcrm_parent_type' => $parentType,
+                            'date_entered' => $dateEntered,
+                            'date_modified' => $dateModified,
+                            'sweetcrm_synced_at' => now(),
+                        ]
+                    );
+
+                    $synced++;
+                } catch (\Exception $e) {
+                    $this->error("\n   ❌ Error en Tarea {$entry['id']}: " . $e->getMessage());
+                    Log::error('Error syncing opportunity task', [
+                        'task_id' => $entry['id'] ?? 'unknown',
+                        'error' => $e->getMessage()
+                    ]);
+                }
+                $bar->advance();
+            }
+
+            $bar->finish();
+            $this->newLine();
+
+            $offset += count($entries);
+            if (count($entries) < $chunkSize) break;
+        }
+
+        $this->info("   📊 Total tareas sincronizadas: $synced");
+    }
+
+    /**
+     * Mapear estado de SuiteCRM a estados locales
+     * Valores válidos del ENUM: pending, blocked, in_progress, paused, completed, cancelled
+     */
+    private function mapTaskStatus(string $sugarStatus): string
+    {
+        $status = trim(strtolower($sugarStatus));
+
+        // Mapeo directo
+        $map = [
+            'not started' => 'pending',
+            'in progress' => 'in_progress',
+            'completed' => 'completed',
+            'pending' => 'pending',
+            'pending input' => 'pending',
+            'deferred' => 'paused',
+            'blocked' => 'blocked',
+            'cancelled' => 'cancelled',
+            // Mapeos adicionales para estados customizados de SuiteCRM
+            'pendiente_cliente' => 'pending',
+            'atrasada' => 'in_progress',
+            'reasignada' => 'pending',
+        ];
+
+        return $map[$status] ?? 'pending';
+    }
+
+    /**
+     * Mapear prioridad de SuiteCRM a prioridades locales
+     */
+    private function mapTaskPriority(string $sugarPriority): string
+    {
+        $map = [
+            'High' => 'high',
+            'Medium' => 'medium',
+            'Low' => 'low',
+            '1' => 'high',
+            '2' => 'medium',
+            '3' => 'low',
+        ];
+
+        return $map[trim($sugarPriority)] ?? 'medium';
     }
 }

@@ -130,6 +130,7 @@ export const dashboardAPI = {
 // ========== OPPORTUNITIES & SALES ==========
 export const opportunitiesAPI = {
   getAll: (params) => api.get('opportunities', { params }),
+  getOne: (id) => api.get(`opportunities/${id}`),
   sendToOperations: (id) => api.post(`opportunities/${id}/send-to-operations`),
 }
 

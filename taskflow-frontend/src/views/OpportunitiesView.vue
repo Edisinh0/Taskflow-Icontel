@@ -185,7 +185,7 @@
                   {{ selectedOpportunity.client?.name || 'Cliente no vinculado' }}
                 </p>
               </div>
-              <button @click="selectedOpportunity = null" class="p-3 bg-white dark:bg-slate-700 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-2xl shadow-sm border border-slate-100 dark:border-white/10 transition-all">
+              <button @click="selectedOpportunity = null; selectedTask = null" class="p-3 bg-white dark:bg-slate-700 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-2xl shadow-sm border border-slate-100 dark:border-white/10 transition-all">
                 <X :size="20" />
               </button>
             </div>
@@ -196,10 +196,11 @@
             
             <!-- Tabs de Navegación -->
             <div class="px-8 pt-4 border-b border-slate-100 dark:border-white/5 flex gap-6">
-              <button 
+              <button
                 v-for="tab in [
                   { id: 'details', label: 'Detalles', icon: Building2 },
                   { id: 'tasks', label: 'Tareas', icon: ListTodo },
+                  { id: 'cases', label: 'Casos', icon: Briefcase },
                   { id: 'timeline', label: 'Avances', icon: History }
                 ]"
                 :key="tab.id"
@@ -297,7 +298,7 @@
                   <div
                     v-for="task in opportunityDetail.tasks"
                     :key="task.id"
-                    @click="openTaskDetail(task)"
+                    @click.stop="() => { console.log('🖱️ Task clicked:', task); openTaskDetail(task) }"
                     class="bg-white dark:bg-slate-700/50 p-4 rounded-2xl border border-slate-100 dark:border-white/10 flex items-center justify-between hover:shadow-md transition-all group cursor-pointer"
                   >
                     <div class="flex items-center gap-4">
@@ -322,6 +323,29 @@
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <!-- TAB: CASOS -->
+              <div v-else-if="activeTab === 'cases'" class="space-y-4">
+                <div class="flex items-center justify-between mb-4">
+                  <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300">
+                    Casos Relacionados ({{ opportunityDetail?.related_cases?.length || 0 }})
+                  </h4>
+                  <button
+                    @click="showCreateCaseModal = true"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors shadow-md hover:shadow-lg"
+                  >
+                    <Plus :size="18" />
+                    Nuevo Caso
+                  </button>
+                </div>
+
+                <RelatedCasesList
+                  :cases="opportunityDetail?.related_cases || []"
+                  :loading="loadingDetail"
+                  parent-type="Oportunidad"
+                  @view-case="navigateToCase"
+                />
               </div>
 
               <!-- TAB: TIMELINE / AVANCES -->
@@ -375,8 +399,8 @@
 
           <!-- Footer del Modal -->
           <div class="p-8 border-t border-slate-100 dark:border-white/5 flex justify-end gap-3 bg-slate-50/50 dark:bg-white/5">
-            <button 
-              @click="selectedOpportunity = null"
+            <button
+              @click="selectedOpportunity = null; selectedTask = null"
               class="px-6 py-3 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-2xl border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-sm"
             >
               Cerrar
@@ -396,6 +420,17 @@
       @close="showTaskModal = false"
       @task-created="handleTaskCreated"
       @success="handleTaskCreationSuccess"
+    />
+
+    <!-- Modal de creación de caso para oportunidades -->
+    <CaseCreateModal
+      v-if="showCreateCaseModal"
+      :isOpen="showCreateCaseModal"
+      :defaultAccountId="opportunityDetail?.client?.sweetcrm_id"
+      :defaultOpportunityId="selectedOpportunity?.sweetcrm_id"
+      :opportunityName="selectedOpportunity?.name"
+      @close="showCreateCaseModal = false"
+      @case-created="handleCaseCreated"
     />
 
     <!-- Modal de Detalle de Tarea -->
@@ -575,16 +610,21 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { opportunitiesAPI } from '@/services/api'
 import api from '@/services/api'
 import Navbar from '@/components/AppNavbar.vue'
 import TaskCreateModal from '@/components/TaskCreateModal.vue'
+import RelatedCasesList from '@/components/RelatedCasesList.vue'
+import CaseCreateModal from '@/components/CaseCreateModal.vue'
 import {
   TrendingUp, Search, RefreshCw, Briefcase, User,
   Rocket, PackageOpen, CheckCircle, Clock, TrendingDown,
   Eye, X, ListTodo, Building2, History, MessageCircle, Send, Loader2, Plus
 } from 'lucide-vue-next'
+
+const router = useRouter()
 
 const opportunities = ref([])
 const loading = ref(false)
@@ -611,7 +651,18 @@ const updatingTask = ref(false)
 
 // Task creation modal state
 const showTaskModal = ref(false)
+const showCreateCaseModal = ref(false)
 const availableUsers = ref([])
+
+// Watcher para selectedTask
+watch(selectedTask, (newVal) => {
+  if (newVal) {
+    console.log('👀 selectedTask updated:', newVal)
+    console.log('Modal should be visible now, selectedTask.id:', newVal.id)
+  } else {
+    console.log('❌ selectedTask cleared')
+  }
+}, { immediate: true })
 
 const fetchOpportunities = async () => {
   loading.value = true
@@ -642,9 +693,13 @@ const showOpportunityDetail = async (opp) => {
   loadingDetail.value = true
   
   try {
-    const response = await api.get(`/api/v1/opportunities/${opp.id}`)
+    const response = await api.get(`opportunities/${opp.id}`)
     opportunityDetail.value = response.data.data
     console.log('Oportunidad detallada cargada:', opportunityDetail.value)
+    console.log('📋 Tareas cargadas:', opportunityDetail.value.tasks)
+    if (opportunityDetail.value.tasks && opportunityDetail.value.tasks.length > 0) {
+      console.log('Primera tarea estructura:', opportunityDetail.value.tasks[0])
+    }
   } catch (error) {
     console.error('Error fetching opportunity detail:', error)
     opportunityDetail.value = opp
@@ -653,9 +708,23 @@ const showOpportunityDetail = async (opp) => {
   }
 }
 
-const openTaskDetail = (task) => {
+const openTaskDetail = async (task) => {
+  console.log('🔍 openTaskDetail called with task:', task)
   selectedTask.value = { ...task }
   taskActiveTab.value = 'details'
+  console.log('✅ selectedTask.value now:', selectedTask.value)
+
+  // Cargar datos completos de la tarea incluyendo updates si es necesario
+  try {
+    const response = await api.get(`tasks/${task.id}`)
+    if (response.data.data) {
+      console.log('📥 Task data loaded from API:', response.data.data)
+      selectedTask.value = response.data.data
+    }
+  } catch (error) {
+    console.error('Error loading task details:', error)
+    // Mantener los datos que tenemos si falla la carga
+  }
 }
 
 const handleTaskCreated = (newTask) => {
@@ -739,17 +808,17 @@ const sendUpdate = async () => {
 
 const sendTaskUpdate = async () => {
   if (!newTaskUpdateContent.value.trim() || !selectedTask.value) return
-  
+
   sendingTaskUpdate.value = true
   try {
     const response = await api.post(`/api/v1/tasks/${selectedTask.value.id}/updates`, {
       content: newTaskUpdateContent.value
     })
-    
+
     if (!selectedTask.value.updates) {
       selectedTask.value.updates = []
     }
-    
+
     selectedTask.value.updates.unshift(response.data.data)
     newTaskUpdateContent.value = ''
   } catch (error) {
@@ -758,6 +827,30 @@ const sendTaskUpdate = async () => {
   } finally {
     sendingTaskUpdate.value = false
   }
+}
+
+const navigateToCase = (crmCase) => {
+  // Navegar a CasesView con el caso seleccionado
+  router.push({
+    name: 'cases',
+    query: {
+      caseId: crmCase.id
+    }
+  })
+
+  // Cerrar el modal de oportunidad
+  selectedOpportunity.value = null
+}
+
+const handleCaseCreated = (newCase) => {
+  // Agregar el caso recién creado a la lista
+  if (opportunityDetail.value) {
+    if (!Array.isArray(opportunityDetail.value.related_cases)) {
+      opportunityDetail.value.related_cases = []
+    }
+    opportunityDetail.value.related_cases.unshift(newCase)
+  }
+  showCreateCaseModal.value = false
 }
 
 const filteredOpportunities = computed(() => {

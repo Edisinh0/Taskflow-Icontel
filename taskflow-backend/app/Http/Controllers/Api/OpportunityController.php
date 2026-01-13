@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\CrmOpportunity;
+use App\Models\CrmCase;
 use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -82,22 +83,39 @@ class OpportunityController extends Controller
 
     /**
      * Ver detalles de una oportunidad
-     * Incluye tareas con información de asignados
+     * Incluye tareas, casos relacionados y actualizaciones
      */
     public function show($id)
     {
+        // Logging para debugging
+        \Log::info("OpportunityController::show called with id: {$id}");
+
+        // Intentar encontrar por ID local primero, luego por sweetcrm_id
         $opportunity = CrmOpportunity::with([
             'client',
-            'quotes:id,opportunity_id,status,total_amount,currency',
+            'quotes:id,opportunity_id,status,total_amount',
             'tasks' => function($q) {
                 // Cargar tareas con información del asignado
                 $q->select('id', 'opportunity_id', 'title', 'status', 'priority', 'assignee_id', 'description', 'progress', 'created_at')
                   ->with(['assignee:id,name']); // ← Cargar datos del asignado
             }
-        ])->findOrFail($id);
+        ])->where('id', $id)->orWhere('sweetcrm_id', $id)->firstOrFail();
+
+        // Cargar casos relacionados por account_id compartido
+        $relatedCases = [];
+        if ($opportunity->client && $opportunity->client->sweetcrm_id) {
+            $relatedCases = CrmCase::with([
+                'assigned_user:id,name',
+                'client:id,name'
+            ])
+            ->where('sweetcrm_account_id', $opportunity->client->sweetcrm_id)
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+        }
 
         // Cargar actualizaciones de la oportunidad
-        $opportunity->updates = \App\Models\CaseUpdate::where('opportunity_id', $id)
+        $opportunity->updates = \App\Models\CaseUpdate::where('opportunity_id', $opportunity->id)
             ->with(['user:id,name', 'attachments'])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -112,8 +130,12 @@ class OpportunityController extends Controller
             }
         }
 
+        // Agregar casos relacionados al response
+        $opportunityArray = $opportunity->toArray();
+        $opportunityArray['related_cases'] = $relatedCases;
+
         return response()->json([
-            'data' => $opportunity
+            'data' => $opportunityArray
         ]);
     }
 
