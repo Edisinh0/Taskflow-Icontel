@@ -9,13 +9,6 @@
           <h2 class="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">Dashboard</h2>
           <p class="text-slate-500 dark:text-slate-400 mt-1 text-lg">Bienvenido de nuevo, <span class="text-blue-500 dark:text-blue-400 font-semibold">{{ authStore.currentUser?.name }}</span></p>
         </div>
-        <button
-          @click="openTaskCreationModal"
-          class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl hover:from-blue-700 hover:to-indigo-700 font-bold transition-all shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20 hover:scale-105 active:scale-95 whitespace-nowrap"
-        >
-          <Plus class="w-5 h-5 mr-2" />
-          Nueva Tarea
-        </button>
       </div>
 
       <!-- Estadísticas Principales -->

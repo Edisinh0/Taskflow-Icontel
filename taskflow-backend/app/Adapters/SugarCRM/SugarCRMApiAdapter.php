@@ -264,6 +264,67 @@ class SugarCRMApiAdapter
     }
 
     /**
+     * Método genérico para obtener entradas de cualquier módulo
+     * Utilizado para dashboard unificado y queries personalizadas
+     */
+    public function getEntriesByModule(
+        string $sessionId,
+        string $moduleName,
+        string $query,
+        array $selectFields,
+        array $options = []
+    ): array {
+        $maxResults = $options['max_results'] ?? 100;
+        $offset = $options['offset'] ?? 0;
+        $orderBy = $options['order_by'] ?? '';
+        $deleted = $options['deleted'] ?? 0;
+
+        try {
+            $response = Http::timeout($this->timeout)
+                ->asForm()
+                ->post("{$this->baseUrl}{$this->apiEndpoint}", [
+                    'method' => 'get_entry_list',
+                    'input_type' => 'JSON',
+                    'response_type' => 'JSON',
+                    'rest_data' => json_encode([
+                        'session' => $sessionId,
+                        'module_name' => $moduleName,
+                        'query' => $query,
+                        'order_by' => $orderBy,
+                        'offset' => $offset,
+                        'select_fields' => $selectFields,
+                        'link_name_to_fields_array' => [],
+                        'max_results' => $maxResults,
+                        'deleted' => $deleted,
+                    ])
+                ]);
+
+            if (!$response->successful()) {
+                throw new \Exception("HTTP Error {$response->status()}: {$response->body()}");
+            }
+
+            $data = $response->json();
+
+            if ($this->isSessionInvalid($data)) {
+                throw new \Exception('Invalid Session ID');
+            }
+
+            return [
+                'entry_list' => $data['entry_list'] ?? [],
+                'result_count' => $data['result_count'] ?? 0,
+                'next_offset' => $data['next_offset'] ?? 0,
+            ];
+
+        } catch (\Exception $e) {
+            Log::error("SugarCRM API Error for module {$moduleName}", [
+                'error' => $e->getMessage(),
+                'query' => $query
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
      * Verificar si hay conexión con SugarCRM
      */
     public function ping(): bool

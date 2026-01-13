@@ -40,6 +40,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/dashboard/area-content', [DashboardController::class, 'getAreaBasedContent']);
         Route::get('/dashboard/delegated', [DashboardController::class, 'getDelegated']);
         Route::get('/dashboard/delegated-sales', [DashboardController::class, 'getDelegatedSales']);
+        Route::get('/dashboard/crm-overview', [DashboardController::class, 'getCrmOverview']);
 
         // Clientes y CRM
         Route::apiResource('clients', ClientController::class);

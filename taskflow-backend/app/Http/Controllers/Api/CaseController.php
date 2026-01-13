@@ -20,13 +20,22 @@ class CaseController extends Controller
     public function index(Request $request)
     {
         $perPage = min(50, max(10, (int) $request->get('per_page', 20)));
-        
+
         // Eager loading con campos específicos para optimizar
         $query = CrmCase::with([
             'client:id,name', // Solo campos necesarios
             'assignedUser:id,name,department,sweetcrm_id'
         ])
         ->withCount('tasks'); // Conteo eficiente sin cargar la relación completa
+
+        // FILTER BY AUTHENTICATED USER - Cases should show only those assigned to the current user
+        $user = auth()->user();
+        if ($user && $user->sweetcrm_id) {
+            $query->where('sweetcrm_assigned_user_id', $user->sweetcrm_id);
+        } else {
+            // If user is not linked to SweetCRM, show no cases
+            $query->where('id', 0);
+        }
 
         // Filtrar por cliente
         if ($request->has('client_id')) {
@@ -64,21 +73,19 @@ class CaseController extends Controller
             });
         }
 
-        // Filtro de "Mis Casos"
-        if ($request->has('assigned_to_me') && $request->assigned_to_me) {
-            $user = auth()->user();
-            if ($user && $user->sweetcrm_id) {
-                $query->where('sweetcrm_assigned_user_id', $user->sweetcrm_id);
-            } else {
-                $query->where('id', 0); // No devolver nada si no tiene ID de CRM
-            }
+        // Optional: Explicit assigned_to_me filter (for backward compatibility)
+        // This is now redundant but kept for explicit requests
+        if ($request->has('assigned_to_me') && !$request->assigned_to_me) {
+            // If user explicitly sets assigned_to_me=false, show all cases (admin only)
+            // For now, we still enforce the filter. Remove the filter below to allow all cases.
+            // $query = CrmCase::with(...); // Reset query - commented out, always filter by user
         }
 
         // Ordenar y paginar: Primero por creación en CRM, luego por creación local
         $paginator = $query->orderBy('sweetcrm_created_at', 'desc')
                            ->orderBy('created_at', 'desc')
                            ->paginate($perPage);
-        
+
         // Retornar usando el Resource para optimizar el JSON
         return CaseResource::collection($paginator);
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\SweetCrmService;
+use App\Services\CrmDashboardService;
 use App\DTOs\SugarCRM\SugarCRMCaseDTO;
 use App\DTOs\SugarCRM\SugarCRMTaskDTO;
 use Illuminate\Http\Request;
@@ -12,10 +13,12 @@ use Illuminate\Support\Facades\Log;
 class DashboardController extends Controller
 {
     protected SweetCrmService $sweetCrmService;
+    protected CrmDashboardService $crmDashboardService;
 
-    public function __construct(SweetCrmService $sweetCrmService)
+    public function __construct(SweetCrmService $sweetCrmService, CrmDashboardService $crmDashboardService)
     {
         $this->sweetCrmService = $sweetCrmService;
+        $this->crmDashboardService = $crmDashboardService;
     }
 
     /**
@@ -761,6 +764,64 @@ class DashboardController extends Controller
                 'success' => false,
                 'message' => 'Error al obtener tareas delegadas',
                 'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Dashboard unificado CRM: Casos, Tareas y Oportunidades
+     * Vista consolidada de todos los elementos CRM asignados al usuario desde SuiteCRM API v4.1
+     *
+     * Responde con:
+     * - Tareas: nombre, estado, fecha_vencimiento, relacionado_con_nombre (Caso o Cuenta)
+     * - Casos: nombre, estado, case_number, relacionado_con_nombre (Cuenta)
+     * - Oportunidades: nombre, estado, monto, probabilidad, relacionado_con_nombre (Cuenta)
+     *
+     * GET /api/v1/dashboard/crm-overview
+     */
+    public function getCrmOverview(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            if (!$user || !$user->sweetcrm_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no vinculado a SuiteCRM'
+                ], 403);
+            }
+
+            Log::info('Dashboard CRM Overview - Usuario solicitado', [
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'sweetcrm_id' => $user->sweetcrm_id
+            ]);
+
+            $dashboard = $this->crmDashboardService->getUnifiedDashboard($user->sweetcrm_id);
+
+            Log::info('Dashboard CRM Overview - Datos cargados', [
+                'user_id' => $user->id,
+                'items' => count($dashboard['items']),
+                'summary' => $dashboard['summary']
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $dashboard['items'],
+                'summary' => $dashboard['summary']
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Dashboard CRM Overview Error', [
+                'user_id' => $request->user()?->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar dashboard CRM',
+                'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }

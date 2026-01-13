@@ -82,13 +82,18 @@ class OpportunityController extends Controller
 
     /**
      * Ver detalles de una oportunidad
+     * Incluye tareas con información de asignados
      */
     public function show($id)
     {
         $opportunity = CrmOpportunity::with([
             'client',
             'quotes:id,opportunity_id,status,total_amount,currency',
-            'tasks:id,opportunity_id,title,status,priority,assignee_id,description,progress,created_at',
+            'tasks' => function($q) {
+                // Cargar tareas con información del asignado
+                $q->select('id', 'opportunity_id', 'title', 'status', 'priority', 'assignee_id', 'description', 'progress', 'created_at')
+                  ->with(['assignee:id,name']); // ← Cargar datos del asignado
+            }
         ])->findOrFail($id);
 
         // Cargar actualizaciones de la oportunidad
