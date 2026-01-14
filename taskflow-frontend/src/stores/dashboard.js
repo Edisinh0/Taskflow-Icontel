@@ -227,7 +227,17 @@ export const useDashboardStore = defineStore('dashboard', {
                     }
                 }));
             });
-            return [...tasksFromCases, ...state.orphanTasks];
+
+            // Enriquecer tareas huérfanas con propiedades que podrían faltar
+            const enrichedOrphanTasks = state.orphanTasks.map(t => ({
+                ...t,
+                // Asegurar que opportunity está presente si la tarea viene de una oportunidad
+                opportunity: t.opportunity || (t.type === 'opportunity' ? { name: 'Oportunidad', id: t.opportunity_id } : undefined),
+                // Asegurar que account_name está disponible
+                account_name: t.account_name || t.client_name || '-'
+            }));
+
+            return [...tasksFromCases, ...enrichedOrphanTasks];
         },
 
         // Display string

@@ -176,11 +176,15 @@ export const useCasesStore = defineStore('cases', () => {
     }
 
     /**
-     * Cargar estadísticas
+     * Cargar estadísticas con filtros aplicados
+     * Si no se pasan parámetros, se usan los filtros actuales
      */
-    async function fetchStats() {
+    async function fetchStats(params = null) {
         try {
-            const response = await api.get('cases/stats')
+            // Usar filtros pasados o los actuales del store
+            const queryParams = params || buildParams(1)
+
+            const response = await api.get('cases/stats', { params: queryParams })
             const s = response.data
 
             stats.value = {
@@ -200,10 +204,15 @@ export const useCasesStore = defineStore('cases', () => {
 
     /**
      * Actualizar filtros y recargar
+     * Refetch tanto casos como estadísticas para mantenerlas en sync
      */
     function setFilter(key, value) {
         filters.value[key] = value
-        fetchCases(true) // Reset a página 1
+        // Recargar casos y estadísticas en paralelo
+        Promise.all([
+            fetchCases(true), // Reset a página 1
+            fetchStats() // Refetch stats con nuevos filtros
+        ])
     }
 
     /**
@@ -217,7 +226,11 @@ export const useCasesStore = defineStore('cases', () => {
             area: 'all',
             assigned_to_me: false
         }
-        fetchCases(true)
+        // Recargar casos y estadísticas en paralelo
+        Promise.all([
+            fetchCases(true),
+            fetchStats() // Refetch stats con filtros limpios
+        ])
     }
 
     /**

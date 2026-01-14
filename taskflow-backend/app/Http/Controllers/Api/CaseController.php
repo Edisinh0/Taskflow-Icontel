@@ -28,13 +28,13 @@ class CaseController extends Controller
         ])
         ->withCount('tasks'); // Conteo eficiente sin cargar la relación completa
 
-        // FILTER BY AUTHENTICATED USER - Cases should show only those assigned to the current user
-        $user = auth()->user();
-        if ($user && $user->sweetcrm_id) {
-            $query->where('sweetcrm_assigned_user_id', $user->sweetcrm_id);
-        } else {
-            // If user is not linked to SweetCRM, show no cases
-            $query->where('id', 0);
+        // OPTIONAL: Filter by current user if assigned_to_me filter is explicitly enabled
+        // By default, show all cases (remove automatic user filtering)
+        if ($request->boolean('assigned_to_me')) {
+            $user = auth()->user();
+            if ($user && $user->sweetcrm_id) {
+                $query->where('sweetcrm_assigned_user_id', $user->sweetcrm_id);
+            }
         }
 
         // Filtrar por cliente
@@ -343,25 +343,84 @@ class CaseController extends Controller
      * Obtener estadísticas de casos
      * Optimizado con consultas agregadas
      */
-    public function stats()
+    public function stats(Request $request)
     {
-        // Usar caché para estadísticas si es posible (opcional)
+        // Construir query base con filtros opcionales
+        $query = CrmCase::query();
+
+        // OPTIONAL: Filter by current user if assigned_to_me filter is explicitly enabled
+        // By default, show stats for all cases (remove automatic user filtering)
+        if ($request->boolean('assigned_to_me')) {
+            $user = auth()->user();
+            if ($user && $user->sweetcrm_id) {
+                $query->where('sweetcrm_assigned_user_id', $user->sweetcrm_id);
+            }
+        }
+
+        // Filtro: estado
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        // Filtro: prioridad
+        if ($request->filled('priority') && $request->priority !== 'all') {
+            $query->where('priority', $request->priority);
+        }
+
+        // Filtro: búsqueda
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('subject', 'like', "%{$search}%")
+                  ->orWhere('case_number', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        // Filtro: área (Departamento del usuario asignado)
+        if ($request->filled('area') && $request->area !== 'all') {
+            $query->whereHas('assignedUser', function($q) use ($request) {
+                $q->where('department', $request->area);
+            });
+        }
+
+        // Obtener total con filtros aplicados
+        $total = $query->count();
+
+        // Estadísticas por estado
+        $byStatus = (clone $query)->select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->get();
+
+        // Estadísticas por prioridad
+        $byPriority = (clone $query)->select('priority', DB::raw('count(*) as count'))
+            ->groupBy('priority')
+            ->get();
+
+        // Estadísticas por área
+        $byArea = (clone $query)
+            ->with('assignedUser:id,department')
+            ->select('sweetcrm_assigned_user_id', DB::raw('count(*) as count'))
+            ->groupBy('sweetcrm_assigned_user_id')
+            ->get()
+            ->map(function ($item) {
+                return (object)[
+                    'area' => $item->assignedUser?->department ?? 'Sin Área',
+                    'count' => $item->count
+                ];
+            });
+
+        // Tareas totales relacionadas a los casos filtrados (si disponible)
+        $taskTotal = DB::table('tasks')
+            ->whereNotNull('case_id')
+            ->count();
+
         return response()->json([
-            'total' => CrmCase::count(),
-            'by_status' => CrmCase::select('status', DB::raw('count(*) as count'))
-                ->groupBy('status')
-                ->get(),
-            'by_priority' => CrmCase::select('priority', DB::raw('count(*) as count'))
-                ->groupBy('priority')
-                ->get(),
-            'by_area' => DB::table('crm_cases')
-                ->join('users', 'crm_cases.sweetcrm_assigned_user_id', '=', 'users.sweetcrm_id')
-                ->select('users.department as area', DB::raw('count(*) as count'))
-                ->groupBy('users.department')
-                ->get(),
-            'tasks_total' => DB::table('tasks')
-                ->whereNotNull('case_id')
-                ->count()
+            'total' => $total,
+            'by_status' => $byStatus,
+            'by_priority' => $byPriority,
+            'by_area' => $byArea,
+            'tasks_total' => $taskTotal
         ]);
     }
 }

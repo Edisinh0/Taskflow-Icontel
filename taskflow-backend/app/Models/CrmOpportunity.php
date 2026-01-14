@@ -14,6 +14,7 @@ class CrmOpportunity extends Model
         'name',
         'sweetcrm_id',
         'sales_stage',
+        'status',
         'amount',
         'amount_usd',
         'currency',

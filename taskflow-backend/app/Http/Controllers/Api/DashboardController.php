@@ -238,10 +238,15 @@ class DashboardController extends Controller
             // Consultar TAREAS desde la base de datos local
             // Estados locales de Taskflow (no los de SweetCRM)
             // Incluir todos los estados activos: pending, in_progress, blocked, paused
-            // Las tareas completadas/canceladas se excluyen
-            $activeTaskStatuses = ['pending', 'in_progress', 'blocked', 'paused'];
-            $tasksQuery = \App\Models\Task::with(['crmCase', 'crmCase.client', 'assignee'])
-                ->whereIn('status', $activeTaskStatuses);
+            // También incluir tareas completadas si tienen oportunidad asociada (para ver historial de oportunidades)
+            $tasksQuery = \App\Models\Task::with(['crmCase', 'crmCase.client', 'assignee', 'opportunity', 'opportunity.client'])
+                ->where(function($q) {
+                    $q->whereIn('status', ['pending', 'in_progress', 'blocked', 'paused'])
+                      ->orWhere(function($q2) {
+                          $q2->where('status', 'completed')
+                             ->whereNotNull('opportunity_id');
+                      });
+                });
 
             // Las tareas SIEMPRE son personales (asignadas al usuario actual)
             $tasksQuery->where('assignee_id', $user->id);
@@ -329,12 +334,17 @@ class DashboardController extends Controller
                             'status' => $task->status,
                             'priority' => $task->priority ?? 'Medium',
                             'assigned_user_name' => $task->assignee->name ?? 'Sin asignar',
+                            'assignee' => $task->assignee ? [
+                                'id' => $task->assignee->id,
+                                'name' => $task->assignee->name,
+                            ] : null,
                             'date_due' => $task->estimated_end_at,
                             'due_date' => $task->estimated_end_at,
                             'estimated_end_at' => $task->estimated_end_at,
                             'estimated_start_at' => $task->estimated_start_at,
                             'date_entered' => $task->created_at,
                             'case_id' => $task->case_id,
+                            'opportunity_id' => $task->opportunity_id,
                             'client' => null,
                             'client_name' => null,
                         ];
@@ -347,6 +357,19 @@ class DashboardController extends Controller
                                 'sweetcrm_id' => $case->client->sweetcrm_id,
                             ];
                             $taskData['client_name'] = $case->client->name;
+                        }
+
+                        // Si la tarea tiene una oportunidad asociada, incluir información
+                        if ($task->opportunity_id && $task->opportunity) {
+                            $taskData['opportunity'] = [
+                                'id' => $task->opportunity->id,
+                                'sweetcrm_id' => $task->opportunity->sweetcrm_id,
+                                'name' => $task->opportunity->name,
+                            ];
+                            $taskData['type'] = 'opportunity';
+                            if ($task->opportunity->client) {
+                                $taskData['account_name'] = $task->opportunity->client->name;
+                            }
                         }
 
                         return $taskData;
@@ -366,6 +389,10 @@ class DashboardController extends Controller
                     'status' => $task->status,
                     'priority' => $task->priority ?? 'Medium',
                     'assigned_user_name' => $task->assignee->name ?? 'Sin asignar',
+                    'assignee' => $task->assignee ? [
+                        'id' => $task->assignee->id,
+                        'name' => $task->assignee->name,
+                    ] : null,
                     'date_due' => $task->estimated_end_at,
                     'date_entered' => $task->created_at,
                     'case_id' => $task->case_id, // ID local del caso
@@ -390,6 +417,22 @@ class DashboardController extends Controller
                             'sweetcrm_id' => $task->crmCase->client->sweetcrm_id,
                         ];
                         $taskData['client_name'] = $task->crmCase->client->name;
+                    }
+                }
+
+                // Si la tarea tiene una oportunidad asociada, incluir información
+                if ($task->opportunity_id && $task->opportunity) {
+                    $taskData['opportunity'] = [
+                        'id' => $task->opportunity->id,
+                        'sweetcrm_id' => $task->opportunity->sweetcrm_id,
+                        'name' => $task->opportunity->name,
+                    ];
+                    $taskData['type'] = 'opportunity';
+
+                    // Incluir nombre de la cuenta si está disponible
+                    if ($task->opportunity->client) {
+                        $taskData['account_name'] = $task->opportunity->client->name;
+                        $taskData['client_name'] = $task->opportunity->client->name;
                     }
                 }
 
@@ -597,7 +640,7 @@ class DashboardController extends Controller
                 $taskStatus = $nvl['status']['value'] ?? 'Not Started';
 
                 if (in_array($taskStatus, $activeTaskStatuses)) {
-                    $delegatedData['tasks'][] = [
+                    $taskData = [
                         'id' => $task['id'],
                         'type' => 'task',
                         'title' => $nvl['name']['value'] ?? 'Sin nombre',
@@ -608,6 +651,18 @@ class DashboardController extends Controller
                         'date_due' => $nvl['date_due']['value'] ?? null,
                         'date_entered' => $nvl['date_entered']['value'] ?? null,
                     ];
+
+                    // Verificar si la tarea está vinculada a una oportunidad
+                    $parentId = $nvl['parent_id']['value'] ?? null;
+                    $parentType = $nvl['parent_type']['value'] ?? null;
+
+                    if ($parentType === 'Opportunities' && $parentId) {
+                        $taskData['opportunity_id'] = $parentId;
+                        $taskData['type'] = 'opportunity'; // Marcar como tarea de oportunidad
+                        $taskData['parent_type'] = 'Opportunities';
+                    }
+
+                    $delegatedData['tasks'][] = $taskData;
 
                     $delegatedData['total']++;
                     $delegatedData['pending']++;
@@ -663,6 +718,7 @@ class DashboardController extends Controller
      */
     public function getDelegated(Request $request)
     {
+        \Log::info("🚀 getDelegated() method called for user: " . $request->user()->email);
         try {
             $user = $request->user();
 
@@ -693,6 +749,9 @@ class DashboardController extends Controller
                 ->get();
 
             foreach ($delegatedCases as $case) {
+                // Obtener el usuario asignado si existe
+                $assignedUser = \App\Models\User::where('sweetcrm_id', $case->sweetcrm_assigned_user_id)->first();
+
                 $delegatedData['cases'][] = [
                     'id' => $case->id, // ID LOCAL (integer)
                     'type' => 'case',
@@ -701,6 +760,10 @@ class DashboardController extends Controller
                     'status' => $case->status,
                     'priority' => $case->priority ?? 'Normal',
                     'assigned_user_name' => $case->assigned_user_name ?? 'Sin asignar',
+                    'assignee' => $assignedUser ? [
+                        'id' => $assignedUser->id,
+                        'name' => $assignedUser->name,
+                    ] : null,
                     'created_by_name' => $case->original_creator_name,
                     'date_entered' => $case->sweetcrm_created_at ?? $case->created_at,
                 ];
@@ -719,6 +782,7 @@ class DashboardController extends Controller
                           ->where('assignee_id', '!=', $user->id);
                 })
                 ->whereIn('status', ['pending', 'in_progress'])
+                ->with(['assignee', 'opportunity', 'crmCase']) // ← Eager load relaciones para detectar tipo de tarea
                 ->orderBy('created_at', 'desc')
                 ->limit(100)
                 ->get();
@@ -731,9 +795,14 @@ class DashboardController extends Controller
                     'status' => $task->status,
                     'priority' => $task->priority ?? 'Medium',
                     'assigned_user_name' => $task->assignee->name ?? 'Sin asignar',
+                    'assignee' => $task->assignee ? [
+                        'id' => $task->assignee->id,
+                        'name' => $task->assignee->name,
+                    ] : null,
                     'date_due' => $task->estimated_end_at,
                     'date_entered' => $task->created_at,
                     'case_id' => $task->case_id,
+                    'opportunity_id' => $task->opportunity_id,
                 ];
 
                 // Si la tarea tiene un caso asociado, incluir info del caso
@@ -743,6 +812,21 @@ class DashboardController extends Controller
                         'case_number' => $task->crmCase->case_number,
                         'subject' => $task->crmCase->subject,
                     ];
+                }
+
+                // Si la tarea tiene una oportunidad asociada, incluir info de la oportunidad
+                if ($task->opportunity_id && $task->opportunity) {
+                    \Log::info("🔍 Task {$task->id} has opportunity: {$task->opportunity->name}");
+                    $taskData['opportunity'] = [
+                        'id' => $task->opportunity->id,
+                        'sweetcrm_id' => $task->opportunity->sweetcrm_id,
+                        'name' => $task->opportunity->name,
+                    ];
+                    // Si es de oportunidad, cambiar el tipo
+                    $taskData['type'] = 'opportunity';
+                    \Log::info("✅ Task {$task->id} marked as type='opportunity'");
+                } else {
+                    \Log::info("❌ Task {$task->id}: opp_id={$task->opportunity_id}, has_opp=" . ($task->opportunity ? 'YES' : 'NO'));
                 }
 
                 $delegatedData['tasks'][] = $taskData;

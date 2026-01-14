@@ -3,76 +3,118 @@
     <Navbar />
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Header Seccion -->
-      <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-        <div>
-          <h2 class="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight flex items-center gap-3">
-             <div class="p-2 bg-blue-100 dark:bg-blue-500/10 rounded-xl">
-                <TrendingUp class="w-8 h-8 text-blue-600 dark:text-blue-400" />
-             </div>
-             Oportunidades SweetCRM
-          </h2>
-          <p class="text-slate-500 dark:text-slate-400 mt-2 font-medium flex items-center gap-2">
-            Gestiona tus oportunidades de venta y dispara flujos operativos.
-          </p>
-        </div>
-        
-        <!-- Stats Rápidas -->
-        <div class="flex items-center gap-4">
-           <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm text-center min-w-[120px]">
-              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Pipeline</p>
-              <p class="text-xl font-black text-slate-800 dark:text-white mt-1">{{ formatCurrency(totalPipeline) }}</p>
-           </div>
-           <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm text-center min-w-[100px]">
-              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Abiertas</p>
-              <p class="text-xl font-black text-blue-600 dark:text-blue-400 mt-1">{{ opportunities.length }}</p>
-           </div>
-        </div>
-      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <!-- Sidebar de Filtros -->
+        <div class="lg:col-span-1 space-y-6">
+          <div class="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl shadow-sm dark:shadow-lg p-6 border border-slate-200 dark:border-white/5 sticky top-24">
+            <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+              <Filter :size="20" class="text-blue-500" />
+              Filtros
+            </h3>
 
-      <!-- Barra de Filtros -->
-      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm mb-8 flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center gap-4 flex-1 min-w-[300px]">
-          <div class="relative flex-1">
-            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input 
-              v-model="search" 
-              type="text" 
-              placeholder="Buscar por nombre u oportunidad..." 
-              class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white"
-            />
+            <div class="space-y-6">
+              <!-- Búsqueda -->
+              <div>
+                <label class="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-widest">
+                  Buscar
+                </label>
+                <div class="relative">
+                  <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" :size="16" />
+                  <input
+                    v-model="search"
+                    type="text"
+                    placeholder="Nombre, cliente..."
+                    class="w-full pl-10 pr-4 py-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm outline-none"
+                  >
+                </div>
+              </div>
+
+              <!-- Etapa -->
+              <div>
+                <label class="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-widest">
+                  Etapa
+                </label>
+                <select
+                  v-model="filterStage"
+                  class="w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm outline-none font-medium"
+                >
+                  <option value="">Todas las etapas</option>
+                  <option value="Prospecting">Prospección</option>
+                  <option value="Levantamiento">Levantamiento</option>
+                  <option value="Proposal/Price Quote">Propuesta / Cotización</option>
+                  <option value="Negotiation/Review">Negociación</option>
+                  <option value="Proyecto">Proyecto</option>
+                  <option value="Firmar_Contrato">Firmar Contrato</option>
+                  <option value="Facturacion">Facturación</option>
+                  <option value="Facturado">Facturado</option>
+                  <option value="Closed Won">Cerrada Ganada</option>
+                  <option value="Closed Lost">Cerrada Perdida</option>
+                </select>
+              </div>
+
+              <!-- Monto -->
+              <div>
+                <label class="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-widest">
+                  Monto Mín.
+                </label>
+                <input
+                  v-model.number="minAmount"
+                  type="number"
+                  placeholder="0"
+                  class="w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm outline-none font-medium"
+                />
+              </div>
+
+              <div class="pt-4 border-t border-slate-200 dark:border-white/5">
+                <button
+                  @click="handleClearFilters"
+                  class="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white font-bold transition-all text-sm border border-slate-200 dark:border-white/10"
+                >
+                  Limpiar Filtros
+                </button>
+              </div>
+
+              <div class="pt-4 border-t border-slate-200 dark:border-white/5">
+                <button
+                  @click="fetchOpportunities"
+                  class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+                  :disabled="loading"
+                >
+                  <RefreshCw :class="{'animate-spin': loading}" class="w-4 h-4" />
+                  Sincronizar
+                </button>
+              </div>
+            </div>
           </div>
-          <select v-model="filterStage" class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm outline-none dark:text-white">
-            <option value="">Todas las etapas</option>
-            <option value="Prospecting">Prospección</option>
-            <option value="Levantamiento">Levantamiento</option>
-            <option value="Proposal/Price Quote">Propuesta / Cotización</option>
-            <option value="Negotiation/Review">Negociación</option>
-            <option value="Proyecto">Proyecto</option>
-            <option value="Firmar_Contrato">Firmar Contrato</option>
-            <option value="Facturacion">Facturación</option>
-            <option value="Facturado">Facturado</option>
-            <option value="Closed Won">Cerrada Ganada</option>
-            <option value="Closed Lost">Cerrada Perdida</option>
-          </select>
         </div>
-        
-        <button 
-          @click="fetchOpportunities" 
-          class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95"
-          :disabled="loading"
-        >
-          <RefreshCw :class="{'animate-spin': loading}" class="w-4 h-4" />
-          Sincronizar
-        </button>
-      </div>
 
-      <!-- Grid de Oportunidades -->
-      <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div v-for="i in 6" :key="i" class="h-64 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-2xl"></div>
-      </div>
+        <!-- Contenido Principal -->
+        <div class="lg:col-span-3 space-y-6">
+          <!-- Estadísticas -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl shadow-sm dark:shadow-lg p-6 border border-slate-200 dark:border-white/5 relative overflow-hidden">
+              <div class="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 dark:bg-blue-500/10 rounded-bl-full -mr-4 -mt-4"></div>
+              <p class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Total Oportunidades</p>
+              <p class="text-4xl font-black text-slate-800 dark:text-white mt-2">{{ opportunities.length }}</p>
+            </div>
+            <div class="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl shadow-sm dark:shadow-lg p-6 border border-slate-200 dark:border-white/5 relative overflow-hidden">
+              <div class="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-bl-full -mr-4 -mt-4"></div>
+              <p class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Total Pipeline</p>
+              <p class="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-2">{{ formatCurrency(totalPipeline) }}</p>
+            </div>
+            <div class="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-3xl shadow-sm dark:shadow-lg p-6 border border-slate-200 dark:border-white/5 relative overflow-hidden">
+              <div class="absolute top-0 right-0 w-20 h-20 bg-amber-500/5 dark:bg-amber-500/10 rounded-bl-full -mr-4 -mt-4"></div>
+              <p class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Visualizadas</p>
+              <p class="text-4xl font-black text-amber-600 dark:text-amber-400 mt-2">{{ filteredOpportunities.length }}</p>
+            </div>
+          </div>
 
-      <div v-else-if="filteredOpportunities.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Grid de Oportunidades -->
+          <div v-if="loading" class="grid grid-cols-1 gap-4">
+            <div v-for="i in 5" :key="i" class="h-32 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-2xl"></div>
+          </div>
+
+          <div v-else-if="filteredOpportunities.length" class="grid grid-cols-1 gap-4">
         <div 
           v-for="opp in filteredOpportunities" 
           :key="opp.id" 
@@ -138,10 +180,12 @@
         </div>
       </div>
 
-      <div v-else class="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-300 dark:border-white/10">
-          <PackageOpen class="w-16 h-16 text-slate-300 mb-4" />
-          <h3 class="text-xl font-bold text-slate-800 dark:text-white">No hay oportunidades</h3>
-          <p class="text-slate-500">Sincroniza con SweetCRM para ver tus oportunidades de venta.</p>
+          <div v-else class="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-300 dark:border-white/10">
+            <PackageOpen class="w-16 h-16 text-slate-300 mb-4" />
+            <h3 class="text-xl font-bold text-slate-800 dark:text-white">No hay oportunidades</h3>
+            <p class="text-slate-500">Sincroniza con SweetCRM para ver tus oportunidades de venta.</p>
+          </div>
+        </div>
       </div>
     </main>
 
@@ -610,8 +654,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch, watchEffect } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { opportunitiesAPI } from '@/services/api'
 import api from '@/services/api'
 import Navbar from '@/components/AppNavbar.vue'
@@ -621,16 +665,18 @@ import CaseCreateModal from '@/components/CaseCreateModal.vue'
 import {
   TrendingUp, Search, RefreshCw, Briefcase, User,
   Rocket, PackageOpen, CheckCircle, Clock, TrendingDown,
-  Eye, X, ListTodo, Building2, History, MessageCircle, Send, Loader2, Plus
+  Eye, X, ListTodo, Building2, History, MessageCircle, Send, Loader2, Plus, Filter
 } from 'lucide-vue-next'
 
 const router = useRouter()
+const route = useRoute()
 
 const opportunities = ref([])
 const loading = ref(false)
 const loadingDetail = ref(false)
 const search = ref('')
 const filterStage = ref('')
+const minAmount = ref(0)
 const sending = ref(null)
 const showSuccessModal = ref(false)
 const lastTriggeredOppName = ref('')
@@ -667,17 +713,14 @@ watch(selectedTask, (newVal) => {
 const fetchOpportunities = async () => {
   loading.value = true
   try {
-    const response = await opportunitiesAPI.getAll()
-    if (response.data.pagination) {
-      opportunities.value = response.data.data
-    } else if (Array.isArray(response.data.data)) {
-      opportunities.value = response.data.data
-    } else if (Array.isArray(response.data)) {
-      opportunities.value = response.data
+    // Cargar todas las oportunidades sin paginación
+    const response = await opportunitiesAPI.getAll({ per_page: 5000 })
+    if (response.data.data) {
+      opportunities.value = Array.isArray(response.data.data) ? response.data.data : []
     } else {
       opportunities.value = []
     }
-    console.log('Oportunidades cargadas:', opportunities.value.length)
+    console.log('✅ Oportunidades cargadas:', opportunities.value.length)
   } catch (error) {
     console.error('Error fetching opportunities:', error)
     opportunities.value = []
@@ -855,10 +898,16 @@ const handleCaseCreated = (newCase) => {
 
 const filteredOpportunities = computed(() => {
   return opportunities.value.filter(opp => {
-    const matchesSearch = opp.name.toLowerCase().includes(search.value.toLowerCase()) || 
-                          (opp.client?.name || '').toLowerCase().includes(search.value.toLowerCase())
+    const searchLower = search.value.toLowerCase()
+    const matchesSearch = !search.value ||
+                          opp.name.toLowerCase().includes(searchLower) ||
+                          (opp.client?.name || '').toLowerCase().includes(searchLower) ||
+                          (opp.description || '').toLowerCase().includes(searchLower)
+
     const matchesStage = !filterStage.value || opp.sales_stage === filterStage.value
-    return matchesSearch && matchesStage
+    const matchesAmount = !minAmount.value || parseFloat(opp.amount || 0) >= minAmount.value
+
+    return matchesSearch && matchesStage && matchesAmount
   })
 })
 
@@ -893,6 +942,12 @@ const formatDateWithHour = (dateString) => {
   if (!dateString) return '-'
   const date = new Date(dateString)
   return date.toLocaleDateString('es-CL') + ' ' + date.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
+}
+
+const handleClearFilters = () => {
+  search.value = ''
+  filterStage.value = ''
+  minAmount.value = 0
 }
 
 const translateStage = (stage) => {
@@ -977,6 +1032,45 @@ onMounted(async () => {
       console.error('Error fetching users:', err)
     })
   ])
+
+  // Detectar si hay un opportunityId en los query params y abrir automáticamente
+  if (route.query.opportunityId) {
+    console.log('📍 OpportunitiesView: Detected opportunityId in query:', route.query.opportunityId)
+    const oppId = parseInt(route.query.opportunityId, 10)
+    // Buscar la oportunidad en la lista cargada
+    const opp = opportunities.value.find(o => o.id === oppId || o.sweetcrm_id === route.query.opportunityId)
+    if (opp) {
+      console.log('✅ Found opportunity, opening detail modal:', opp)
+      setTimeout(() => showOpportunityDetail(opp), 100)
+    } else {
+      console.log('⚠️ Opportunity not found in loaded list, trying to fetch directly...')
+      // Si no está en la lista, intentar cargarlo directamente
+      try {
+        const response = await api.get(`opportunities/${route.query.opportunityId}`)
+        if (response.data.data) {
+          selectedOpportunity.value = response.data.data
+          opportunityDetail.value = response.data.data
+          activeTab.value = 'details'
+          loadingDetail.value = false
+          console.log('✅ Opportunity loaded directly from API')
+        }
+      } catch (error) {
+        console.error('Error loading opportunity directly:', error)
+      }
+    }
+  }
+})
+
+// Watcher para detectar cambios en el query param
+watchEffect(() => {
+  if (route.query.opportunityId && !selectedOpportunity.value) {
+    console.log('👁️ Route changed with opportunityId:', route.query.opportunityId)
+    const oppId = parseInt(route.query.opportunityId, 10)
+    const opp = opportunities.value.find(o => o.id === oppId || o.sweetcrm_id === route.query.opportunityId)
+    if (opp) {
+      setTimeout(() => showOpportunityDetail(opp), 100)
+    }
+  }
 })
 </script>
 

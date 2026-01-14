@@ -17,7 +17,7 @@ class OpportunityController extends Controller
      */
     public function index(Request $request)
     {
-        $perPage = min(50, max(10, (int) $request->get('per_page', 20)));
+        $perPage = min(5000, max(10, (int) $request->get('per_page', 20)));
         
         // Eager loading con campos específicos
         $query = CrmOpportunity::with([
@@ -105,7 +105,7 @@ class OpportunityController extends Controller
         $relatedCases = [];
         if ($opportunity->client && $opportunity->client->sweetcrm_id) {
             $relatedCases = CrmCase::with([
-                'assigned_user:id,name',
+                'assignedUser:id,name',
                 'client:id,name'
             ])
             ->where('sweetcrm_account_id', $opportunity->client->sweetcrm_id)

@@ -255,7 +255,7 @@
             <thead class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/5">
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Tarea</th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Caso/Proyecto</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Caso/Oportunidad</th>
                 <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Cliente</th>
                 <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Fecha Inicio</th>
                 <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Fecha Término</th>
@@ -272,15 +272,18 @@
                 <td class="px-6 py-4">
                   <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ task.title }}</h4>
                   <p v-if="task.crm_case" class="text-[10px] text-blue-600 dark:text-blue-400 font-mono mt-0.5">#{{ task.crm_case.case_number }}</p>
+                  <p v-else-if="task.opportunity_id" class="text-[10px] text-amber-600 dark:text-amber-400 font-mono mt-0.5">#OPP-{{ task.opportunity_id }}</p>
                 </td>
                 <td class="px-6 py-4">
                   <p class="text-xs text-slate-700 dark:text-slate-300 font-medium">
-                    {{ task.crm_case ? task.crm_case.subject : task.flow?.name }}
+                    {{ task.crm_case ? task.crm_case.subject : task.opportunity?.name || task.flow?.name || 'Sin vinculación' }}
                   </p>
                   <p v-if="task.crm_case" class="text-[10px] text-slate-400 mt-0.5">Caso CRM</p>
+                  <p v-else-if="task.opportunity?.name" class="text-[10px] text-slate-400 mt-0.5">Oportunidad</p>
+                  <p v-else-if="task.flow?.name" class="text-[10px] text-slate-400 mt-0.5">Flujo</p>
                 </td>
                 <td class="px-6 py-4">
-                  <p class="text-xs text-slate-500">{{ task.crm_case?.client?.name || '-' }}</p>
+                  <p class="text-xs text-slate-500">{{ task.crm_case?.client?.name || task.opportunity?.account_name || '-' }}</p>
                 </td>
                 <td class="px-6 py-4">
                   <p class="text-xs text-slate-500">{{ formatDate(task.estimated_start_at) }}</p>
@@ -606,7 +609,7 @@
                   <span v-if="task.crm_case" class="inline-block px-2 py-1 text-xs font-bold rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
                     Caso
                   </span>
-                  <span v-else-if="task.opportunity" class="inline-block px-2 py-1 text-xs font-bold rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20">
+                  <span v-else-if="task.opportunity || task.type === 'opportunity'" class="inline-block px-2 py-1 text-xs font-bold rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20">
                     Oportunidad
                   </span>
                   <span v-else class="inline-block px-2 py-1 text-xs font-bold rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-600">
@@ -779,12 +782,20 @@ const delegatedTasks = computed(() => {
                 subject: o.title,
                 assigned_user: { name: o.assigned_user_name }
             })),
-            ...dashboardStore.delegatedSales.tasks.map(t => ({
-                ...t,
-                type: 'task',
-                subject: t.title,
-                assigned_user: { name: t.assigned_user_name }
-            }))
+            ...dashboardStore.delegatedSales.tasks.map(t => {
+                const mapped = {
+                    ...t,
+                    // Respetar el tipo que viene del backend (puede ser 'opportunity' si la tarea viene de una oportunidad)
+                    type: t.type || 'task',
+                    subject: t.title,
+                    assigned_user: { name: t.assigned_user_name }
+                }
+                // Debug: log tasks marked as opportunity type
+                if (t.type === 'opportunity') {
+                    console.log('🔍 Oportunidad delegada encontrada:', { id: t.id, title: t.title, type: t.type, opportunity_id: t.opportunity_id })
+                }
+                return mapped
+            })
         ];
     } else {
         // Para otros: casos delegados + tareas delegadas
@@ -795,12 +806,20 @@ const delegatedTasks = computed(() => {
                 subject: c.title,
                 assigned_user: { name: c.assigned_user_name }
             })),
-            ...dashboardStore.delegated.tasks.map(t => ({
-                ...t,
-                type: 'task',
-                subject: t.title,
-                assigned_user: { name: t.assigned_user_name }
-            }))
+            ...dashboardStore.delegated.tasks.map(t => {
+                const mapped = {
+                    ...t,
+                    // Respetar el tipo que viene del backend (puede ser 'opportunity' si la tarea viene de una oportunidad)
+                    type: t.type || 'task',
+                    subject: t.title,
+                    assigned_user: { name: t.assigned_user_name }
+                }
+                // Debug: log tasks marked as opportunity type
+                if (t.type === 'opportunity') {
+                    console.log('🔍 Oportunidad delegada encontrada:', { id: t.id, title: t.title, type: t.type, opportunity_id: t.opportunity_id })
+                }
+                return mapped
+            })
         ];
     }
 
@@ -1081,15 +1100,21 @@ const calculateProgress = (flow) => {
 }
 
 const handleTaskClick = (task) => {
+  console.log('🖱️ handleTaskClick invoked with task:', task)
+
   // Si es un caso, navegar a la vista de casos
   if (task.type === 'case') {
+    console.log('📋 Navigating to case:', task.id)
     router.push({ path: '/cases', query: { caseId: task.id } })
     return
   }
 
-  // Si es una oportunidad, navegar a la vista de oportunidades
+  // Si es una oportunidad o tarea de oportunidad, navegar a la vista de oportunidades
   if (task.type === 'opportunity') {
-    router.push({ path: '/opportunities', query: { opportunityId: task.id } })
+    // Usar opportunity_id si existe (para tareas que vienen de oportunidades)
+    const opportunityId = task.opportunity_id || task.id
+    console.log('💼 Navigating to opportunity:', opportunityId, 'from task:', task.id)
+    router.push({ path: '/opportunities', query: { opportunityId: opportunityId } })
     return
   }
 
@@ -1097,9 +1122,11 @@ const handleTaskClick = (task) => {
   const caseId = task.crm_case?.id || task.case_id
   if (caseId) {
     // Si la tarea pertenece a un caso CRM, ir a la vista de casos con el ID del caso
+    console.log('📌 Navigating to task in case:', caseId)
     router.push({ path: '/cases', query: { caseId: caseId, taskId: task.id } })
   } else if (task.flow_id) {
     // Si la tarea pertenece a un flujo, ir al detalle del flujo
+    console.log('🔄 Navigating to flow:', task.flow_id)
     router.push(`/flows/${task.flow_id}`)
   }
   // Si es una tarea sin caso y sin flujo, no navegar (es una tarea delegada aislada)
